@@ -1,0 +1,189 @@
+---
+title: "Untitled"
+author: "Bowman RL"
+date: "5/27/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_knit$set(root.dir = '/Users/bowmanr/Projects/scDNA/')
+```
+
+```{r,message=FALSE}
+setwd("/Users/bowmanr/Projects/scDNA/")
+file<-("/Users/bowmanr/Projects/scDNA/data/Sample1962.dna+protein.h5")
+file <- ("/Volumes/LevineLab/Levine Lab/MissionBio_Tapestri/TapestriV2_output/SC/H5/SC_B40.dna+protein.h5")
+file<- c("/Volumes/LevineLab/Levine Lab/MissionBio_Tapestri/TapestriV2_output/LAM/H5/DP_0034.dna+protein.h5")
+```
+
+Now we will move to extracting variant data.  For the sake of processing time, we will first impose a cutoff that a given variant must be present in at least 1% of cells.  This is a cutoff we used in our manuscript.  This is a subjective cutoff, and will likely be a varying feature for many studies.
+
+```{r}
+library(scDNA)
+NGT<-read_tapestri_h5_NGT(file)
+filtered_NGT<-quality_filter_NGT(file=file,
+                                 NGT=NGT,
+                                 DP_cut=10, 
+                                 AF_cut=20,
+                                 GQ_cut=20)
+
+```
+
+
+```{r}
+library(VariantAnnotation)
+library(GenomicRanges)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(tidyverse)
+
+annotation_key <-read.csv("/Users/bowmanr/Projects/scDNA/data/annotation_key.csv")
+hg19refseq_txdb<-loadDb(file="/Users/bowmanr/Projects/scDNA/data/hg19refseq_txdb.sqlite")
+banned <-read.csv("/Users/bowmanr/Projects/scDNA//data/banned_list.csv")[,1]
+
+annotation_key%<>%inner_join(VariantAnnotation::select(hg19refseq_txdb,
+                                    keys=annotation_key$ccds_id,
+                                    columns=c("TXID","TXNAME"),
+                                    keytype = "TXNAME"),
+                             by=c("ccds_id"="TXNAME"))%>%
+                  mutate(TXID=as.character(TXID))
+
+final_mutation_info<- annotate_variants(file="/Users/bowmanr/Projects/scDNA/data/Sample1962.dna+protein.h5",
+                             annotation_key=annotation_key,
+                             txdb=hg19refseq_txdb,
+                             banned=banned,
+                             NGT=filtered_NGT)
+
+final_mutation_info%>%arrange(desc(Bulk_VAF))
+```
+
+The above annotates all mutations greater than 1% bulk VAF in cells for which they were successfully genotyped.  We can go in two directions here.  For samples selected with specific variants of interest, we can pick them out precisely.  For a "discovery mode" we can pass a reasonable set of rules. We can also use these in concert for a hybrid approach.
+```{r}
+required_variants<- final_mutation_info%>%
+                      #  filter(grepl("RAS|NPM1.2|CSF|PTPN|IDH",AA))%>%
+                        filter(Bulk_VAF>2&GT_call_rate>1)%>%
+                        filter(CONSEQUENCE%in%c("nonsynonymous","frameshift"))%>%
+                        dplyr::select(id,Bulk_VAF,GT_call_rate,AA)%>%
+                        pull(id)
+
+required_cells<-filtered_NGT%>%dplyr::select(Cell,tidyselect::all_of(required_variants))%>%
+                    filter(across(.cols = !Cell,.fns = ~ !is.na(.x)))%>%
+                    pull(Cell)
+```
+
+
+What other variants could we also look into thoough?
+```{r}
+library(ggplot2)
+library(RColorBrewer)
+library(cowplot)
+coding_variants<- final_mutation_info%>%
+                        filter(!grepl("intronic",AA))%>%
+                        filter(CONSEQUENCE!="synonymous")%>%
+                        filter(GT_call_rate>10)%>%
+                        filter(Bulk_VAF>0.1)%>%
+                       filter(grepl("IDH|RAS|DNMT3A}|NPM1",AA))%>%
+                     # dplyr::select(Bulk_VAF,GT_call_rate,id,AA)
+                        pull(id)
+
+mut_info_annotated<-filtered_NGT%>%pivot_longer(cols=-Cell,names_to="id",values_to = "NGT")%>%
+                    filter(!is.na(NGT))%>%
+                    filter(id%in%coding_variants)%>%
+                    group_by(id)%>%
+                    summarise(count = sum(Cell%in%all_of(required_cells))/length(all_of(required_cells)))%>%
+                    arrange(desc(count))%>%
+                    inner_join(final_mutation_info)%>%
+                    filter(!grepl("intronic",AA))%>%
+                    filter(CONSEQUENCE!="synonymous")%>%
+                    mutate(id=factor(id,levels=c(id)))%>%
+                    mutate(AA=factor(AA,levels=c(AA)))%>%
+                    mutate(required=ifelse(id%in%required_variants,"Required","Other"))
+
+
+ggFraction<-ggplot(mut_info_annotated,aes(x=AA,y=count,color=required))+
+              geom_point()+
+              theme_bw()+
+              labs(y="Fraction of essential cells \n succesfully genotyped")+
+              scale_color_manual(values=c("Required"=brewer.pal(5,"Reds")[5],
+                                          "Other"="black"))+
+              theme(axis.text.x=element_blank(),
+                    axis.ticks.x = element_blank(),
+                    axis.title.x = element_blank())
+
+ggVAF<-ggplot(mut_info_annotated,aes(x=AA,y=Bulk_VAF,color=required))+
+              geom_point()+
+              theme_bw()+
+              scale_y_log10()+
+              labs(x="Variant",y="Computed bulk VAF")+
+              scale_color_manual(values=c("Required"=brewer.pal(5,"Reds")[5],
+                                          "Other"="black"))+
+              theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1))
+
+plot_grid(ggFraction,ggVAF,ncol=1,axis="lr",align="v",rel_heights=c(0.75,1))
+```
+
+
+
+For this simple matrix, we can skip a good dealing of filtering.
+```{r}
+perfect_NGT<- filtered_NGT%>%  
+                    dplyr::select(Cell,all_of(required_variants))%>%
+                    filter(Cell%in%required_cells)
+```
+
+
+
+```{r}
+maximal_NGT<-active_NGT_filter(filtered_NGT,
+                            variants_of_interest=required_variants,
+                            required_variants=required_variants,
+                            required_cells=required_cells,
+                            variant_score_cutoff=0.4,
+                            cell_score_cutoff=0.4,
+                            greedy_scalar=0.005)
+
+final_variant_info <- mut_info_annotated%>%
+                                filter(id%in%(all_of(colnames(maximal_NGT))))%>%
+                                select(id,count,Bulk_VAF,GT_call_rate,AA)%>%
+                                arrange(desc(Bulk_VAF))
+
+```
+
+```{r}
+final_NGT<-generate_lowQC_matrix(file=file,
+                                 perfect_NGT=perfect_NGT,
+                                 NGT_to_fill=maximal_NGT)
+
+final_sample_summary<-enumerate_clones(NGT=final_NGT,
+                                       variant_metadata=final_variant_info,
+                                       replicates = 10)
+
+final_sample_summary$Clones<-clone_QC(final_sample_summary, file)
+
+
+clonograph(final_sample_summary)
+
+clone_represnation()
+```
+
+```{r}
+
+AA<-final_variant_info%>%
+                select(id,AA)%>%
+                filter(id%in%tidyselect::all_of(colnames(final_NGT)))%>%
+                pull(AA)%>%as.character
+            
+final_NGT %<>%
+           rename_at(vars(grep("chr", names(.))), ~AA)
+
+```
+  
+
+```{r}
+NGT_ti<-read.csv("/Users/bowmanr/Desktop/export/NGT.csv")
+```
+
+```{r}
+final_NGT<-maximal_NGT%>% dplyr::select(Cell,all_of(final_variant_info%>%pull(id)))%>%
+                            dplyr::filter(across(.cols = everything(),.fns = ~ !is.na(.x)))
+```

@@ -1,0 +1,39 @@
+Package: scDNA
+Title: Analyzing single cell DNA sequencing data
+Version: 0.1.0.9000
+Authors@R: 
+    person(given = "Bobby",
+           family = "Bowman",
+           role = c("aut", "cre"),
+           email = "bowmanr@mskcc.org",
+           comment = c(Twitter = "bowman_rl"))
+Description: This package contains functions for analyzing single cell DNA-sequencing data. Functions primarily focus on data exported from Mission Bio's Tapestri pipeline.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Imports: 
+    BSgenome.Hsapiens.UCSC.hg19,
+    dplyr,
+    GenomicRanges,
+    magrittr,
+    rhdf5,
+    stats,
+    tidyr,
+    tidyselect,
+    VariantAnnotation,
+    methods,
+    plyranges,
+    rlang,
+    purrr,
+    pals,
+    colorspace,
+    TxDb.Hsapiens.UCSC.hg19.knownGene
+Suggests: rmarkdown, knitr
+VignetteBuilder: knitr
+Depends: R (>= 2.10)
+NeedsCompilation: no
+Packaged: 2021-06-17 03:59:22 UTC; bowmanr
+Author: Bobby Bowman [aut, cre] (bowman_rl)
+Maintainer: Bobby Bowman <bowmanr@mskcc.org>
