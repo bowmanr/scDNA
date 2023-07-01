@@ -65,11 +65,13 @@ Now that we have our filtered NGT matrix, we can go through and annotate variant
 library(VariantAnnotation)
 library(GenomicRanges)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-library(tidyverse)
+library(magrittr)
+library(AnnotationDbi)
+library(dplyr)
 
-annotation_key<-read.csv(system.file("data","annotation_key.csv",package="scDNA"))
-hg19refseq_txdb<-loadDb(system.file("data","hg19refseq_txdb.sqlite",package="scDNA"))
-banned<-read.csv(system.file("data","banned_list.csv",package="scDNA"))[,1]
+annotation_key<-read.csv("annotation_key.csv")
+hg19refseq_txdb<-loadDb("hg19refseq_txdb.sqlite")
+banned<-read.csv("banned_list.csv")[,1]
 
 annotation_key%<>%inner_join(VariantAnnotation::select(hg19refseq_txdb,
                                     keys=annotation_key$ccds_id,
@@ -117,6 +119,7 @@ required_cells<-filtered_NGT%>%dplyr::select(Cell,tidyselect::all_of(required_va
 
 What other variants could we also look into without losing too many of these required cells? We might be interested in seeing if there are other variants that are well represented amongst these required variants. We will focus on non-synonymous mutations that are not in introns for this vignette.
 ```{r}
+library(tidyr)
 coding_variants<- final_mutation_info%>%
                         dplyr::filter(!grepl("intronic",AA))%>%
                         dplyr::filter(CONSEQUENCE!="synonymous")%>%

@@ -30,7 +30,9 @@ Imports:
     purrr,
     pals,
     colorspace,
-    TxDb.Hsapiens.UCSC.hg19.knownGene
+    googledrive,
+    TxDb.Hsapiens.UCSC.hg19.knownGene,
+    AnnotationDbi
 Suggests: rmarkdown, knitr
 VignetteBuilder: knitr
 Depends: R (>= 2.10)
