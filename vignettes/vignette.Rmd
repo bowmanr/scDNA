@@ -22,7 +22,7 @@ Start off by loading the scDNA package, and pointing the system to a h5 of inter
 ```{r,file identification}
 library(scDNA)
 file<-system.file("data","Sample1962.dna+protein.h5",package="scDNA")
-file<-c("/Users/bowmanrl/Projects/R_packages/scDNA/data/Sample1962.dna+protein.h5")
+#file<-c("/Users/bowmanrl/Projects/R_packages/scDNA/data/Sample1962.dna+protein.h5")
 ```
 
 We first read in the genotype matrix (NGT), and restrict the number of variants based on a bulk VAF of 0.05%, and requiring genotyping information (either mutant or WT) in at least 20% of the cells.   This is performed with the "read_tapestri_h5_NGT" function.  
@@ -63,9 +63,9 @@ library(tidyverse)
 #annotation_key<-read.csv(system.file("data","annotation_key.csv",package="scDNA"))
 #hg19refseq_txdb<-loadDb(system.file("data","hg19refseq_txdb.sqlite",package="scDNA"))
 #banned<-read.csv(system.file("data","banned_list.csv",package="scDNA"))[,1]
-annotation_key <-read.csv("/Users/bowmanrl/Projects/R_packages/scDNA/data/annotation_key.csv")
-hg19refseq_txdb<-loadDb("/Users/bowmanrl/Projects/R_packages/scDNA/data/hg19refseq_txdb.sqlite")
-banned <-read.csv("/Users/bowmanrl/Projects/R_packages/scDNA/data/banned_list.csv")[,1]
+annotation_key <-read.csv("./data/annotation_key.csv")
+hg19refseq_txdb<-loadDb("./data/hg19refseq_txdb.sqlite")
+banned <-read.csv("./data/banned_list.csv")[,1]
 
 annotation_key%<>%inner_join(VariantAnnotation::select(hg19refseq_txdb,
                                     keys=annotation_key$ccds_id,
@@ -454,7 +454,7 @@ ff <- new("flowFrame",
 xyplot(CD3~CD19,ff)
 
 # now you can save it back to the filesystem
-write.FCS(ff,"/Users/bowmanrl/Desktop/1962_perfect.fcs")
+write.FCS(ff,"~/Desktop/1962_perfect.fcs")
 
 
 ```
