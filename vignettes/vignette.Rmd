@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
 Start off by loading the scDNA package, and pointing the system to a h5 of interest. For speed purposes, I strongly suggest you have the file local as opposed to on the server.
 ```{r,file identification}
 library(scDNA)
-file<-system.file("data","Sample1962.dna+protein.h5",package="scDNA")
+file<-system.file("Data","PS90-037_6.dna+protein.h5",package="scdnadata")
 #file<-c("/Users/bowmanrl/Projects/R_packages/scDNA/data/Sample1962.dna+protein.h5")
 ```
 
