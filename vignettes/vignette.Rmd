@@ -21,12 +21,15 @@ knitr::opts_chunk$set(
 Start off by loading the scDNA package, and pointing the system to a h5 of interest. For speed purposes, I strongly suggest you have the file local as opposed to on the server.
 ```{r,file identification}
 library(scDNA)
-<<<<<<< Updated upstream
-file<-system.file("Data","PS90-037_6.dna+protein.h5",package="scdnadata")
-#file<-c("/Users/bowmanrl/Projects/R_packages/scDNA/data/Sample1962.dna+protein.h5")
-=======
-file<-system.file("data","Sample1962.dna+protein.h5",package="scDNA")
->>>>>>> Stashed changes
+library(googledrive)
+drive_download(
+  file="https://drive.google.com/file/d/1cy_9AZl3I9hT0RhdhQQZkI0ervM8EPeZ/view?usp=drive_link",
+  path = "~/Sample1962.dna+protein.h5",
+  overwrite = TRUE
+)
+
+file<- "~/Sample1962.dna+protein.h5"
+
 ```
 
 We first read in the genotype matrix (NGT), and restrict the number of variants based on a bulk VAF of 0.05%, and requiring genotyping information (either mutant or WT) in at least 20% of the cells.   This is performed with the "read_tapestri_h5_NGT" function.  
@@ -64,23 +67,9 @@ library(GenomicRanges)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(tidyverse)
 
-<<<<<<< Updated upstream
-#annotation_key<-read.csv(system.file("data","annotation_key.csv",package="scDNA"))
-#hg19refseq_txdb<-loadDb(system.file("data","hg19refseq_txdb.sqlite",package="scDNA"))
-#banned<-read.csv(system.file("data","banned_list.csv",package="scDNA"))[,1]
-annotation_key <-read.csv("./data/annotation_key.csv")
-hg19refseq_txdb<-loadDb("./data/hg19refseq_txdb.sqlite")
-banned <-read.csv("./data/banned_list.csv")[,1]
-=======
 annotation_key<-read.csv(system.file("data","annotation_key.csv",package="scDNA"))
 hg19refseq_txdb<-loadDb(system.file("data","hg19refseq_txdb.sqlite",package="scDNA"))
 banned<-read.csv(system.file("data","banned_list.csv",package="scDNA"))[,1]
-#annotation_key <-read.csv("./data/annotation_key.csv")
-#hg19refseq_txdb<-loadDb("/Users/bowmanrl/Projects/R_packages/scDNA/data/hg19refseq_txdb.sqlite")
-#banned <-read.csv("/Users/bowmanrl/Projects/R_packages/scDNA/data/banned_list.csv")[,1]
-
-
->>>>>>> Stashed changes
 
 annotation_key%<>%inner_join(VariantAnnotation::select(hg19refseq_txdb,
                                     keys=annotation_key$ccds_id,
@@ -469,11 +458,7 @@ ff <- new("flowFrame",
 xyplot(CD3~CD19,ff)
 
 # now you can save it back to the filesystem
-<<<<<<< Updated upstream
-write.FCS(ff,"~/Desktop/1962_perfect.fcs")
-=======
 write.FCS(ff,"~/1962_perfect.fcs")
->>>>>>> Stashed changes
 
 
 ```
