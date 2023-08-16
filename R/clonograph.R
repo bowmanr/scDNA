@@ -77,7 +77,7 @@ gg_QC_heatmap <- ggplot(data=consolidated_clonal_abundance,
                      aes(x=Clone, y=Group, fill=ADO_med))+
   geom_tile() +
   colorspace::scale_fill_continuous_divergingx(palette = 'RdBu', mid = 0.1,
-                                                    rev=FALSE,na.value = "grey80",limits=c(0,0.25))+
+                                                    rev=FALSE,na.value = "grey80")+#,limits=c(0,0.25))+
   theme_classic(base_size=7) +
   theme(legend.position = "right", legend.direction = "horizontal",
         axis.text.x = element_blank(),
@@ -91,7 +91,7 @@ gg_QC_heatmap_GQ <- ggplot(data=consolidated_clonal_abundance,
                         aes(x=Clone, y=Group, fill=GQ_med))+
   geom_tile() +
   colorspace::scale_fill_continuous_divergingx(palette = 'RdBu', mid = 30,
-                                               rev=TRUE,na.value = "grey80",limits=c(0,100))+
+                                               rev=TRUE,na.value = "grey80")+#,limits=c(0,100))+
   theme_classic(base_size=7) +
   theme(legend.position = "right", legend.direction = "horizontal",
         axis.text.x = element_blank(),
@@ -104,7 +104,7 @@ gg_QC_heatmap_DP <- ggplot(data=consolidated_clonal_abundance,
                            aes(x=Clone, y=Group, fill=DP_med))+
   geom_tile() +
   colorspace::scale_fill_continuous_divergingx(palette = 'RdBu', mid = 10,
-                                               rev=TRUE,na.value = "grey80",limits=c(0,40))+
+                                               rev=TRUE,na.value = "grey80")+#,limits=c(0,40))+
   theme_classic(base_size=7) +
   theme(legend.position = "right", legend.direction = "horizontal",
         axis.text.x = element_blank(),
