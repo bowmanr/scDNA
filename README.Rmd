@@ -23,7 +23,7 @@ The goal of scDNA R package is for DNA+protein single cell DNA sequencing analys
 
 You can install the development version of scDNA like so:
 
-``` r
+```{r}
 devtools::install_github("bowmanr/scDNA")
 ```
 ## Example
