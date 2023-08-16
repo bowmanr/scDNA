@@ -9,8 +9,9 @@
 The goal of scDNA R package is for DNA+protein single cell DNA
 sequencing analysis. This includes extracting data from Tapestri, to
 produce genotype matrix (NGT), determine variant allele frequency(VAF),
-summarize clone information, and determine the clonal trajectories. \##
-Installation
+summarize clone information, and determine the clonal trajectories.
+
+## Installation
 
 You can install the development version of scDNA like so:
 
@@ -20,7 +21,7 @@ devtools::install_github("bowmanr/scDNA")
 
     #> 
     #> ── R CMD build ─────────────────────────────────────────────────────────────────
-    #> * checking for file ‘/private/var/folders/x3/kjrtpfnn0_gf6gqk86ls4kmm0000gp/T/RtmpDhpj1G/remotesc5a04bd8e9f/bowmanr-scDNA-322fa0b/DESCRIPTION’ ... OK
+    #> * checking for file ‘/private/var/folders/x3/kjrtpfnn0_gf6gqk86ls4kmm0000gp/T/RtmpJqBPJM/remotesc6be610ce9d7/bowmanr-scDNA-acd5013/DESCRIPTION’ ... OK
     #> * preparing ‘scDNA’:
     #> * checking DESCRIPTION meta-information ... OK
     #> * checking vignette meta-information ... OK
@@ -31,16 +32,25 @@ devtools::install_github("bowmanr/scDNA")
 Stay tuned for the following updates and things we are actively working
 on next:
 
-\###Near term: 1. FCS export 2. Finalizing trajectory optimization 3.
-Finalizing cohort characterization 4. Creating your own TxDB tutorial
+### Near term:
 
-\###Ongoing investigation: 1. Improved cell identification. 2. A new
-filtering and normalization for protein data. 3. Diagnostics on your
-assays. 4. Improvements to the MDP and RL: 1. Introducing safe RL
-through risk-sensitivity 2. Introducing probabilistic states and actions
-3. Improvements in performance by changing to a sparse representation 4.
-Improved trajectory analysis and path finding. 1. longest pathway to
-mutation 2. free energy principle to find shortest path. 5. improvements
-to MDP formalization for improved accuracy and efficiency. 6.
-Improvements to RL algorithm to speed up the learned model. 5. Updating
-presentation of figures.
+1.  FCS export
+2.  Finalizing trajectory optimization
+3.  Finalizing cohort characterization
+4.  Creating your own TxDB tutorial
+
+### Ongoing investigation:
+
+1.  Improved cell identification.
+2.  A new filtering and normalization for protein data.
+3.  Diagnostics on your assays.
+4.  Improvements to the MDP and RL:
+5.  Introducing safe RL through risk-sensitivity
+6.  Introducing probabilistic states and actions
+7.  Improvements in performance by changing to a sparse representation
+8.  Improved trajectory analysis and path finding. 1. longest pathway to
+    mutation 2. free energy principle to find shortest path.
+9.  improvements to MDP formalization for improved accuracy and
+    efficiency.
+10. Improvements to RL algorithm to speed up the learned model.
+11. Updating presentation of figures.

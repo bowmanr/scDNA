@@ -19,8 +19,8 @@ knitr::opts_chunk$set(
 <!-- badges: end -->
 
 The goal of scDNA R package is for DNA+protein single cell DNA sequencing analysis. This includes extracting data from Tapestri, to produce genotype matrix (NGT), determine variant allele frequency(VAF), summarize clone information, and determine the clonal trajectories.
-## Installation
 
+## Installation
 You can install the development version of scDNA like so:
 
 ```{r,message=F,warning=F}
@@ -30,13 +30,13 @@ devtools::install_github("bowmanr/scDNA")
 
 Stay tuned for the following updates and things we are actively working on next:
 
-###Near term:
+### Near term:
 1. FCS export
 2. Finalizing trajectory optimization
 3. Finalizing cohort characterization
 4. Creating your own TxDB tutorial
 
-###Ongoing investigation:
+### Ongoing investigation:
 1. Improved cell identification.
 2. A new filtering and normalization for protein data.
 3. Diagnostics on your assays.
