@@ -30,22 +30,41 @@ devtools::install_github("bowmanr/scDNA")
 
 
 Stay tuned for the following updates and things we are actively working on next:
+
 Near term:
+
 1. FCS export
+
 2. Finalizing trajectory optimization
+
 3. Finalizing cohort characterization
+
 4. Creating your own TxDB tutorial
+
 Ongoing investigation:
+
 1. Improved cell identification.
+
 2. A new filtering and normalization for protein data.
+
 3. Diagnostics on your assays.
+
 4. Improvements to the MDP and RL:
-  a. Introducing safe RL through risk-sensitivity  
+
+  a. Introducing safe RL through risk-sensitivity 
+  
   b. introducing probabilistic states and actions
+  
   c. improvements in performance by changing to a sparse representation
+  
   d. Improved trajectory analysis and path finding.
+  
     i. longest pathway to mutation
+    
     ii. free energy principle to find shortest path.
+    
   e. improvements to MDP formalization for improved accuracy and efficiency.
+  
   f. Improvements to RL algorithm to speed up the learned model.
+  
 5. Updating presentation of figures.
