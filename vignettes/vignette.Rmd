@@ -84,7 +84,7 @@ annotation_key%<>%inner_join(VariantAnnotation::select(hg19refseq_txdb,
 ```
 
 Now we can use the 'annotate_variants' function from the 'scDNA' package.
-```{r, annotate variants}
+```{r, annotate variants,message=FALSE,warning=FALSE}
 final_mutation_info<- annotate_variants(file=file,
                              annotation_key=annotation_key,
                              txdb=hg19refseq_txdb,
@@ -113,7 +113,7 @@ required_variants<- final_mutation_info%>%
 ```
 
 We can then ask which cells possess complete genotyping information for these critical variants. We want to retain these cells throughout all future analyses and refer to them as "required_cells".
-```{r}
+```{r ,message=FALSE,warning=FALSE}
 required_cells<-filtered_NGT%>%dplyr::select(Cell,tidyselect::all_of(required_variants))%>%
                     dplyr::filter(across(.cols = !Cell,.fns = ~ !is.na(.x)))%>%
                     pull(Cell)
@@ -147,7 +147,7 @@ mut_info_annotated<-filtered_NGT%>%
 ```
 
 Let's graphically look at these tables for some context
-```{r}
+```{r,echo=TRUE}
 library(ggplot2)
 library(RColorBrewer)
 library(cowplot)
@@ -175,7 +175,7 @@ plot_grid(ggFraction,ggVAF,ncol=1,axis="lr",align="v",rel_heights=c(0.75,1))
 
 
 For this matrix, we can filter out cells that are important to us with the function below.
-```{r}
+```{r,message=FALSE,warning=FALSE}
 complete_NGT<- filtered_NGT%>%  
                     dplyr::select(Cell,all_of(required_variants))%>%
                     dplyr::filter(Cell%in%required_cells)
@@ -184,7 +184,7 @@ print(table(is.na(complete_NGT)))
 ```
 
 There are likely quite a few cells which we can hope to gain information from though, albeit with lower quality information.  We can extract those too and mask them.  The function "active_NGT_filter" below is written for optimal extraction of meaningful cells from a wide range of variants.  Here we will simply restrict the filtering to the exact "required_variants" we are interested in.  You can think of the "variants_of_interest" argument below as a universe from which we could sample.
-```{r}
+```{r,message=FALSE,warning=FALSE}
 maximal_NGT<-scDNA::active_NGT_filter(filtered_NGT,
                                   variants_of_interest=required_variants,
                                   required_variants=required_variants,
@@ -203,7 +203,7 @@ final_variant_info <- mut_info_annotated%>%
 ```
 
 We now have our complete_NGT (full of required_cells only), and our maximal_NGT where we may have low quality information.  Using the function below we can fill in the NA's in the maximal_NGT with that low quality info, and flag cells as either "Complete" or "Other" for downstream processing.
-```{r}
+```{r,message=FALSE,warning=FALSE}
 final_NGT<-generate_lowQC_matrix(file=file,
                                  complete_NGT=complete_NGT,
                                  NGT_to_fill=maximal_NGT)
@@ -246,7 +246,7 @@ clonograph(final_sample_summary_subset,complete_only = TRUE)
 ```
 
 Now we will demonstrate how to export the protein data to Seurat for clustering, and producing a UMAP. We also demonstrate our wrapper to normalize protein data with either CLR (base Seurat) or dsb if you have IGg controls. Coming soon, our own normalization method for protein information! Stay tuned!
-```{r,eval=FALSE}
+```{r,message=FALSE,warning=FALSE}
 protein_mat_final<-read_tapestri_h5_protein(file=file)%>%
                           dplyr::filter(Cell%in%final_sample_summary_subset$NGT$Cell)
   
@@ -263,7 +263,7 @@ ggplot(metadata, aes(x = dna_size, y = protein_size,color=Droplet_type )) +
 
 After obtaining the protein matrix, we now want to extract background cells and normalize the protein. Both strategies to normalize the data are shown below.
 
-```{r,eval=FALSE}
+```{r,message=FALSE,warning=FALSE}
 library(dsb) 
 library(Seurat)
 background_droplets<-metadata%>%
@@ -277,12 +277,12 @@ normalized_protein_mat<-normalize_protein_data(file=file,
                                          detect_IgG=TRUE,
                                          background_droplets=background_droplets)
 
-normalized_protein_mat<-normalize_protein_data(file,
-                                          metadata,
-                                           protein_mat_final,
+normalized_protein_mat<-normalize_protein_data(file=file,
+                                          metadata=metadata,
+                                           protein_mat=protein_mat_final,
                                            method="CLR",
                                            detect_IgG=FALSE,
-                                          background_droplets)
+                                          background_droplets=background_droplets)
 
 final_metadata<- metadata%>%
                         dplyr::filter(Cell%in%colnames(normalized_protein_mat))%>%
@@ -292,7 +292,7 @@ final_metadata<- metadata%>%
 
 Now we want to load in our data into Seurat. Keep in mind which normalization method for protein was used above. Comment out the one you do not want to use (or let it use CLR as it will currently overwrite the dsb one). Below follows the standard Seurat implementation where you apply nearest neighbor search, generate clusters, and build a UMAP. Afterwards, are some examples of further data exploration and plots to analyze your results.
 
-```{r,eval=FALSE}
+```{r,message=FALSE,warning=FALSE}
 s <- CreateSeuratObject(counts=normalized_protein_mat, 
                         assay="Protein")
 
@@ -343,14 +343,14 @@ ggplot(data_out%>%summarise(Total=sum(Freq)),aes(x=Total,y=Var2))+geom_col()
 ```
 
 
-```{r,eval=FALSE}
+```{r,message=FALSE,warning=FALSE}
 DotPlot(s, features = c(all.markers%>%dplyr::filter(cluster=="1")%>%pull(gene))[1:8]) + RotatedAxis()
 RidgePlot(s,features= c("CD117","CD14","CD11b","CD34","CD138")) 
 DoHeatmap(s,slot = "counts", features = c("CD45RA","CD34","CD11b","CD14"))
 ```
 
 These are some more evaluation plots for median protein expression 
-```{r,eval=FALSE}
+```{r,message=FALSE,warning=FALSE}
 # make results dataframe 
 d = cbind(s@meta.data, as.data.frame(t(s@assays$Protein@data)), s@reductions$umap@cell.embeddings)
 
