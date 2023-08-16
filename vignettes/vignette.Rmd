@@ -1,6 +1,6 @@
 ---
 title: "scDNA: R package for DNA+protein single cell DNA sequencing analysis"
-author: "Bowman RL"
+author: "Michael Bowman and Bobby Bowman"
 date: "8/15/2022"
 output: rmarkdown::html_vignette
 vignette: >
@@ -19,29 +19,32 @@ knitr::opts_chunk$set(
 
 
 Start off by loading the scDNA package, and pointing the system to a h5 of interest. For speed purposes, I strongly suggest you have the file local as opposed to on the server. We have hosted the an example h5 on google drive for your convenience. The h5 file will be placed in your home directory, for this tutorial
-```{r,file identification}
+```{r,packages}
 library(scDNA)
 library(googledrive)
+library(knitr)
+```
+
+```{r, file identificaiton,eval=FALSE}
 drive_download(
   file="https://drive.google.com/file/d/1cy_9AZl3I9hT0RhdhQQZkI0ervM8EPeZ/view?usp=drive_link",
   path = "~/Sample1962.dna+protein.h5",
   overwrite = TRUE
 )
 
-file<- "~/Sample1962.dna+protein.h5"
-
 ```
 
 We first read in the genotype matrix (NGT), and restrict the number of variants based on a bulk VAF of 0.05%, and requiring genotyping information (either mutant or WT) in at least 20% of the cells.   This is performed with the "read_tapestri_h5_NGT" function.  
 
-```{r, NGT extraction}
+```{r, NGT extraction,cache=TRUE}
+file<- "~/Sample1962.dna+protein.h5"
 NGT<-read_tapestri_h5_NGT(file,
                           VAF_cutoff = 0.05,
                           GT_cutoff = 10 )
 ```
 
 The next step is to filter out genotypes which are low quality based on read depth (DP), genotype quality score (GQ), or inappropriate allele frequencies (AF).  For the AF parameter, we assume that a heterozygous call needs to posses an allele frequency between 20-80%.
-```{r}
+```{r,cache=TRUE}
 filtered_NGT<-quality_filter_NGT(file=file,
                                  NGT=NGT,
                                  DP_cut=10, 
@@ -61,7 +64,7 @@ print(table(is.na(filtered_NGT)))
 ```
 
 Now that we have our filtered NGT matrix, we can go through and annotate variants of interest.  Here I have constructed a manually curated 'annotation_key.csv' file containing ccds_id's for each gene to denote the transcript of interest. I also made a limited txDB object for these genes so we do not need to query the entire genome. This expedites processing time. Future updates will show the details for constructing your own. 
-```{r,variant selection setup,message=FALSE,warning=FALSE}
+```{r,variant selection setup,message=FALSE,warning=FALSE,cache=TRUE}
 library(VariantAnnotation)
 library(GenomicRanges)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
@@ -147,7 +150,7 @@ mut_info_annotated<-filtered_NGT%>%
 ```
 
 Let's graphically look at these tables for some context
-```{r,echo=TRUE}
+```{r,echo=TRUE,fig.align='center',fig.height=5,fig.width=5}
 library(ggplot2)
 library(RColorBrewer)
 library(cowplot)
@@ -222,7 +225,7 @@ final_sample_summary$Clones<-clone_QC(final_sample_summary, file)
 ```
 
 We can now look at a clonograph of the data
-```{r}
+```{r,fig.align='center',fig.height=5,fig.width=5}
 clonograph(final_sample_summary)
 ```
 
@@ -236,17 +239,17 @@ final_sample_summary_subset<-select_clones(final_sample_summary,
 ```
 
 Here we see a cleaned up clongraph.
-```{r}
+```{r,fig.align='center',fig.height=5,fig.width=5}
 clonograph(final_sample_summary_subset)
 ```
 
 We can also strip out the "Other" cells and only focus on those with complete genotype data.  As of now, we lose the confidence intervals when we subset this way.
-```{r}
+```{r,fig.align='center',fig.height=5,fig.width=5}
 clonograph(final_sample_summary_subset,complete_only = TRUE)
 ```
 
 Now we will demonstrate how to export the protein data to Seurat for clustering, and producing a UMAP. We also demonstrate our wrapper to normalize protein data with either CLR (base Seurat) or dsb if you have IGg controls. Coming soon, our own normalization method for protein information! Stay tuned!
-```{r,message=FALSE,warning=FALSE}
+```{r,message=FALSE,warning=FALSE,cache=TRUE,fig.align='center',fig.height=5,fig.width=5}
 protein_mat_final<-read_tapestri_h5_protein(file=file)%>%
                           dplyr::filter(Cell%in%final_sample_summary_subset$NGT$Cell)
   
@@ -266,18 +269,26 @@ After obtaining the protein matrix, we now want to extract background cells and 
 ```{r,message=FALSE,warning=FALSE}
 library(dsb) 
 library(Seurat)
+```
+
+```{r,cache=TRUE}
 background_droplets<-metadata%>%
                           dplyr::filter(Droplet_type=="Empty")%>%
                           dplyr::filter(dna_size<1.5&dna_size>0.15)%>%
                           pull(Cell)
-normalized_protein_mat<-normalize_protein_data(file=file,
+```
+
+```{r,cache=TRUE}
+normalized_protein_mat_dsb<-normalize_protein_data(file=file,
                                          metadata=metadata,
                                          protein_mat=protein_mat_final,
                                          method="dsb",
                                          detect_IgG=TRUE,
                                          background_droplets=background_droplets)
+```
 
-normalized_protein_mat<-normalize_protein_data(file=file,
+```{r,cache=TRUE}
+normalized_protein_mat_CLR<-normalize_protein_data(file=file,
                                           metadata=metadata,
                                            protein_mat=protein_mat_final,
                                            method="CLR",
@@ -285,15 +296,15 @@ normalized_protein_mat<-normalize_protein_data(file=file,
                                           background_droplets=background_droplets)
 
 final_metadata<- metadata%>%
-                        dplyr::filter(Cell%in%colnames(normalized_protein_mat))%>%
-                        dplyr::arrange(match(Cell,colnames(normalized_protein_mat)))
+                        dplyr::filter(Cell%in%colnames(normalized_protein_mat_CLR))%>%
+                        dplyr::arrange(match(Cell,colnames(normalized_protein_mat_CLR)))
 
 ```
 
 Now we want to load in our data into Seurat. Keep in mind which normalization method for protein was used above. Comment out the one you do not want to use (or let it use CLR as it will currently overwrite the dsb one). Below follows the standard Seurat implementation where you apply nearest neighbor search, generate clusters, and build a UMAP. Afterwards, are some examples of further data exploration and plots to analyze your results.
 
-```{r,message=FALSE,warning=FALSE}
-s <- CreateSeuratObject(counts=normalized_protein_mat, 
+```{r,message=FALSE,warning=FALSE,cache=TRUE,fig.align='center',fig.height=5,fig.width=5}
+s <- CreateSeuratObject(counts=normalized_protein_mat_CLR, 
                         assay="Protein")
 
 s <- AddMetaData(object = s,
@@ -329,7 +340,6 @@ Idents(object = s) <- "seurat_clusters"
 
 FeaturePlot(s,features = c("CD34","CD117"),keep.scale = "feature")&
             colorspace::scale_color_continuous_divergingx(palette = 'RdBu', 
-                                                          mid = 5,
                                                           rev=TRUE,
                                                           na.value = "grey80")
 
@@ -343,14 +353,14 @@ ggplot(data_out%>%summarise(Total=sum(Freq)),aes(x=Total,y=Var2))+geom_col()
 ```
 
 
-```{r,message=FALSE,warning=FALSE}
+```{r,message=FALSE,warning=FALSE,fig.align='center',fig.height=5,fig.width=5}
 DotPlot(s, features = c(all.markers%>%dplyr::filter(cluster=="1")%>%pull(gene))[1:8]) + RotatedAxis()
 RidgePlot(s,features= c("CD117","CD14","CD11b","CD34","CD138")) 
-DoHeatmap(s,slot = "counts", features = c("CD45RA","CD34","CD11b","CD14"))
+DoHeatmap(s,slot="data", features = c("CD45RA","CD34","CD11b","CD14"),disp.max = 4)
 ```
 
 These are some more evaluation plots for median protein expression 
-```{r,message=FALSE,warning=FALSE}
+```{r,message=FALSE,warning=FALSE,fig.align='center',fig.height=5,fig.width=5}
 # make results dataframe 
 d = cbind(s@meta.data, as.data.frame(t(s@assays$Protein@data)), s@reductions$umap@cell.embeddings)
 
@@ -369,29 +379,7 @@ ggplot(d%>%
                   facet_wrap(~Clone)+
                   geom_density_2d(contour_var = "ndensity")+
                 #  geom_point()+
-                  scale_color_viridis_d() +
-                  geom_hline(yintercept =c(2.5),lty=2)+
-                  geom_vline(xintercept =c(),lty=2)
+                  scale_color_viridis_d()# +
+            #      geom_hline(yintercept =c(2.5),lty=2)+
+              #    geom_vline(xintercept =c(),lty=2)
 ```
-
-
-Stay tuned for the following updates and things we are actively working on next:
-Near term:
-1. FCS export
-2. Finalizing trajectory optimization
-3. Finalizing cohort characterization
-4. Creating your own TxDB tutorial
-Ongoing investigation:
-1. Improved cell identification.
-2. A new filtering and normalization for protein data.
-3. Diagnostics on your assays.
-4. Improvements to the MDP and RL:
-  a. Introducing safe RL through risk-sensitivity  
-  b. introducing probabilistic states and actions
-  c. improvements in performance by changing to a sparse representation
-  d. Improved trajectory analysis and path finding.
-    i. longest pathway to mutation
-    ii. free energy principle to find shortest path.
-  e. improvements to MDP formalization for improved accuracy and efficiency.
-  f. Improvements to RL algorithm to speed up the learned model.
-5. Updating presentation of figures.
