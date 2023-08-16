@@ -7,12 +7,12 @@ output: html_document
 
 ```{r setup, include=FALSE}
 library(knitr)
-opts_knit$set(root.dir = '/Users/bowmanr/Projects/scDNA/')
+opts_knit$set(root.dir = '/Users/bowmanrl/Projects/scDNA/')
 ```
 
 ```{r,message=FALSE}
-setwd("/Users/bowmanr/Projects/scDNA/")
-file<-("/Users/bowmanr/Projects/scDNA/data/Sample1962.dna+protein.h5")
+setwd("/Users/bowmanrl/Projects/scDNA/")
+file<-("/Users/bowmanrl/Projects/scDNA/data/Sample1962.dna+protein.h5")
 file <- ("/Volumes/LevineLab/Levine Lab/MissionBio_Tapestri/TapestriV2_output/SC/H5/SC_B40.dna+protein.h5")
 file<- c("/Volumes/LevineLab/Levine Lab/MissionBio_Tapestri/TapestriV2_output/LAM/H5/DP_0034.dna+protein.h5")
 ```

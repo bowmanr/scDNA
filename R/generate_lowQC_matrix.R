@@ -22,7 +22,7 @@ generate_lowQC_matrix<-function(NGT_to_fill,
                     t(rhdf5::h5read(file=file,name="/assays/dna_variants/layers/NGT",index=list(variant_select,cell_select)))),
                     colnames(NGT_to_fill))
   full_NGT[full_NGT==3]<-NA
-  full_NGT%<>%filter(across(.cols = !.data$Cell,.fns = ~ !is.na(.x)))
+  full_NGT%<>%dplyr::filter(across(.cols = !.data$Cell,.fns = ~ !is.na(.x)))
 
 
   full_NGT%<>%dplyr::mutate("Group"=dplyr::case_when(

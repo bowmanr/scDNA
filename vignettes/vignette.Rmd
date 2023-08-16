@@ -1,7 +1,7 @@
 ---
 title: "scDNA: R package for DNA+protein single cell DNA sequencing analysis"
 author: "Bowman RL"
-date: "5/27/2021"
+date: "8/15/2022"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{vignette}
@@ -18,11 +18,18 @@ knitr::opts_chunk$set(
 ```
 
 
-Start off by loading the scDNA package, and pointing the system to a h5 of interest. For speed purposes, I strongly suggest you have the file local as opposed to on the server.
+Start off by loading the scDNA package, and pointing the system to a h5 of interest. For speed purposes, I strongly suggest you have the file local as opposed to on the server. We have hosted the an example h5 on google drive for your convenience. The h5 file will be placed in your home directory, for this tutorial
 ```{r,file identification}
 library(scDNA)
-file<-system.file("data","Sample1962.dna+protein.h5",package="scDNA")
-file<-c("/Users/bowmanrl/Projects/R_packages/scDNA/data/Sample1962.dna+protein.h5")
+library(googledrive)
+drive_download(
+  file="https://drive.google.com/file/d/1cy_9AZl3I9hT0RhdhQQZkI0ervM8EPeZ/view?usp=drive_link",
+  path = "~/Sample1962.dna+protein.h5",
+  overwrite = TRUE
+)
+
+file<- "~/Sample1962.dna+protein.h5"
+
 ```
 
 We first read in the genotype matrix (NGT), and restrict the number of variants based on a bulk VAF of 0.05%, and requiring genotyping information (either mutant or WT) in at least 20% of the cells.   This is performed with the "read_tapestri_h5_NGT" function.  
@@ -42,7 +49,7 @@ filtered_NGT<-quality_filter_NGT(file=file,
                                  GQ_cut=20)
 ```
 
-These data.frames will possess the same number of variants and cells, but the 'filtered_NGT' data.frame will contain many more NAs. I also transpose the 'filtered_NGT' for downstream processing. 
+These data.frames will possess the same number of variants and cells, but the 'filtered_NGT' data.frame will contain many more NAs. The 'filtered_NGT' is transposed for downstream processing and more efficient computation. 
 ```{r, inspect NGT matrices}
 #Dimensions
 print(dim(NGT))
@@ -53,19 +60,20 @@ print(table(is.na(NGT)))
 print(table(is.na(filtered_NGT)))
 ```
 
-Now that we have our filtered NGT matrix, we can go through and annotate variants of interest.  Here I have constructed a manually curated 'annotation_key.csv' file containing ccds_id's for each gene to denote the transcript of interest.  I also made a limited txDB object for these genes so we do not need to query the entire genome. This expedites processing time. See link here (BB update) on the details for constructing your own. 
+Now that we have our filtered NGT matrix, we can go through and annotate variants of interest.  Here I have constructed a manually curated 'annotation_key.csv' file containing ccds_id's for each gene to denote the transcript of interest. I also made a limited txDB object for these genes so we do not need to query the entire genome. This expedites processing time. Future updates will show the details for constructing your own. 
 ```{r,variant selection setup,message=FALSE,warning=FALSE}
 library(VariantAnnotation)
 library(GenomicRanges)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(magrittr)
+library(AnnotationDbi)
+library(dplyr)
+library(pals)
+library(tidyr)
 library(tidyverse)
-
-#annotation_key<-read.csv(system.file("data","annotation_key.csv",package="scDNA"))
-#hg19refseq_txdb<-loadDb(system.file("data","hg19refseq_txdb.sqlite",package="scDNA"))
-#banned<-read.csv(system.file("data","banned_list.csv",package="scDNA"))[,1]
-annotation_key <-read.csv("/Users/bowmanrl/Projects/R_packages/scDNA/data/annotation_key.csv")
-hg19refseq_txdb<-loadDb("/Users/bowmanrl/Projects/R_packages/scDNA/data/hg19refseq_txdb.sqlite")
-banned <-read.csv("/Users/bowmanrl/Projects/R_packages/scDNA/data/banned_list.csv")[,1]
+annotation_key<-read.csv("annotation_key.csv")
+hg19refseq_txdb<-loadDb("hg19refseq_txdb.sqlite")
+banned<-read.csv("banned_list.csv")[,1]
 
 annotation_key%<>%inner_join(VariantAnnotation::select(hg19refseq_txdb,
                                     keys=annotation_key$ccds_id,
@@ -76,7 +84,7 @@ annotation_key%<>%inner_join(VariantAnnotation::select(hg19refseq_txdb,
 ```
 
 Now we can use the 'annotate_variants' function from the 'scDNA' package.
-```{r, annotate variants}
+```{r, annotate variants,message=FALSE,warning=FALSE}
 final_mutation_info<- annotate_variants(file=file,
                              annotation_key=annotation_key,
                              txdb=hg19refseq_txdb,
@@ -95,18 +103,19 @@ From here, we can go in two directions here.  For samples selected with specific
 
 Here we will search for specific variants we expect to find this sample based on bulk sequencing.
 ```{r}
+
 required_variants<- final_mutation_info%>%
-                        filter(grepl("RAS|NPM1.2|TET",AA))%>%
-                        filter(Bulk_VAF>2&GT_call_rate>15)%>%
-                        filter(CONSEQUENCE%in%c("nonsynonymous","frameshift","nonsense"))%>%
+                        dplyr::filter(grepl("RAS|NPM1.2|TET",AA))%>%
+                        dplyr::filter(Bulk_VAF>2&GT_call_rate>15)%>%
+                        dplyr::filter(CONSEQUENCE%in%c("nonsynonymous","frameshift","nonsense"))%>%
                         dplyr::select(id,Bulk_VAF,GT_call_rate,AA)%>% #break here to observe full table with mutation information of interest
                         pull(id)
 ```
 
 We can then ask which cells possess complete genotyping information for these critical variants. We want to retain these cells throughout all future analyses and refer to them as "required_cells".
-```{r}
+```{r ,message=FALSE,warning=FALSE}
 required_cells<-filtered_NGT%>%dplyr::select(Cell,tidyselect::all_of(required_variants))%>%
-                    filter(across(.cols = !Cell,.fns = ~ !is.na(.x)))%>%
+                    dplyr::filter(across(.cols = !Cell,.fns = ~ !is.na(.x)))%>%
                     pull(Cell)
 ```
 
@@ -123,13 +132,13 @@ coding_variants<- final_mutation_info%>%
 
 mut_info_annotated<-filtered_NGT%>%
                           pivot_longer(cols=-Cell,names_to="id",values_to = "NGT")%>% #transform length wise
-                          filter(!is.na(NGT))%>% #remove poor genotyping calls
-                          filter(id%in%coding_variants)%>% #select variants of interest
+                          dplyr::filter(!is.na(NGT))%>% #remove poor genotyping calls
+                          dplyr::filter(id%in%coding_variants)%>% #select variants of interest
                           group_by(id)%>% #split data.frame into groups based on the variants of interest variants
                           summarise(required_cell_ratio = mean(all_of(required_cells)%in%Cell))%>% # calculate the proportion of required cells represnted in successfully genotyped cells for that variant
                           arrange(desc(required_cell_ratio))%>% # order the data.frame, helpful for pltting later
                           inner_join(final_mutation_info)%>% # join with mutation info
-                          filter(!grepl("intronic",AA))%>%  #removes duplicate transcripts
+                          dplyr::filter(!grepl("intronic",AA))%>%  #removes duplicate transcripts
                           mutate(id=factor(id,levels=c(id)))%>% #helpful for pltting later
                           mutate(AA=factor(AA,levels=c(AA)))%>%  #helpful for pltting later
                           mutate(required=ifelse(id%in%required_variants,"Required","Other"))%>%
@@ -137,8 +146,8 @@ mut_info_annotated<-filtered_NGT%>%
 
 ```
 
-Let's graphically look at these tables for some context.  Which variants would be worth adding in?
-```{r}
+Let's graphically look at these tables for some context
+```{r,echo=TRUE}
 library(ggplot2)
 library(RColorBrewer)
 library(cowplot)
@@ -165,17 +174,17 @@ plot_grid(ggFraction,ggVAF,ncol=1,axis="lr",align="v",rel_heights=c(0.75,1))
 ```
 
 
-For this simple matrix, we can skip a good dealing of filtering. 
-```{r}
+For this matrix, we can filter out cells that are important to us with the function below.
+```{r,message=FALSE,warning=FALSE}
 complete_NGT<- filtered_NGT%>%  
                     dplyr::select(Cell,all_of(required_variants))%>%
-                    filter(Cell%in%required_cells)
+                    dplyr::filter(Cell%in%required_cells)
 print(dim(complete_NGT))
 print(table(is.na(complete_NGT)))
 ```
 
 There are likely quite a few cells which we can hope to gain information from though, albeit with lower quality information.  We can extract those too and mask them.  The function "active_NGT_filter" below is written for optimal extraction of meaningful cells from a wide range of variants.  Here we will simply restrict the filtering to the exact "required_variants" we are interested in.  You can think of the "variants_of_interest" argument below as a universe from which we could sample.
-```{r}
+```{r,message=FALSE,warning=FALSE}
 maximal_NGT<-scDNA::active_NGT_filter(filtered_NGT,
                                   variants_of_interest=required_variants,
                                   required_variants=required_variants,
@@ -185,30 +194,29 @@ maximal_NGT<-scDNA::active_NGT_filter(filtered_NGT,
                                   greedy_scalar=0.005)
 ```
 
-In a different setting we might have included new variants than just our required ones, and as such we would want to update the variant information.  This is achevied below.
+In a different setting we might have included new variants than just our required ones, and as such we would want to update the variant information.  This is achieved below.
 ```{r}
 final_variant_info <- mut_info_annotated%>%
-                                filter(id%in%(all_of(colnames(maximal_NGT))))%>%
-                                dplyr::select(id,required_cell_ratio,Bulk_VAF,GT_call_rate,AA)%>%
+                                dplyr::filter(id%in%(all_of(colnames(maximal_NGT))))%>%                       dplyr::select(id,required_cell_ratio,Bulk_VAF,GT_call_rate,AA)%>%
                                 arrange(desc(Bulk_VAF))
 
 ```
 
 We now have our complete_NGT (full of required_cells only), and our maximal_NGT where we may have low quality information.  Using the function below we can fill in the NA's in the maximal_NGT with that low quality info, and flag cells as either "Complete" or "Other" for downstream processing.
-```{r}
+```{r,message=FALSE,warning=FALSE}
 final_NGT<-generate_lowQC_matrix(file=file,
                                  complete_NGT=complete_NGT,
                                  NGT_to_fill=maximal_NGT)
 ```
 
-Now we want to enumerate how many clones are present by identifying the abundance of genetically identical cells.  We use the following clone naming convention, where left to right reads in the order of bulk VAF, and each genotype is separated by an underscore ("_").  So a clone 1_0_1_0 would be heterozygous for the 1st and 3rd most abundant mutations, and WT for the 2nd and 4th most abundant.  This function returns a list with three slots: Clones, NGT, and Architecture.  The replicates argument is used to determine how many rounds of resampling should be performed to establish a 95% confidence interval on the abundance of a particular clone.
+Now we want to enumerate how many clones are present by identifying the abundance of genetically identical cells.  We use the following clone naming convention, where left to right reads in the order of bulk VAF, and each genotype is separated by an underscore ("_").  So a clone 1_0_1 would be heterozygous for the 1st and 3rd most abundant mutations, and WT for the 2nd most abundant.  This function returns a list with three slots: Clones, NGT, and Architecture.  The replicates argument is used to determine how many rounds of resampling should be performed to establish a 95% confidence interval on the abundance of a particular clone.
 ```{r}
 final_sample_summary<-enumerate_clones(NGT=final_NGT,
                                        variant_metadata=final_variant_info,
                                        replicates = 500)
 ```
 
-With the clones enumerated, we can now aggregate the median read depth, genotype quality and allele dropout per clone.  We overwrite this into the 'Clones' slot into the final_sample_summary object.  Once I get this set up as an S4 object this will go more smoothly.
+With the clones enumerated, we can now aggregate the median read depth, genotype quality and allele dropout per clone.  We overwrite this into the 'Clones' slot into the final_sample_summary object.  
 ```{r}
 final_sample_summary$Clones<-clone_QC(final_sample_summary, file)
 ```
@@ -237,46 +245,54 @@ We can also strip out the "Other" cells and only focus on those with complete ge
 clonograph(final_sample_summary_subset,complete_only = TRUE)
 ```
 
-
-```{r,eval=FALSE}
+Now we will demonstrate how to export the protein data to Seurat for clustering, and producing a UMAP. We also demonstrate our wrapper to normalize protein data with either CLR (base Seurat) or dsb if you have IGg controls. Coming soon, our own normalization method for protein information! Stay tuned!
+```{r,message=FALSE,warning=FALSE}
 protein_mat_final<-read_tapestri_h5_protein(file=file)%>%
-                          filter(Cell%in%final_sample_summary_subset$NGT$Cell)
+                          dplyr::filter(Cell%in%final_sample_summary_subset$NGT$Cell)
   
 metadata<- extract_droplet_size(file,
                                 final_sample_summary=final_sample_summary_subset)
 
+# Try changing bins=1000 to see overlap empty droplets and real ones
 ggplot(metadata, aes(x = dna_size, y = protein_size,color=Droplet_type )) +
                   theme_bw() + 
-                  geom_density_2d()+
-                  scale_color_viridis_d(alpha=0.5) +
+                  geom_density_2d(bins=10)+
                   geom_hline(yintercept =c(1.5,5),lty=2)+
                   geom_vline(xintercept =c(0.1,1.5),lty=2)
 ```
 
+After obtaining the protein matrix, we now want to extract background cells and normalize the protein. Both strategies to normalize the data are shown below.
 
-```{r,eval=FALSE}
+```{r,message=FALSE,warning=FALSE}
 library(dsb) 
+library(Seurat)
 background_droplets<-metadata%>%
                           dplyr::filter(Droplet_type=="Empty")%>%
                           dplyr::filter(dna_size<1.5&dna_size>0.15)%>%
                           pull(Cell)
-
 normalized_protein_mat<-normalize_protein_data(file=file,
                                          metadata=metadata,
                                          protein_mat=protein_mat_final,
                                          method="dsb",
-                                         background_droplets=background_droplets,
-                                         detect_IgG=TRUE)
- 
+                                         detect_IgG=TRUE,
+                                         background_droplets=background_droplets)
+
+normalized_protein_mat<-normalize_protein_data(file=file,
+                                          metadata=metadata,
+                                           protein_mat=protein_mat_final,
+                                           method="CLR",
+                                           detect_IgG=FALSE,
+                                          background_droplets=background_droplets)
+
 final_metadata<- metadata%>%
                         dplyr::filter(Cell%in%colnames(normalized_protein_mat))%>%
                         dplyr::arrange(match(Cell,colnames(normalized_protein_mat)))
 
 ```
 
+Now we want to load in our data into Seurat. Keep in mind which normalization method for protein was used above. Comment out the one you do not want to use (or let it use CLR as it will currently overwrite the dsb one). Below follows the standard Seurat implementation where you apply nearest neighbor search, generate clusters, and build a UMAP. Afterwards, are some examples of further data exploration and plots to analyze your results.
 
-```{r,eval=FALSE}
-library(Seurat)
+```{r,message=FALSE,warning=FALSE}
 s <- CreateSeuratObject(counts=normalized_protein_mat, 
                         assay="Protein")
 
@@ -291,22 +307,22 @@ s <- AddMetaData(object = s,
                                   "Nras"=final_metadata%>%pull('chr1:115258748:C/G')))
 
 # cluster and run umap (based directly on dsb normalized values without isotype controls)
-prots <- rownames(s@assays$Protein@data)[1:42]
-s <- FindNeighbors(object = s, dims = NULL, assay = 'CITE', 
+prots <- rownames(s@assays$Protein@data)[2:42]
+s <- FindNeighbors(object = s, dims = NULL, assay = 'Protein', 
                   features = prots, k.param = 30, verbose = FALSE)
 
 # direct graph clustering 
-s <- FindClusters(object = s, resolution = 1, algorithm = 3, graph.name = 'CITE_snn', verbose = FALSE)
+s <- FindClusters(object = s, resolution = 1, algorithm = 3, graph.name = 'Protein_nn', verbose = FALSE)
 
 # umap for visualization only; (this is optional)
-s = RunUMAP(object = s, assay = "CITE", features = prots, seed.use = 1990,
+s = RunUMAP(object = s, assay = "Protein", features = prots, seed.use = 1990,
             min.dist = 0.2, n.neighbors = 50, verbose = FALSE)
 
 DimPlot(s,reduction = "umap")
 
 all.markers <-FindAllMarkers(s,test.use="roc")
 
-FindMarkers(s,  pseudocount.use = 0,test.use = "LR",ident.1="1_1_0_0",ident.2=c("1_0_0_0") )
+FindMarkers(s,ident.1="1",ident.2="2")
 VlnPlot(s,features=c("CD14"),  pt.size = 0.5)
 Idents(object = s) <- "seurat_clusters"
 
@@ -318,7 +334,7 @@ FeaturePlot(s,features = c("CD34","CD117"),keep.scale = "feature")&
                                                           na.value = "grey80")
 
 
-data_out<-table(s@meta.data$CITE_snn_res.1,s@meta.data$Clone)%>%
+data_out<-table(s@meta.data$Protein_nn_res.1,s@meta.data$Clone)%>%
                           data.frame%>%
                           group_by(Var2)%>%
                           mutate(Ratio=Freq/sum(Freq))
@@ -327,27 +343,27 @@ ggplot(data_out%>%summarise(Total=sum(Freq)),aes(x=Total,y=Var2))+geom_col()
 ```
 
 
-```{r,eval=FALSE}
-DotPlot(s, features = c(all.markers%>%dplyr::filter(cluster=="1_1_1_0")%>%pull(gene))[1:8]) + RotatedAxis()
+```{r,message=FALSE,warning=FALSE}
+DotPlot(s, features = c(all.markers%>%dplyr::filter(cluster=="1")%>%pull(gene))[1:8]) + RotatedAxis()
 RidgePlot(s,features= c("CD117","CD14","CD11b","CD34","CD138")) 
 DoHeatmap(s,slot = "counts", features = c("CD45RA","CD34","CD11b","CD14"))
 ```
 
-
-```{r,eval=FALSE}
+These are some more evaluation plots for median protein expression 
+```{r,message=FALSE,warning=FALSE}
 # make results dataframe 
-d = cbind(s@meta.data, as.data.frame(t(s@assays$CITE@data)), s@reductions$umap@cell.embeddings)
+d = cbind(s@meta.data, as.data.frame(t(s@assays$Protein@data)), s@reductions$umap@cell.embeddings)
 
 # calculate the median protein expression separately for each cluster 
 adt_plot = d %>% 
-  dplyr::group_by(CITE_snn_res.1) %>% 
+  dplyr::group_by(Protein_nn_res.1) %>% 
   dplyr::summarize_at(.vars = prots, .funs = median) %>% 
   tibble::remove_rownames() %>% 
-  tibble::column_to_rownames("CITE_snn_res.1")
+  tibble::column_to_rownames("Protein_nn_res.1")
 
 
 ggplot(d%>%
-          dplyr::filter(Clone%in%c("0_0_0_0","1_0_0_0","1_1_0_0","1_0_1_0","1_1_1_0","1_1_1_1")), 
+          dplyr::filter(Clone%in%c("0_0_0","1_0_0","1_1_0","1_0_1","1_1_1")), 
           aes(x =  `CD71`,y = CD45RA,color=Clone)) +
                   theme_bw() + 
                   facet_wrap(~Clone)+
@@ -359,106 +375,23 @@ ggplot(d%>%
 ```
 
 
-## Pseudotime using Slingshot
-```{r,eval=FALSE}
-library(slingshot)
-s.sce<-as.SingleCellExperiment(s)
-sds <- slingshot(s.sce, clusterLabels = 'seurat_clusters',start.clus="0", reducedDim = 'UMAP')
-
-final_matrix_pseudo<-data.frame(slingPseudotime(sds), d)
-
-ggplot(final_matrix_pseudo%>%
-                 dplyr::filter(Clone%in%c("0_0_0_0","1_0_0_0","1_1_0_0","1_0_1_0","1_1_1_0","1_1_1_1"))%>%
-                 dplyr::select(c(Clone,starts_with("curve")))%>%
-                 tidyr::pivot_longer(cols=!Clone,names_to="curve",values_to = "trajectory"),
-            aes(x=as.numeric(trajectory),color=Clone))+
-            facet_grid(curve~.,scale="free")+
-            geom_density(alpha=0.5)+
-            theme_minimal_grid()
-```
-
-```{r,eval=FALSE}
-
-curve_1 <- slingCurves(sds)[[1]]
-curve_1 <- curve_1$s[curve_1$ord, ]
-colnames(curve_1) <- c("UMAP_1", "UMAP_2")
-
-curve_2 <- slingCurves(sds)[[2]]
-curve_2 <- curve_2$s[curve_2$ord, ]
-colnames(curve_2) <- c("UMAP_1", "UMAP_2")
-
-curve_3 <- slingCurves(sds)[[3]]
-curve_3 <- curve_3$s[curve_3$ord, ]
-colnames(curve_3) <- c("UMAP_1", "UMAP_2")
-
-curve_4 <- slingCurves(sds)[[4]]
-curve_4 <- curve_4$s[curve_4$ord, ]
-colnames(curve_4) <- c("UMAP_1", "UMAP_2")
-
-
-ggplot(final_matrix_pseudo,
-            aes(x=UMAP_1,y=UMAP_2,color=seurat_clusters))+
-            geom_point(alpha=0.5)+
-            theme_minimal_grid()+
-              geom_path(data=data.frame(curve_1),lwd=2,color="grey70")+
-              geom_path(data=data.frame(curve_2),lwd=1,color="green")+
-              geom_path(data=data.frame(curve_3),lwd=1,color="red")+
-              geom_path(data=data.frame(curve_4),lwd=1,color="blue")
-             
-
-lin1<-getLineages(sds,clusterLabels = 'seurat_clusters')
-
-plot(final_matrix_pseudo$UMAP_1,final_matrix_pseudo$UMAP_2)
-lines(getCurves(lin1),col="red")
-```
-
-Export to FCS
-```{r,eval=FALSE}
-library(Biobase)
-library(flowCore)
-library(flowViz)
-
-
-
-# simply replace the dummy dta below with your CSV data
-dta <- final_matrix%>%dplyr::filter(Group=="Perfect")%>%dplyr::select(!c(Cell,Clone,Group))%>%as.matrix
-
-mode(dta)<-"numeric"
-dta[,1:45] <-exp(1)^dta[,1:45]
-# you need to prepare some metadata
-meta <- data.frame(name=dimnames(dta)[[2]],
-		    desc=paste(dimnames(dta)[[2]])
-)
-
-meta[46,2] <- c("NRAS")
-meta[47,2] <- c("TET2")
-meta[48,2] <- c("NPM1")
-
-meta[49,2] <- c("UMAP 1: use linear")
-meta[50,2] <- c("UMAP 2: use linear")
-
-meta$range <- apply(apply(dta,2,range),2,diff)
-meta$minRange <- apply(dta,2,min)
-meta$maxRange <- apply(dta,2,max)
-
-head(meta)
-# all these are required for the following steps to work
-
-# a flowFrame is the internal representation of a FCS file
-ff <- new("flowFrame",
-	exprs=dta,
-	parameters=AnnotatedDataFrame(meta)
-)
-
-# a simple plot to check that it worked
-xyplot(CD3~CD19,ff)
-
-# now you can save it back to the filesystem
-write.FCS(ff,"/Users/bowmanrl/Desktop/1962_perfect.fcs")
-
-
-```
-
-
-
-
+Stay tuned for the following updates and things we are actively working on next:
+Near term:
+1. FCS export
+2. Finalizing trajectory optimization
+3. Finalizing cohort characterization
+4. Creating your own TxDB tutorial
+Ongoing investigation:
+1. Improved cell identification.
+2. A new filtering and normalization for protein data.
+3. Diagnostics on your assays.
+4. Improvements to the MDP and RL:
+  a. Introducing safe RL through risk-sensitivity  
+  b. introducing probabilistic states and actions
+  c. improvements in performance by changing to a sparse representation
+  d. Improved trajectory analysis and path finding.
+    i. longest pathway to mutation
+    ii. free energy principle to find shortest path.
+  e. improvements to MDP formalization for improved accuracy and efficiency.
+  f. Improvements to RL algorithm to speed up the learned model.
+5. Updating presentation of figures.

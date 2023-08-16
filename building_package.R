@@ -27,12 +27,12 @@ use_readme_rmd()
 use_devtools()
 
 load_all()
-
 document()
 check()
 
 
-use_package("TxDb.Hsapiens.UCSC.hg19.knownGene")
+use_package("AnnotationDbi")
+
 setwd("/Users/bowmanr/Projects/scDNA/")
 file<-("./data/Sample1962.dna+protein.h5")
 
