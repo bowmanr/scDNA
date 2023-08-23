@@ -14,8 +14,8 @@ read_tapestri_h5_protein<-function(file=file){
 
           protein_mat_final<-data.frame("Cell"=colnames(protein_mat),
                                                t(protein_mat))%>%
-                             dplyr::mutate(Cell=gsub("-1","",Cell))%>%
-                             dplyr::filter(Cell%in%tidyselect::all_of(final_NGT$Cell))
+                             dplyr::mutate(Cell=gsub("-1","",Cell))#%>%
+                             #dplyr::filter(Cell%in%tidyselect::all_of(final_NGT$Cell))
           return(protein_mat_final)
 }
 
