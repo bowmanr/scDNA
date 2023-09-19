@@ -220,7 +220,7 @@ library(flowViz)
 names(assays(altExp(sce)))
 fcs_export(sce,
            slot="CLR_norm",
-           save_path="/Users/bowmanrl/Desktop/sample_CLR.fcs")
+           save_path="~/Desktop/sample_CLR.fcs")
 ```
 Now we want to load in our data into Seurat. Keep in mind which normalization method for protein was used above. Comment out the one you do not want to use (or let it use CLR as it will currently overwrite the dsb one). Below follows the standard Seurat implementation where you apply nearest neighbor search, generate clusters, and build a UMAP. Afterwards, are some examples of further data exploration and plots to analyze your results.
 
