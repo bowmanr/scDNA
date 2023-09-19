@@ -34,9 +34,12 @@ trajectory_analysis<-function(sce){
   for (iter in 1:(length(WT_to_dom_clone)-1)){
     check_sub_var<-data.frame(current_state=gsub('^.|.$', '',gsub("", "_",stringr::str_pad(levels(RL_output$next_state)[WT_to_dom_clone[iter]], length(unique(sce@metadata$Architecture$final_annot)), pad = "0"))),
                               next_state=gsub('^.|.$', '',gsub("", "_",stringr::str_pad(levels(RL_output$next_state)[WT_to_dom_clone[iter+1]], length(unique(sce@metadata$Architecture$final_annot)), pad = "0"))))
-    check_sub_var$mutation_order<-as.data.frame(RL_output)%>%
+    check_sub_var$mutation_taken<-as.data.frame(RL_output)%>%
       dplyr::filter((current_state==levels(RL_output$next_state)[WT_to_dom_clone[iter]]) &(next_state==levels(RL_output$next_state)[WT_to_dom_clone[iter+1]]))%>%
-      dplyr::select(mutation_taken,reward)
+      dplyr::pull(mutation_taken)
+    check_sub_var$reward<-as.data.frame(RL_output)%>%
+      dplyr::filter((current_state==levels(RL_output$next_state)[WT_to_dom_clone[iter]]) &(next_state==levels(RL_output$next_state)[WT_to_dom_clone[iter+1]]))%>%
+      dplyr::pull(reward)
     WT_to_dom_clone_policy<-rbind(WT_to_dom_clone_policy,check_sub_var)
   }
 
@@ -46,9 +49,12 @@ trajectory_analysis<-function(sce){
   for (iter in 1:(length(WT_to_last_state)-1)){
     check_sub_var<-data.frame(current_state=gsub('^.|.$', '',gsub("", "_",stringr::str_pad(levels(RL_output$next_state)[WT_to_last_state[iter]], length(unique(sce@metadata$Architecture$final_annot)), pad = "0"))),
                               next_state=gsub('^.|.$', '',gsub("", "_",stringr::str_pad(levels(RL_output$next_state)[WT_to_last_state[iter+1]], length(unique(sce@metadata$Architecture$final_annot)), pad = "0"))))
-    check_sub_var$mutation_order<-as.data.frame(RL_output)%>%
+    check_sub_var$mutation_taken<-as.data.frame(RL_output)%>%
       dplyr::filter((current_state==levels(RL_output$next_state)[WT_to_last_state[iter]]) &(next_state==levels(RL_output$next_state)[WT_to_last_state[iter+1]]))%>%
-      dplyr::select(mutation_taken,reward)
+      dplyr::pull(mutation_taken)
+    check_sub_var$reward<-as.data.frame(RL_output)%>%
+      dplyr::filter((current_state==levels(RL_output$next_state)[WT_to_last_state[iter]]) &(next_state==levels(RL_output$next_state)[WT_to_last_state[iter+1]]))%>%
+      dplyr::pull(reward)
     WT_to_last_state_policy<-rbind(WT_to_last_state_policy,check_sub_var)
   }
 
@@ -62,9 +68,12 @@ trajectory_analysis<-function(sce){
 
       check_sub_var<-data.frame(current_state=gsub('^.|.$', '',gsub("", "_",stringr::str_pad(levels(RL_output$next_state)[single_WT_to_dom[iter]], length(unique(sce@metadata$Architecture$final_annot)), pad = "0"))),
                                 next_state=gsub('^.|.$', '',gsub("", "_",stringr::str_pad(levels(RL_output$next_state)[single_WT_to_dom[iter+1]], length(unique(sce@metadata$Architecture$final_annot)), pad = "0"))))
-      check_sub_var$mutation_order<-as.data.frame(RL_output)%>%
+      check_sub_var$mutation_taken<-as.data.frame(RL_output)%>%
         dplyr::filter((current_state==levels(RL_output$next_state)[single_WT_to_dom[iter]]) &(next_state==levels(RL_output$next_state)[single_WT_to_dom[iter+1]]))%>%
-        dplyr::select(mutation_taken,reward)
+        dplyr::pull(mutation_taken)
+      check_sub_var$reward<-as.data.frame(RL_output)%>%
+        dplyr::filter((current_state==levels(RL_output$next_state)[single_WT_to_dom[iter]]) &(next_state==levels(RL_output$next_state)[single_WT_to_dom[iter+1]]))%>%
+        dplyr::pull(reward)
       single_WT_to_dom_policy<-rbind(single_WT_to_dom_policy,check_sub_var)
     }
     All_WT_to_dom_policy[[big_list_iter]]<-single_WT_to_dom_policy
@@ -83,9 +92,12 @@ trajectory_analysis<-function(sce){
       for (iter in 1:(length(single_WT_to_obs)-1)){
          check_sub_var<-data.frame(current_state=gsub('^.|.$', '',gsub("", "_",stringr::str_pad(levels(RL_output$next_state)[single_WT_to_obs[iter]], length(unique(sce@metadata$Architecture$final_annot)), pad = "0"))),
                                    next_state=gsub('^.|.$', '',gsub("", "_",stringr::str_pad(levels(RL_output$next_state)[single_WT_to_obs[iter+1]], length(unique(sce@metadata$Architecture$final_annot)), pad = "0"))))
-         check_sub_var$mutation_order<-as.data.frame(RL_output)%>%
+         check_sub_var$mutation_taken<-as.data.frame(RL_output)%>%
           dplyr::filter((current_state==levels(RL_output$next_state)[single_WT_to_obs[iter]]) &(next_state==levels(RL_output$next_state)[single_WT_to_obs[iter+1]]))%>%
-          dplyr::select(mutation_taken,reward)
+          dplyr::pull(mutation_taken)
+         check_sub_var$reward<-as.data.frame(RL_output)%>%
+          dplyr::filter((current_state==levels(RL_output$next_state)[single_WT_to_obs[iter]]) &(next_state==levels(RL_output$next_state)[single_WT_to_obs[iter+1]]))%>%
+          dplyr::pull(reward)
         single_WT_to_obs_policy<-rbind(single_WT_to_obs_policy,check_sub_var)
       }
       WT_to_all_observed_policy[[big_list_iter]]<-single_WT_to_obs_policy
