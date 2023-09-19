@@ -72,7 +72,7 @@ normalize_protein_data<-function(file,
   }
   protein_sce@metadata<-metadata
   protein_sce@colData<-S4Vectors::DataFrame(metadata%>%
-                                            filter(Cell%in%colnames(protein_mat)))
+                                            dplyr::filter(Cell%in%colnames(protein_mat)))
   SingleCellExperiment::altExp(sce, "Protein") <- protein_sce
   
   return(sce)
