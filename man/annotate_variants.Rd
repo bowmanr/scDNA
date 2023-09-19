@@ -4,22 +4,12 @@
 \alias{annotate_variants}
 \title{Annotate variants of interest}
 \usage{
-<<<<<<< Updated upstream
-annotate_variants(file, annotation_key, txdb, banned, NGT)
-=======
 annotate_variants(file, txdb = NULL, select_variants = NULL)
->>>>>>> Stashed changes
 }
 \arguments{
-\item{file}{path to h5 file}
+\item{file}{path to h5 file to pull out relevant DNA information}
 
-\item{annotation_key}{external data frame containing annotation information}
-
-\item{txdb}{txdb object for genes of interest}
-
-\item{banned}{data.frame of genomic coordinates to be filtered out}
-
-\item{NGT}{filtered NGT matrix from quality_filter_NGT}
+\item{select_variants}{variants of interest, default is all variants}
 }
 \value{
 variant annotation matrix

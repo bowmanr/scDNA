@@ -22,8 +22,6 @@ use_r("select_clones")
 use_r("read_tapestri_h5_protein")
 use_r("extract_droplet_size")
 use_r("normalize_protein_data")
-<<<<<<< Updated upstream
-=======
 use_r("variant_ID")
 use_r("tapestri_h5_to_sce")
 use_r("BuildMDP")
@@ -39,7 +37,6 @@ use_r("generate_txdb")
 use_r("compute_clone_statistics")
 use_r("fcs_export")
 
->>>>>>> Stashed changes
 use_readme_rmd()
 
 use_devtools()
@@ -48,39 +45,9 @@ use_devtools()
 load_all()
 document()
 check()
+build()
 
-<<<<<<< Updated upstream
-=======
 usethis::use_version("patch")
->>>>>>> Stashed changes
 
 use_package("AnnotationDbi")
-
-setwd("/Users/bowmanr/Projects/scDNA/")
-file<-("./data/Sample1962.dna+protein.h5")
-
-NGT<-read_tapestri_h5_NGT("/Users/bowmanr/Projects/scDNA/data/Sample1962.dna+protein.h5")
-
-
-filtered_NGT<-quality_filter_NGT(file="/Users/bowmanr/Projects/scDNA/data/Sample1962.dna+protein.h5",
-                                 NGT=NGT,
-                                 DP_cut=10,
-                                 AF_cut=20,
-                                 GQ_cut=20)
-
-annotation_key <-read.csv("/Users/bowmanr/Projects/scDNA/data/annotation_key.csv")
-hg19refseq_txdb<-loadDb(file="/Users/bowmanr/Projects/scDNA/data/hg19refseq_txdb.sqlite")
-banned <-read.csv("/Users/bowmanr/Projects/scDNA/data/banned_list.csv")
-
-annotation_key%<>%inner_join(select(hg19refseq_txdb,
-                                    keys=annotation_key$ccds_id,
-                                    columns=c("TXID","TXNAME"),
-                                    keytype = "TXNAME"),
-                             by=c("ccds_id"="TXNAME"))%>%
-                  mutate(TXID=as.character(TXID))
-
-final_mutation_info<- annotate_variants(file="/Users/bowmanr/Projects/scDNA/data/Sample1962.dna+protein.h5",
-                             annotation_key=annotation_key,
-                             txdb=hg19refseq_txdb,
-                             banned=banned,#[,1],
-                             NGT=filtered_NGT)
+use_package("Homo.sapiens")

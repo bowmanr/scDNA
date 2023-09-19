@@ -4,17 +4,15 @@
 \alias{enumerate_clones}
 \title{Enumerate clones}
 \usage{
-enumerate_clones(NGT, variant_metadata, replicates = 100)
+enumerate_clones(sce, replicates = 100)
 }
 \arguments{
-\item{NGT}{NGT matrix for clone identification. Should lack NA's}
-
-\item{variant_metadata}{metadata}
+\item{sce}{SingleCellExperiment object containing NGT matrix for clone identification.}
 
 \item{replicates}{number of bootstrapping replicates}
 }
 \value{
-list containing a table of clones, modified NGT matrix, and clonal architecture.
+updated sce containing a table of clones, modified NGT matrix, and clonal architecture.
 }
 \description{
 Enumerate clones

@@ -5,7 +5,7 @@
 \title{Select clones of interest on the basis QC metrics}
 \usage{
 select_clones(
-  final_sample_summary = final_sample_summary,
+  sce,
   ADO_cut = 0.1,
   GQ_cut = 30,
   DP_cut = 10,
@@ -13,6 +13,8 @@ select_clones(
 )
 }
 \arguments{
+\item{sce}{a SingleCellExperiment object containing the Clones,Architecture, and NGT matrix}
+
 \item{ADO_cut}{maximum median allele dropout}
 
 \item{GQ_cut}{mimimum median gene quality score}
@@ -22,7 +24,7 @@ select_clones(
 \item{select_exact}{default=FALSE, can supply a vector of clones of interest to bypass QC filtering}
 }
 \value{
-final_sample_summary
+a subset of the sce object
 }
 \description{
 Select clones of interest on the basis QC metrics

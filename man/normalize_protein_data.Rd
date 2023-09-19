@@ -7,11 +7,10 @@
 normalize_protein_data(
   file,
   metadata,
-  protein_mat,
+  sce,
   method = "dsb",
   detect_IgG = TRUE,
-  background_droplets,
-  NGT
+  background_droplets
 )
 }
 \arguments{

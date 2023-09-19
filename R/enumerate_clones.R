@@ -2,34 +2,17 @@
 
 #' Enumerate clones
 #'
-#' @param NGT  NGT matrix for clone identification. Should lack NA's
+#' @param sce  SingleCellExperiment object containing NGT matrix for clone identification.
 #' @param replicates number of bootstrapping replicates
-#' @param variant_metadata metadata
 #' @importFrom rlang .data
 #' @importFrom magrittr %<>%
-#' @return list containing a table of clones, modified NGT matrix, and clonal architecture.
+#' @return updated sce containing a table of clones, modified NGT matrix, and clonal architecture.
 #' @export
 #'
 #' @examples
-enumerate_clones<-function(NGT,
-                           variant_metadata,
+enumerate_clones<-function(sce,
                            replicates=100
                            ){
-<<<<<<< Updated upstream
-
-  bulk_VAF_order   <- NGT%>%
-                           dplyr::select(!c(.data$Cell,.data$Group))%>%
-                           colSums%>%
-                           sort(decreasing=TRUE)%>%
-                           names
-
-  NGT_to_clone     <- NGT[,c("Cell","Group",bulk_VAF_order)]%>%
-                                  tidyr::unite("Clone",
-                                               tidyselect::all_of(bulk_VAF_order),
-                                               sep="_", remove = FALSE)
-
-  if("Group"%in%colnames(final_NGT)){
-=======
   
   print("Computing clones")
 
@@ -53,7 +36,6 @@ enumerate_clones<-function(NGT,
   NGT_to_clone <- dplyr::filter(NGT,if_all(!c(.data$Cell,.data$Group,.data$Clone),~.< 3))
   
   if("Group"%in%colnames(NGT)){
->>>>>>> Stashed changes
     clonal_abundance <- NGT_to_clone%>%
                               dplyr::group_by(Group)%>%
                               dplyr::count(.data$Clone,name="Count")%>%
@@ -88,11 +70,7 @@ if(class(test)=="list"){
     y <- setNames(apply(test,3,data.frame),1:replicates)
   }
 
-<<<<<<< Updated upstream
-y %<>% purrr::imap(~ set_names(.x, c("Clone", .y))) %>%
-=======
 y <- y%>% purrr::imap(~ purrr::set_names(.x, c("Clone", .y))) %>%
->>>>>>> Stashed changes
        purrr::reduce(dplyr::full_join, by = "Clone")
 
 y[is.na(y)]<-0
@@ -146,20 +124,6 @@ clonal_architecture<-NGT_to_clone%>%
                                   Genotype==0~"WT",
                                   Genotype==1~"Heterozygous",
                                   Genotype==2~"Homozygous",
-<<<<<<< Updated upstream
-                                  TRUE~"error"))%>%
-                        dplyr::inner_join(variant_metadata%>%dplyr::select(.data$id,.data$AA),by="id")%>%
-                        dplyr::mutate(AA=factor(AA,levels=as.character(final_variant_info$AA)))
-
-
-  if(any(clonal_architecture$Genotype=="error")){
-      "something went wrong"
-  }
-
-  return(list("Clones"=clonal_abundance_boot_CI,
-              "NGT"=NGT_to_clone,
-              "Architecture"=clonal_architecture))
-=======
                                   TRUE~"error"))#%>%
                         #dplyr::inner_join(sce@assays@data@metadata$annotation_table%>%
                        #                     dplyr::filter(.data$id%in%rownames(sce))%>%
@@ -180,5 +144,4 @@ sce@metadata$Architecture<-clonal_architecture
   #            "NGT"=NGT_to_clone,
   #            "NGT_with_missing"=NGT,
   #            "Architecture"=clonal_architecture))
->>>>>>> Stashed changes
 }

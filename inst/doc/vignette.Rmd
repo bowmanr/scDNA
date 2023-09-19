@@ -1,0 +1,275 @@
+---
+title: "scDNA: R package for DNA+protein single cell DNA sequencing analysis"
+author: "Michael Bowman and Bobby Bowman"
+date: "9/12/2023"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+Install scDNA package.
+```{r,message=FALSE,warning=FALSE,eval=FALSE}
+library(devtools)
+devtools::install_github("https://github.com/bowmanr/scDNA/tree/BB_dev",force=TRUE)
+```
+loading in necessary libraries
+
+```{r,message=FALSE,echo=FALSE,eval=FALSE}
+library(scDNA)
+library(googledrive)
+library(dplyr)
+library(Homo.sapiens)
+library(VariantAnnotation)
+library(GenomicRanges)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(BSgenome.Hsapiens.UCSC.hg19)
+library(ggplot2)
+
+```
+
+
+Start off by loading the scDNA package, and pointing the system to a h5 of interest. For speed purposes, I strongly suggest you have the file local as opposed to on the server. Change the folder path below to the match where you have placed the Sample1962.dna+protein.h5 file.
+
+```{r load in file,eval=FALSE}
+sample_file<- "~/CodingCamp/Projects/scDNA_demo/Sample1962.dna+protein.h5"
+#sample_file<-c("/Users/bowmanrl/Desktop/Review/MSK24.cells.loom")
+```
+
+
+First, we read in the h5 file to generate the variant outputs we seek. This function has 2 forms: 1) an exploratory phase, and a 2) refinement phase. These two phases are determined by 2 cutoff parameters in the function. The GT_cutoff is the fraction of cells that are successfully genotyped for initial filtering. The VAF_cutoff is the variant allele frequency cutoff and is the fraction of cells that are mutated for initial filtering of variants (as a percent so a value of 12 means 12%). 
+
+To ensure the exploratory phase is used, set the GT_cutoff=0, and VAF_cutoff=0. This will produce all possible variants that may be of interest, disregarding quality of the cells. The refinement phase is used after we have ID-ed variants of interest and allows for quality control on the cells of expressing those variants. We recommend that to start with an exploratory phase first before jumping right to the refinement phase (GT_cutoff=35 and VAF_cutoff=5). 
+
+The variant_outputs will tell you the Variant ID, along with the number of cells that are called wildtype, heterozygous, homozygous, or we can't tell and it is labeled as Missing. Along with the genotyping_rate for the calls.
+
+The variants are annotated from nucleotide positions on the chromosomes to their standard gene nomenclature, then these are joined together into a single data frame. Afterwards, you can find the genes you are interested in. An exmaple of pulling out out 3 genes, and plotting the Genotyping rate vs the Variant Allele Frequency (VAF) for all cells. This is an essential transition point from the exploratory phase to the refinement phase. 
+
+```{r variant identification,eval=FALSE}
+#need to install SpareMatrixStats
+variant_output<-variant_ID(file=sample_file,
+                           txdb="MSK_RL",
+                            GT_cutoff=0,
+                             VAF_cutoff=0)
+
+
+genes_of_interest <- c("IDH2","NRAS","NPM1","TET2","FLT3","IDH1")
+```
+
+
+Using the above plot can help in determining which variants we should gain further insight into.
+As an example, we are looking for heterozygous mutations (near the 50% VAF), with good quality 
+genotyping rate. The following is how to filter the table to reduce the table to variants of interest.
+```{r variant selection orders,fig.align='center',fig.height=5,fig.width=5,eval=FALSE}
+variants_of_interest<-variant_output%>%
+                        distinct()%>%
+                          dplyr::filter(Class=="Exon")%>%
+                          dplyr::filter(VAF>0.01)%>%
+                          dplyr::filter(genotyping_rate>85)%>%
+                          dplyr::filter(!is.na(CONSEQUENCE)&CONSEQUENCE!="synonymous")%>%
+                          dplyr::filter(SYMBOL%in%genes_of_interest)%>%   
+                          dplyr::arrange(desc(VAF))%>%
+                          dplyr::slice(c(1,2,3))
+
+```
+
+
+Now that we have variants of interest we want to explore further, more stringent gates are devised 
+to pull out "good" quality cells to explore. In this case, we increase the genotyping quality 
+(so there are less Missing counts compared to actually good calls). The other gating parameters are
+Depth read (DP_cutoff) which is the minimum number of reads necessary for a reliable genotype call in a single cell,
+the Allele Frequency bandpass filter (AF_cutoff) which is the deviation from 0, 50, or 100% 
+for a reliable call of WT, Het or Hom respectively. The last gating is the genotyping quality for indiviudal cells (GQ_cutoff)
+which is the minimum genotype quality necessary for a reliable genotype call.
+Afterwards this is put into a SingleCellExperiment object to standardize the data format
+for the rest of our package or to be used by others such as Suerat or dsb.
+```{r sce construction,cache=TRUE,eval=FALSE}
+sce<-tapestri_h5_to_sce(file=sample_file,
+                      variant_set = variants_of_interest,
+                      GT_cutoff=90, 
+                      VAF_cutoff=0.01,
+                      DP_cutoff=10,
+                      GQ_cutoff=20,
+                      AF_cutoff=20)
+```
+
+
+This produces SingleCellExperiment object. Updates clones in the metadata for the quality check.
+
+
+```{r,eval=FALSE}
+sce<-enumerate_clones(sce, replicates = 500)
+sce<-compute_clone_statistics(sce)
+```
+
+We can now look at a clonograph of the data, select a subset of clones and plot another clonograph
+```{r clonograph,fig.align='center',fig.height=5,fig.width=5,eval=FALSE}
+clonograph(sce)
+```
+
+```{r subset clonograph,fig.align='center',fig.height=5,fig.width=5,eval=FALSE}
+sce_subset<-select_clones(sce,
+                          ADO_cut=0.10,
+                          GQ_cut=30,
+                          DP_cut=10,
+                          select_exact=FALSE)
+clonograph(sce,complete_only=TRUE)
+```
+##Reinforcement Learning Trajectory Analysis
+
+After developing the clonograph, there are two routes to for further analysis:
+1) Trajectory Analysis of possible mutation order and cohort summarization,
+2) Protein analysis for cell type identification.
+
+First we will discuss the trajectory analysis, then we will discuss protein analysis. The following function uses the trajectory_analysis function which finds a few different trajectories we can explore.
+
+```{r,eval=FALSE}
+library(compiler)
+library(foreach)
+library(doParallel)
+library(visNetwork)
+library(igraph)
+#enableJIT(3)
+sce<-trajectory_analysis(sce)
+start_state ="0_0_0" # Change based on problem and number of variants we are using
+goal_state = "1_1_1" # Change based on problem and number of varianrs we are using``
+```
+
+```{r,eval=FALSE}
+sce<-get_own_path(sce,start_state,goal_state)
+visualize_any_optimal_path(sce,start_state,goal_state)
+
+print(sce@metadata$Trajectories$WT_to_last_possible_clone)
+
+```
+
+
+```{r Visualize Whole Network,eval=FALSE}
+vis_full_net<-visualize_full_network(sce)
+vis_full_net
+```
+
+```{r visualize most likely order,fig.align='center',fig.height=5,fig.width=5,eval=FALSE}
+vis_best_WT_to_dominant_clone<-visualize_WT_dominant_clone(sce)
+vis_best_WT_to_dominant_clone
+print(sce@metadata$Trajectories$WT_to_dominant_clone)
+```
+All paths from WT to dominant clone:
+```{r visual all possible orders,fig.align='center',fig.height=5,fig.width=5,eval=FALSE}
+vis_all_WT_to_dominant_clone<-visualize_all_WT_dominant_clone(sce)
+vis_all_WT_to_dominant_clone
+print(sce@metadata$Trajectories$All_WT_to_dominant_clone)
+
+```
+
+given user defined state, find where it can go with the clonograph
+this is done by setting observed states variable equal to the ones that are observed in our dataframe.
+
+```{r match clonal graph from WT,fig.align='center',fig.height=5,fig.width=5,eval=FALSE}
+given_state <-"0"
+match_clonal_graph(sce,given_state)
+print(sce@metadata$Trajectories$WT_to_Observed_paths)
+
+```
+
+
+##Protein
+Now we will demonstrate how to export the protein data to Seurat for clustering, and producing a UMAP. We also demonstrate our wrapper to normalize protein data with either CLR (base Seurat) or dsb if you have IGg controls. Coming soon, our own normalization method for protein information! Stay tuned!
+```{r,message=FALSE,warning=FALSE,eval=FALSE}
+library(dsb) 
+library(Seurat)
+library(SingleCellExperiment)
+droplet_metadata<- extract_droplet_size(sample_file,sce=sce_subset)
+
+# Try changing bins=1000 to see overlap empty droplets and real ones
+ggplot(droplet_metadata, aes(x = dna_size, y = protein_size,color=Droplet_type )) +
+                  theme_bw() + 
+                  geom_density_2d(bins=1000)+
+                  geom_hline(yintercept =c(1.5,5),lty=2)+
+                  geom_vline(xintercept =c(0.1,1.5),lty=2)
+```
+
+After obtaining the protein matrix, we now want to extract background cells and normalize the protein. Both strategies to normalize the data are shown below.
+
+```{r,message=FALSE,warning=FALSE,eval=FALSE}
+background_droplets<-droplet_metadata%>%
+                          dplyr::filter(Droplet_type=="Empty")%>%
+                          dplyr::filter(dna_size<1.5&dna_size>0.15)%>%
+                          pull(Cell)
+
+sce<-normalize_protein_data(file=sample_file,
+                             metadata=droplet_metadata,
+                             sce=sce_subset,
+                             method=c("dsb","CLR"),
+                             detect_IgG=TRUE,
+                             background_droplets=background_droplets)
+
+altExp(sce)
+```
+```{r,eval=FALSE}
+library(Biobase)
+library(flowCore)
+library(flowViz)
+names(assays(altExp(sce)))
+fcs_export(sce,
+           slot="CLR_norm",
+           save_path="/Users/bowmanrl/Desktop/sample_CLR.fcs")
+```
+Now we want to load in our data into Seurat. Keep in mind which normalization method for protein was used above. Comment out the one you do not want to use (or let it use CLR as it will currently overwrite the dsb one). Below follows the standard Seurat implementation where you apply nearest neighbor search, generate clusters, and build a UMAP. Afterwards, are some examples of further data exploration and plots to analyze your results.
+
+```{r,message=FALSE,warning=FALSE,eval=FALSE}
+library(Seurat)
+
+s<-Seurat::as.Seurat(x = altExp(sce),counts="Protein",data="CLR_norm")
+s<-SeuratObject::RenameAssays(object = s, originalexp = 'Protein')
+
+colnames(s@meta.data)
+colnames(s@meta.data)[12]<-"TET2"
+colnames(s@meta.data)[13]<-"NPM1"
+colnames(s@meta.data)[14]<-"NRAS"
+colnames(s@meta.data)
+```
+
+```{r,eval=FALSE}
+s <- Seurat::ScaleData(s, assay = "Protein")
+s <- Seurat::FindVariableFeatures(s,assay = "Protein")
+s <- Seurat::RunPCA(s, features = VariableFeatures(object = s))
+s <- Seurat::FindNeighbors(s, dims = 1:10)
+s <- Seurat::FindClusters(s, resolution = 0.5)
+# cluster and run umap (based directly on dsb normalized values without isotype controls)
+
+
+s <- FindNeighbors(object = s,
+                   dims = NULL,  
+                   k.param = 30)
+
+# direct graph clustering 
+s <- FindClusters(object = s, 
+                  assay = "Protein",
+                  resolution = 1, 
+                  algorithm = 3, 
+                  verbose = TRUE)
+
+# umap for visualization only; (this is optional)
+s = RunUMAP(object = s, 
+            seed.use = 1990, 
+            min.dist = 0.2, 
+            n.neighbors = 50, 
+            features=s@assays$Protein@var.features,
+            verbose = TRUE)
+
+DimPlot(s,reduction = "umap",group.by ="Clone" )
+
+FeaturePlot(s,features = c("CD19"))
+Idents(s)<-"Clone"
+Seurat::FindMarkers(s,ident.1 = "0_0_0",ident.2 = "1_1_1")
+
+Seurat::RidgePlot(s,features = "CD3")
+```

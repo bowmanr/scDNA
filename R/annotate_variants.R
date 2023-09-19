@@ -1,29 +1,15 @@
 #' Annotate variants of interest
 #'
-#' @param file path to h5 file
-#' @param annotation_key external data frame containing annotation information
-#' @param txdb txdb object for genes of interest
-#' @param banned data.frame of genomic coordinates to be filtered out
-#' @param NGT filtered NGT matrix from quality_filter_NGT
+#' @param file path to h5 file to pull out relevant DNA information
+#' @param select_variants variants of interest, default is all variants
 #' @importFrom BSgenome.Hsapiens.UCSC.hg19 Hsapiens
+#' @importFrom TxDb.Hsapiens.UCSC.hg19.knownGene TxDb.Hsapiens.UCSC.hg19.knownGene
+#' @importFrom Homo.sapiens Homo.sapiens
 #' @importFrom methods as
 #' @importFrom rlang .data
 #' @return variant annotation matrix
 #' @export
 #' @examples
-<<<<<<< Updated upstream
-annotate_variants<- function(file,annotation_key,txdb,banned,NGT){
-    variants<-rhdf5::h5read(file=file,name="/assays/dna_variants/ca/id")
-    select_variants<-setdiff(colnames(NGT),"Cell")
-    SNV_mat<-data.frame(do.call(cbind,
-                              rhdf5::h5read(file=file,name="/assays/dna_variants/ca/"))) %>%
-                        dplyr::filter(.data$id%in%tidyselect::all_of(select_variants))%>%
-                        dplyr::filter(!.data$id%in%tidyselect::all_of(banned))%>%
-                        dplyr::mutate(ALT=gsub("\\*","N",.data$ALT))%>%
-                        dplyr::mutate(REF=gsub("\\*","N",.data$REF))%>%
-                        dplyr::mutate(CHROM=paste0("chr",.data$CHROM))
-
-=======
 annotate_variants<- function(file,
                              txdb=NULL,
                              select_variants=NULL
@@ -114,53 +100,153 @@ annotate_variants<- function(file,
     SNV_mat <- SNV_mat %>% dplyr::filter(id %in% select_variants)
   }
   
->>>>>>> Stashed changes
   #necessary for meaningful GRangess
   SNV_mat$REF<-as(SNV_mat$REF, "DNAStringSet")
   SNV_mat$ALT<-as(SNV_mat$ALT, "DNAStringSet")
-
   variant_gRange<-GenomicRanges::makeGRangesFromDataFrame(SNV_mat,
-                                                           seqnames.field = "CHROM",
-                                                           start.field="POS",
-                                                           end.field="POS",
-                                                           keep.extra.columns=TRUE)
+                                                          seqnames.field = "CHROM",
+                                                          start.field="POS",
+                                                          end.field="POS",
+                                                          keep.extra.columns=TRUE)
+  
+  print("Annotating Variants based on location")
+  gene_subset<-GenomicFeatures::genes(custom_txdb)
+  non_gene_variants<-variant_gRange[-queryHits(findOverlaps(variant_gRange,gene_subset))]
+  genic_variant_gRange_subset<-variant_gRange[queryHits(findOverlaps(variant_gRange,gene_subset))]
+  
+  print(paste("n =",length(non_gene_variants), "variants were not annotated to be in a gene body"))
+  print("They can be found in the following regions and will be annotated with genomic location only")
+  print(GenomicRanges::reduce(non_gene_variants, min.gapwidth = 50)%>%data.frame())
+  
+  exon_subset<-GenomicFeatures::exons(custom_txdb)
+  exonic_variant_gRange_subset<-genic_variant_gRange_subset[S4Vectors::queryHits(GenomicRanges::findOverlaps(genic_variant_gRange_subset,exon_subset))]
+  non_exonic_variant_gRange_subset<-genic_variant_gRange_subset[-S4Vectors::queryHits(GenomicRanges::findOverlaps(genic_variant_gRange_subset,exon_subset))]
+  
+  print(paste("The following n =",length(genic_variant_gRange_subset), "variants were found within the following regions of a gene body"))
+  all_genic_variant_lists<-list(
+    "Coding" = suppressWarnings(suppressMessages(VariantAnnotation::locateVariants(query = (genic_variant_gRange_subset), subject = custom_txdb,region = VariantAnnotation::CodingVariants()))),
+    "Splice" = suppressWarnings(suppressMessages(VariantAnnotation::locateVariants(query = (genic_variant_gRange_subset), subject = custom_txdb,region = VariantAnnotation::SpliceSiteVariants()))),
+    "Intronic" = suppressWarnings(suppressMessages(VariantAnnotation::locateVariants(query = (genic_variant_gRange_subset), subject = custom_txdb,region = VariantAnnotation::IntronVariants()))),
+    "FiveUTR" = suppressWarnings(suppressMessages(VariantAnnotation::locateVariants(query = (genic_variant_gRange_subset), subject = custom_txdb,region = VariantAnnotation::FiveUTRVariants()))),
+    "ThreeUTR" = suppressWarnings(suppressMessages(VariantAnnotation::locateVariants(query = (genic_variant_gRange_subset), subject = custom_txdb,region = VariantAnnotation::ThreeUTRVariants()))),
+    "Promoter" = suppressWarnings(suppressMessages(VariantAnnotation::locateVariants(query = (genic_variant_gRange_subset), subject = custom_txdb,region = VariantAnnotation::IntergenicVariants()))))
+  
+  variant_QUERYID_by_region<-lapply(names(all_genic_variant_lists),function(x){
 
-  #necessary for downstream joining of
-  variant_gRange$QUERYID<-1:length(variant_gRange)
+    if(length(unique(all_genic_variant_lists[[x]]$QUERYID))>0){
+      data.frame("Region"=x,
+                 "QUERYID"=(all_genic_variant_lists[[x]]$QUERYID),
+                 "LOCSTART"=(all_genic_variant_lists[[x]]$LOCSTART))%>%
+      dplyr::distinct(Region,QUERYID,LOCSTART)
+      
+    } else{
+      print(paste("No",x,"variants found"))
+      return(NULL)
+    }
+  })
+  
+  variant_QUERYID_by_region_df<-do.call(rbind,variant_QUERYID_by_region)
+  variant_breakdown<-variant_QUERYID_by_region_df%>%
+    dplyr::mutate(Region=factor(Region,levels=names(all_genic_variant_lists)))%>%
+    dplyr::group_by(Region)%>%
+    dplyr::summarise(Count=n())
+  variant_prioritized_grouping<-variant_QUERYID_by_region_df%>%
+    dplyr::mutate(Region=factor(Region,levels=names(all_genic_variant_lists)))%>%
+    dplyr::arrange(Region)%>%
+    dplyr::distinct(QUERYID,.keep_all = TRUE)
+  variant_breakdown_final<-variant_prioritized_grouping%>%
+    dplyr::group_by(Region)%>%
+    dplyr::summarise(Count=n())%>% 
+    dplyr::full_join(variant_breakdown,.,by="Region",suffix=c("_Initial","_Reduced"))
+  print("Prioritizing annotation for variants that appear in more than one group")
+  print(variant_breakdown_final)
+  
+  
+  print("Annotating coding variants")
+  variant_annotation_location_list<-setNames(lapply(list("Coding","Splice","Intronic"),function(Region_test){
+    region_QUERYID<-variant_prioritized_grouping%>%
+                            dplyr::filter(Region==Region_test)%>%
+                            dplyr::pull(QUERYID)
+    
+    region_gRange<- variant_gRange[variant_gRange$QUERYID%in%region_QUERYID]
+    exonic_region_variant_gRanges<-region_gRange[unique(queryHits(findOverlaps(region_gRange,exonic_variant_gRange_subset)))]
+    non_exonic_region_variant_gRanges<-region_gRange[unique(queryHits(findOverlaps(region_gRange,non_exonic_variant_gRange_subset)))]
+    border_region_ids <- setdiff(region_gRange$id,union(exonic_region_variant_gRanges$id,non_exonic_region_variant_gRanges$id))
+    border_region_gRange<-variant_gRange[variant_gRange$id%in%border_region_ids]
+    
+    exonic_variants <- suppressWarnings(suppressMessages(VariantAnnotation::predictCoding(query = exonic_region_variant_gRanges, 
+                                                                                          subject = custom_txdb, 
+                                                                                          seqSource = BSgenome.Hsapiens.UCSC.hg19::Hsapiens, 
+                                                                                          varAllele = exonic_region_variant_gRanges$ALT)))
+    non_exonic_variants <- suppressWarnings(suppressMessages(VariantAnnotation::predictCoding(query = non_exonic_region_variant_gRanges, 
+                                                                                              subject = custom_txdb, 
+                                                                                              seqSource = BSgenome.Hsapiens.UCSC.hg19::Hsapiens, 
+                                                                                              varAllele = non_exonic_region_variant_gRanges$ALT)))
+    border_variants <- suppressWarnings(suppressMessages(VariantAnnotation::predictCoding(query = border_region_gRange, 
+                                                                                          subject = custom_txdb, 
+                                                                                          seqSource = BSgenome.Hsapiens.UCSC.hg19::Hsapiens, 
+                                                                                          varAllele = border_region_gRange$ALT)))
+    
+    list("Exonic"=exonic_variants,
+         "Non_exonic"=non_exonic_variants,
+         "Border"=border_variants)
+  }),c("Coding","Splice","Intronic"))
+  
+  print("Variants successfully annotated for impact on coding change")
+  print("Only a subset of coding variants will have a final impact on protein sequence")
+  print(do.call(rbind,lapply(variant_annotation_location_list,function(type){
+    lapply(type,function(region){
+      length(region)
+    })
+  })))
+  
+  final_protein_annotation<-do.call(rbind,lapply(unlist(variant_annotation_location_list)%>%names,function(variant_list){
+    unlist(variant_annotation_location_list)[[variant_list]]%>%
+      data.frame%>%
+      mutate(Class=variant_list)}))%>%
+    dplyr::full_join(complete_gene_annotation,by=c("GENEID"="ensembl_canonical_gene"))%>%
+    dplyr::mutate(AA_change=paste0(hgnc_symbol,".",REFAA,PROTEINLOC,VARAA))#%>%
+  
+  non_annotated_genic_GRanges<-genic_variant_gRange_subset[!genic_variant_gRange_subset$id%in%final_protein_annotation$id]
+  non_annotated_genic_GRanges$GENEID<-gene_subset[subjectHits(findOverlaps(non_annotated_genic_GRanges,gene_subset))]$gene_id
+  non_annotated_nongenic_GRanges<-genic_variant_gRange_subset[!genic_variant_gRange_subset$id%in%final_protein_annotation$id]
+  
+  
+  final_annotation<- final_protein_annotation%>%
+    dplyr::bind_rows(non_annotated_genic_GRanges%>%
+                       data.frame%>%
+                       dplyr::mutate(Class="non_coding")%>%
+                       dplyr::inner_join(complete_gene_annotation,by=c("GENEID"="ensembl_canonical_gene")))%>%
+    dplyr::filter(!is.na(id))%>%
+    dplyr::bind_rows(non_gene_variants%>%
+                       data.frame%>%
+                       dplyr::mutate(Class="Intergenic"))%>%
+    dplyr::full_join(variant_prioritized_grouping%>%
+                      dplyr::select(QUERYID,LOCSTART),
+                     by="QUERYID")%>%
+    dplyr::select(id,seqnames,start,end,width,strand,REF,ALT,QUAL,amplicon,QUERYID,
+                  final_transcript_id,SYMBOL=hgnc_symbol,CDSLOC=LOCSTART, REFAA,PROTEINLOC,VARAA,AA_change,CONSEQUENCE,Class)%>%
+    dplyr::mutate(CDS_change=paste0(SYMBOL,":c.",CDSLOC,REF,">",ALT))%>%
+    dplyr::mutate(final_annot=case_when(
+              !is.na(AA_change)~AA_change,
+              is.na(AA_change)&!is.na(CDS_change)~CDS_change,
+              is.na(AA_change)&is.na(CDS_change)~id
+    ))%>%
+    dplyr::mutate(final_annot=dplyr::case_when(
+      !is.na(AA_change)~AA_change,
+      !is.na(SYMBOL)&!is.na(REFAA)~CDS_change,
+      #     is.na(AA_change)&!is.na(CDS_change)~CDS_change,
+      Class=="non_coding"~CDS_change,
+      is.na(SYMBOL)~id,
+      TRUE~id
+    ))%>%
+    dplyr::mutate(Class=case_when(
+      Class=="Coding.Exonic"~"Exon",
+      Class=="Intronic.Exonic"~"Exon_Boundary",
+      Class=="non_coding"~"Intronic",
+      TRUE~Class
+    ))
 
-  #identify and isolate non coding variants
-  non_coding_variants <- VariantAnnotation::locateVariants(query=variant_gRange,
-                                                           subject=txdb,
-                                                           region=VariantAnnotation::AllVariants())%>%
-                          data.frame()%>%
-                          plyranges::filter(as.character(.data$LOCATION)!="coding")%>%
-                          dplyr::inner_join(variant_gRange,by="QUERYID",copy=TRUE)
-
-  #identify and isolate  coding variants
-  coding_variants  <-  VariantAnnotation::predictCoding(query=variant_gRange,
-                                                        subject=txdb,
-                                                        seqSource=Hsapiens,
-                                                        varAllele=variant_gRange$ALT)%>%
-                        data.frame()
-
-  #Bind it all together into one big table.
-  out <- dplyr::bind_rows(non_coding_variants,coding_variants) %>%
-                  dplyr::inner_join(annotation_key)%>%
-                  dplyr::mutate(AA=ifelse(!is.na(.data$REFAA),
-                                   paste0(.data$gene_name,".",.data$REFAA,.data$PROTEINLOC,.data$VARAA),
-                                   paste0(.data$gene_name,".intronic")))%>%
-                  dplyr::filter(.data$id%in%tidyselect::all_of(colnames(NGT)))
-
-  #append Bulk VAF for reference in future cutoffs and allele selection
-  final_mutation_info<-data.frame(
-    "Bulk_VAF"=apply(NGT%>%dplyr::select(!.data$Cell),MARGIN=2,function(x){
-                                        (sum(x,na.rm=TRUE) / (sum(!is.na(x))*2))*100
-                                   }),
-   "GT_call_rate"=apply(NGT%>%dplyr::select(!.data$Cell),MARGIN=2,function(x){
-                                       100- (sum(is.na(x)) / length(x)*100)
-                                    }),
-   "id"=colnames(NGT)[colnames(NGT)!="Cell"])%>%
-    dplyr::inner_join(out,by="id")
-
-  return(final_mutation_info)
+      print("Final annotation complete")
+  return(final_annotation)
 }

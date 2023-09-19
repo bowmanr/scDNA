@@ -3,13 +3,13 @@
 #' Extract protein library size, dna library size, and amplicon size for all droplets.
 #'
 #' @param file path to h5 file
-#' @param NGT
+#' @param sce singleCellExperiment Object
 #' @return metadata matrix
 #' @export
 #'
 #' @examples
 extract_droplet_size<- function(file,
-                                final_sample_summary){
+                                sce){
   all_protein_droplets <- rhdf5::h5read(file=file,name="/all_barcodes/protein_read_counts/layers/read_counts")
   all_dna_droplets <- rhdf5::h5read(file=file,name="/all_barcodes/dna_read_counts/layers/read_counts")
   colnames(all_dna_droplets) <-rhdf5::h5read(file=file,name="/all_barcodes/dna_read_counts/ra/barcode")
@@ -26,11 +26,9 @@ extract_droplet_size<- function(file,
          dplyr::mutate(Cell=gsub("-1","",Cell))
   md<- md%>%
           mutate(Droplet_type=case_when(
-                    Cell%in%final_sample_summary$NGT$Cell~"Cell",
+                    Cell%in%colnames(sce)~"Cell",
                     TRUE~"Empty"
                   ))%>%
-          full_join(final_sample_summary_subset$NGT,by="Cell")
-
-
+          full_join(sce@metadata$NGT,by="Cell")
   return(md)
 }

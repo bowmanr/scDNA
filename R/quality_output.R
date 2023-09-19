@@ -51,11 +51,7 @@ quality_output<-function(file,
     # produce long form allele frequency data
     data.frame(AF,
                "variants"=input_variants),
-<<<<<<< Updated upstream
-    c(tidyselect::all_of(input_cells),"variants")) %>%
-=======
     c(input_cells,"variants")) %>%
->>>>>>> Stashed changes
       tidyr::pivot_longer(cols=!c(variants),
                               names_to="Cell",
                               values_to="AF"),
@@ -73,11 +69,7 @@ quality_output<-function(file,
                               values_to="GQ")%>%dplyr::select(GQ),
 
     #produce long form genotype call data
-<<<<<<< Updated upstream
-     NGT%>%dplyr::select(tidyselect::all_of(input_variants))%>%
-=======
      NGT%>%dplyr::select(rownames(sce))%>%
->>>>>>> Stashed changes
       tidyr::pivot_longer(cols=everything(),
                             #  names_to="Cell",
                               values_to="NGT")%>%dplyr::select(NGT))%>%
@@ -86,24 +78,6 @@ quality_output<-function(file,
 
     if(filter==TRUE){
     #filter DP and GQ
-<<<<<<< Updated upstream
-     filtered_long%<>%dplyr::filter(DP>=DP_cut&
-                        GQ>=GQ_cut)%>%
-
-    #filter AF for each genotype call
-      dplyr::mutate(pass=dplyr::case_when(
-              NGT==1&(AF>AF_cut)&(AF<(100-AF_cut)) ~ "include",
-              NGT==1&((AF<=AF_cut)|(AF>=(100-AF_cut))) ~ "exclude",
-              NGT==2&AF>=(100-AF_cut) ~ "include",
-              NGT==2&AF<(100-AF_cut) ~ "exclude",
-              NGT==0&AF<=AF_cut ~ "include",
-              NGT==0&AF>AF_cut ~ "exclude",
-              TRUE ~"other"
-            ))%>%
-
-    #filter for cells that pass allele frequency cutoff
-        dplyr::filter(.data$pass=="include")
-=======
       filtered_long<-filtered_long%>%
                         dplyr::filter(DP>=DP_cut&
                                       GQ>=GQ_cut)%>%
@@ -119,7 +93,6 @@ quality_output<-function(file,
                               ))%>%
     #filter for cells that pass allele frequency cutoff
                           dplyr::filter(.data$pass=="include")
->>>>>>> Stashed changes
     }
 
 
