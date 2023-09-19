@@ -4,7 +4,11 @@
 \alias{annotate_variants}
 \title{Annotate variants of interest}
 \usage{
+<<<<<<< Updated upstream
 annotate_variants(file, annotation_key, txdb, banned, NGT)
+=======
+annotate_variants(file, txdb = NULL, select_variants = NULL)
+>>>>>>> Stashed changes
 }
 \arguments{
 \item{file}{path to h5 file}

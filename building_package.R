@@ -22,14 +22,37 @@ use_r("select_clones")
 use_r("read_tapestri_h5_protein")
 use_r("extract_droplet_size")
 use_r("normalize_protein_data")
+<<<<<<< Updated upstream
+=======
+use_r("variant_ID")
+use_r("tapestri_h5_to_sce")
+use_r("BuildMDP")
+use_r("attach_weights")
+use_r("mdp_Q_learning_with_linklist")
+use_r("trajectory_analysis")
+use_r("get_own_path")
+use_r("VisualizeMDPs")
+use_r("VisualizeMDPs")
+use_r("VisualizeMDPs")
+use_r("VisualizeMDPs")
+use_r("generate_txdb")
+use_r("compute_clone_statistics")
+use_r("fcs_export")
+
+>>>>>>> Stashed changes
 use_readme_rmd()
 
 use_devtools()
+
 
 load_all()
 document()
 check()
 
+<<<<<<< Updated upstream
+=======
+usethis::use_version("patch")
+>>>>>>> Stashed changes
 
 use_package("AnnotationDbi")
 

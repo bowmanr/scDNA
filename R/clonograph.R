@@ -26,7 +26,15 @@ consolidated_clonal_abundance <-final_sample_summary$Clones%>%
                                     dplyr::ungroup()
 
 if(complete_only==TRUE){
+<<<<<<< Updated upstream
   consolidated_clonal_abundance <-consolidated_clonal_abundance%>%dplyr::filter(.data$Group=="Complete")
+=======
+  consolidated_clonal_abundance <-consolidated_clonal_abundance%>%dplyr::filter(.data$Group=="Complete")%>%
+                                                                          dplyr::arrange(.data$Count)%>%
+                                                                          dplyr::select(-LCI,-UCI)%>%
+                                                                          dplyr::rename(LCI=Complete_LCI,
+                                                                                        UCI=Complete_UCI)
+>>>>>>> Stashed changes
   }
 
 consolidated_clonal_abundance%<>%dplyr::arrange(.data$Count)
@@ -45,7 +53,7 @@ gg_clonal_barplot <- ggplot(data=consolidated_clonal_abundance, aes(x=Clone, y=C
   scale_y_continuous(expand=c(0.01,0))+
   #ylim() +
   ylab("Cell Count")+
- {if(complete_only==FALSE) {geom_errorbar(aes(ymin = LCI, ymax = UCI), width = 0.2)}}+
+  geom_errorbar(aes(ymin = LCI, ymax = UCI), width = 0.2)+
   scale_fill_manual(values=c("Other"="Grey70",
                               "Complete"=RColorBrewer::brewer.pal(5,tidyselect::all_of(color_pal))[5])) +
   theme(axis.title.x = element_blank(),
@@ -57,7 +65,7 @@ gg_clonal_barplot <- ggplot(data=consolidated_clonal_abundance, aes(x=Clone, y=C
 
 # Generate mutation heatmap
 gg_heatmap <- ggplot(data=clonal_architecture,
-                     aes(x=Clone,y=AA,fill=Genotype))+
+                     aes(x=Clone,y=final_annot,fill=Genotype))+
   geom_tile() +
   scale_fill_manual(values=c("WT"=brewer.pal(7,tidyselect::all_of(color_pal))[1],
                              "Heterozygous"=brewer.pal(7,tidyselect::all_of(color_pal))[3],
@@ -65,7 +73,7 @@ gg_heatmap <- ggplot(data=clonal_architecture,
                              "Unknown"="grey50"),name="Genotype")+
   theme_classic(base_size=7) +
   ylab("Mutation")+
-  scale_y_discrete(limits = rev(levels(clonal_architecture$AA)))+
+  scale_y_discrete(limits = rev(levels(clonal_architecture$final_annot)))+
   theme(legend.position = "right", legend.direction = "vertical",
         axis.text.x = element_blank(),
         axis.line=element_blank(),
