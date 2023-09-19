@@ -15,8 +15,7 @@ annotate_variants<- function(file,
                              select_variants=NULL
                              ){
   
-  load("/Users/bowmanrl/Projects/R_packages/scDNA/data/cBioPortal_annotation.rDa",verbose = T)
-  
+  load(system.file(paste0('data/cBioPortal_annotation.rDa'), package = 'scDNA'))
     if(is.null(txdb)){
       print("No TXDB provided, defaulting to complete TxDb.Hsapiens.UCSC.hg19.knownGene")
       custom_txdb<-TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
