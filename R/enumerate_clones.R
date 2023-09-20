@@ -89,7 +89,7 @@ clonal_abundance_boot_CI <- setNames(data.frame(
 
 
 print("Computing confidence intervals for cells with complete genotypes")
-NGT_to_clone_complete<-NGT_to_clone%>%dplyr::filter(Group=="Complete")
+NGT_to_clone_complete<-NGT_to_clone%>%dplyr::filter(.data$Group=="Complete")
 test<-replicate(n=replicates,resample_fun(NGT_to_clone_complete),simplify = "array")
 if(class(test)=="list"){
   y <- setNames(lapply(test,data.frame),1:replicates)
