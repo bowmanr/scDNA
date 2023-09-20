@@ -17,8 +17,8 @@ knitr::opts_chunk$set(
 ```
 Install scDNA package.
 ```{r,message=FALSE,warning=FALSE,eval=FALSE}
-library(devtools)
-devtools::install_github("https://github.com/bowmanr/scDNA/tree/BB_dev",force=TRUE)
+library(remotes)
+remotes::install_github("bowmanr/scDNA")
 ```
 loading in necessary libraries
 
@@ -32,7 +32,7 @@ library(GenomicRanges)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(BSgenome.Hsapiens.UCSC.hg19)
 library(ggplot2)
-
+library(SingleCellExperiment)
 ```
 
 
@@ -185,8 +185,7 @@ Now we will demonstrate how to export the protein data to Seurat for clustering,
 ```{r,message=FALSE,warning=FALSE,eval=FALSE}
 library(dsb) 
 library(Seurat)
-library(SingleCellExperiment)
-droplet_metadata<- extract_droplet_size(sample_file,sce=sce_subset)
+droplet_metadata<- extract_droplet_size(sce)
 
 # Try changing bins=1000 to see overlap empty droplets and real ones
 ggplot(droplet_metadata, aes(x = dna_size, y = protein_size,color=Droplet_type )) +
@@ -204,15 +203,15 @@ background_droplets<-droplet_metadata%>%
                           dplyr::filter(dna_size<1.5&dna_size>0.15)%>%
                           pull(Cell)
 
-sce_subset<-normalize_protein_data(file=sample_file,
+sce_subset<-normalize_protein_data(sce=sce,
                              metadata=droplet_metadata,
-                             sce=sce_subset,
                              method=c("dsb","CLR"),
                              detect_IgG=TRUE,
                              background_droplets=background_droplets)
 
 altExp(sce_subset)
 ```
+
 ```{r,eval=FALSE}
 library(Biobase)
 library(flowCore)
@@ -226,7 +225,6 @@ Now we want to load in our data into Seurat. Keep in mind which normalization me
 
 ```{r,message=FALSE,warning=FALSE,eval=FALSE}
 library(Seurat)
-
 s<-Seurat::as.Seurat(x = altExp(sce_subset),counts="Protein",data="CLR_norm")
 s<-SeuratObject::RenameAssays(object = s, originalexp = 'Protein')
 

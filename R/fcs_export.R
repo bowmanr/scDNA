@@ -1,8 +1,9 @@
 #' Title
 #'
-#' @param sce 
-#' @param slot 
-#'
+#' @param sce input sce object
+#' @param slot which protein dataset to use. Options are DSB_norm (default), CLR_norm or raw 
+#' @param save_path path to where fcs file should be saved
+
 #' @return
 #' @export
 #'
@@ -13,11 +14,13 @@ fcs_export<-function(sce,
   print(paste("Exporting protein data from", slot))
   
   if(slot=="DSB_norm"){
-    data<-altExp(sce)@assays@data$DSB_norm
+    data<-SingleCellExperiment::altExp(sce)@assays@data$DSB_norm
   } else if(slot=="CLR_norm"){
-    data<-altExp(sce)@assays@data$CLR_norm
+    data<-SingleCellExperiment::altExp(sce)@assays@data$CLR_norm
   } else if(slot=="raw"){
-    data<-altExp(sce)@assays@data$Protein
+    data<-SingleCellExperiment::altExp(sce)@assays@data$Protein
+  } else{
+    stop("Incorrect slot name")
   }
 
   dta<-t(data)%>%
@@ -41,9 +44,9 @@ fcs_export<-function(sce,
   meta$maxRange <- apply(dta,2,max)
   
   # a flowFrame is the internal representation of a FCS file
-  ff <- new("flowFrame",
+  ff <- methods::new("flowFrame",
             exprs=dta,
             parameters=AnnotatedDataFrame(meta))
   # now you can save it back to the filesystem
-  write.FCS(ff,save_path)
+  flowCore::write.FCS(ff,save_path)
 }

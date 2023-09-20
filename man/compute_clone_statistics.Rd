@@ -7,9 +7,9 @@
 compute_clone_statistics(sce, clone_size_cutoff = 10)
 }
 \arguments{
-\item{sce}{}
+\item{sce}{input sce object}
 
-\item{clone_size_cutoff}{}
+\item{clone_size_cutoff}{lower 95\% confidence interval cutoff for clone inclusion default=10}
 }
 \description{
 Title

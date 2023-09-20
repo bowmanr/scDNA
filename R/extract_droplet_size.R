@@ -8,8 +8,8 @@
 #' @export
 #'
 #' @examples
-extract_droplet_size<- function(file,
-                                sce){
+extract_droplet_size<- function(sce){
+  file<-sce@metadata$file
   all_protein_droplets <- rhdf5::h5read(file=file,name="/all_barcodes/protein_read_counts/layers/read_counts")
   all_dna_droplets <- rhdf5::h5read(file=file,name="/all_barcodes/dna_read_counts/layers/read_counts")
   colnames(all_dna_droplets) <-rhdf5::h5read(file=file,name="/all_barcodes/dna_read_counts/ra/barcode")

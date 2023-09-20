@@ -7,9 +7,11 @@
 fcs_export(sce, slot = "DSB_norm", save_path = "~/sample_test.fcs")
 }
 \arguments{
-\item{sce}{}
+\item{sce}{input sce object}
 
-\item{slot}{}
+\item{slot}{which protein dataset to use. Options are DSB_norm (default), CLR_norm or raw}
+
+\item{save_path}{path to where fcs file should be saved}
 }
 \description{
 Title

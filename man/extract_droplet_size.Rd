@@ -4,12 +4,12 @@
 \alias{extract_droplet_size}
 \title{Extract protein library size, dna library size, and amplicon size for all droplets.}
 \usage{
-extract_droplet_size(file, sce)
+extract_droplet_size(sce)
 }
 \arguments{
-\item{file}{path to h5 file}
-
 \item{sce}{singleCellExperiment Object}
+
+\item{file}{path to h5 file}
 }
 \value{
 metadata matrix

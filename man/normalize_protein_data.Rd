@@ -5,9 +5,8 @@
 \title{Normalize Protein Data}
 \usage{
 normalize_protein_data(
-  file,
-  metadata,
   sce,
+  metadata,
   method = "dsb",
   detect_IgG = TRUE,
   background_droplets

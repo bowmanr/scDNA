@@ -38,9 +38,7 @@ use_r("compute_clone_statistics")
 use_r("fcs_export")
 
 use_readme_rmd()
-
 use_devtools()
-
 
 load_all()
 document()
@@ -51,3 +49,18 @@ usethis::use_version("patch")
 
 use_package("AnnotationDbi")
 use_package("Homo.sapiens")
+use_package("cowplot")
+use_package("GenomicFeatures")
+use_package("Matrix")
+use_package("RColorBrewer")
+use_package("flowCore")
+use_package("Seurat",type = "Suggests")
+use_package("SingleCellExperiment",type = "Imports")
+use_package("SummarizedExperiment",type = "Imports")
+use_package("doParallel",type = "Imports")
+use_package("foreach",type = "Imports")
+use_package("mefa4",type = "Imports")
+use_package("stringr",type = "Imports")
+use_package("tibble",type = "Imports")
+use_package("vegan",type = "Imports")
+

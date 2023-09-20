@@ -1,7 +1,7 @@
 #' Title
 #'
-#' @param sce 
-#' @param clone_size_cutoff 
+#' @param sce input sce object
+#' @param clone_size_cutoff lower 95% confidence interval cutoff for clone inclusion default=10
 #'
 #' @return
 #' @export

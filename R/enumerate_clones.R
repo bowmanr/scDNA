@@ -64,9 +64,9 @@ resample_fun<-function(data){
 
 print("Computing confidence intervals for all cells")
 test<-replicate(n=replicates,resample_fun(NGT_to_clone),simplify = "array")
-if(class(test)=="list"){
+if(is(test,"list")){
     y <- setNames(lapply(test,data.frame),1:replicates)
-  } else if(class(test)=="array"){
+  } else if(is(test,"array")){
     y <- setNames(apply(test,3,data.frame),1:replicates)
   }
 
@@ -91,9 +91,9 @@ clonal_abundance_boot_CI <- setNames(data.frame(
 print("Computing confidence intervals for cells with complete genotypes")
 NGT_to_clone_complete<-NGT_to_clone%>%dplyr::filter(.data$Group=="Complete")
 test<-replicate(n=replicates,resample_fun(NGT_to_clone_complete),simplify = "array")
-if(class(test)=="list"){
+if(is(test,"list")){
   y <- setNames(lapply(test,data.frame),1:replicates)
-} else if(class(test)=="array"){
+} else if(is(test,"array")){
   y <- setNames(apply(test,3,data.frame),1:replicates)
 }
 

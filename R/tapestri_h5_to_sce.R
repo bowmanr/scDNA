@@ -40,7 +40,6 @@ tapestri_h5_to_sce<-function(file,
       dplyr::arrange(desc(VAF))
     if(return_variants_only==TRUE){
       return(total_variants)
-      break
     } 
   } 
   
@@ -233,12 +232,6 @@ tapestri_h5_to_sce<-function(file,
   existing_metadata <- SummarizedExperiment::colData(sce)
   existing_metadata$Required<-complete_cells
   SummarizedExperiment::colData(sce)<-existing_metadata
-  
-  # Bobby wants this moved to the enumerate clones for some reason instead of just doing it here.
-  #print("Computing clones")
-  #clone_code<-apply(sce@assays@data$NGT,2,function(x){
-  #  paste(ifelse(is.na(x),3,x), sep = "_", collapse = "_")
-  #})
  
   sce@metadata$file<-file
   return(sce)

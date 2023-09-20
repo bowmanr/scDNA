@@ -4,7 +4,6 @@
 #' @param select_variants variants of interest, default is all variants
 #' @importFrom BSgenome.Hsapiens.UCSC.hg19 Hsapiens
 #' @importFrom TxDb.Hsapiens.UCSC.hg19.knownGene TxDb.Hsapiens.UCSC.hg19.knownGene
-#' @importFrom Homo.sapiens Homo.sapiens
 #' @importFrom methods as
 #' @importFrom rlang .data
 #' @return variant annotation matrix

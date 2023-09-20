@@ -12,13 +12,12 @@
 #' @export
 #'
 #' @examples
-normalize_protein_data<-function(file,
+normalize_protein_data<-function(sce,
                                  metadata,
-                                 sce,
                                  method="dsb",
                                  detect_IgG=TRUE,
                                  background_droplets){
-  
+  file<-sce@metadata$file
   protein_sce <- SingleCellExperiment::altExp(sce,"Protein")
   protein_mat <- protein_sce@assays@data$Protein
   if("DSB"%in%method|"dsb"%in%method){
