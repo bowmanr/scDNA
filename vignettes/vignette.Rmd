@@ -120,7 +120,7 @@ sce_subset<-select_clones(sce,
                           GQ_cut=30,
                           DP_cut=10,
                           select_exact=FALSE)
-clonograph(sce,complete_only=TRUE)
+clonograph(sce_subset,complete_only=TRUE)
 ```
 ##Reinforcement Learning Trajectory Analysis
 
@@ -136,36 +136,36 @@ library(foreach)
 library(doParallel)
 library(visNetwork)
 library(igraph)
-#enableJIT(3)
-sce<-trajectory_analysis(sce)
+#enableJIT(3) #uncomment this line to speed up the trajectory analysis.
+sce_subset<-trajectory_analysis(sce_subset)
 start_state ="0_0_0" # Change based on problem and number of variants we are using
 goal_state = "1_1_1" # Change based on problem and number of varianrs we are using``
 ```
 
 ```{r,eval=FALSE}
-sce<-get_own_path(sce,start_state,goal_state)
-visualize_any_optimal_path(sce,start_state,goal_state)
+sce_subset<-get_own_path(sce_subset,start_state,goal_state)
+visualize_any_optimal_path(sce_subset,start_state,goal_state)
 
-print(sce@metadata$Trajectories$WT_to_last_possible_clone)
+print(sce_subset@metadata$Trajectories$WT_to_last_possible_clone)
 
 ```
 
 
 ```{r Visualize Whole Network,eval=FALSE}
-vis_full_net<-visualize_full_network(sce)
+vis_full_net<-visualize_full_network(sce_subset)
 vis_full_net
 ```
 
 ```{r visualize most likely order,fig.align='center',fig.height=5,fig.width=5,eval=FALSE}
-vis_best_WT_to_dominant_clone<-visualize_WT_dominant_clone(sce)
+vis_best_WT_to_dominant_clone<-visualize_WT_dominant_clone(sce_subset)
 vis_best_WT_to_dominant_clone
-print(sce@metadata$Trajectories$WT_to_dominant_clone)
+print(sce_subset@metadata$Trajectories$WT_to_dominant_clone)
 ```
 All paths from WT to dominant clone:
 ```{r visual all possible orders,fig.align='center',fig.height=5,fig.width=5,eval=FALSE}
-vis_all_WT_to_dominant_clone<-visualize_all_WT_dominant_clone(sce)
+vis_all_WT_to_dominant_clone<-visualize_all_WT_dominant_clone(sce_subset)
 vis_all_WT_to_dominant_clone
-print(sce@metadata$Trajectories$All_WT_to_dominant_clone)
+print(sce_subset@metadata$Trajectories$All_WT_to_dominant_clone)
 
 ```
 
@@ -174,8 +174,8 @@ this is done by setting observed states variable equal to the ones that are obse
 
 ```{r match clonal graph from WT,fig.align='center',fig.height=5,fig.width=5,eval=FALSE}
 given_state <-"0"
-match_clonal_graph(sce,given_state)
-print(sce@metadata$Trajectories$WT_to_Observed_paths)
+match_clonal_graph(sce_subset,given_state)
+print(sce_subset@metadata$Trajectories$WT_to_Observed_paths)
 
 ```
 
@@ -204,21 +204,21 @@ background_droplets<-droplet_metadata%>%
                           dplyr::filter(dna_size<1.5&dna_size>0.15)%>%
                           pull(Cell)
 
-sce<-normalize_protein_data(file=sample_file,
+sce_subset<-normalize_protein_data(file=sample_file,
                              metadata=droplet_metadata,
                              sce=sce_subset,
                              method=c("dsb","CLR"),
                              detect_IgG=TRUE,
                              background_droplets=background_droplets)
 
-altExp(sce)
+altExp(sce_subset)
 ```
 ```{r,eval=FALSE}
 library(Biobase)
 library(flowCore)
 library(flowViz)
-names(assays(altExp(sce)))
-fcs_export(sce,
+names(assays(altExp(sce_subset)))
+fcs_export(sce_subset,
            slot="CLR_norm",
            save_path="~/Desktop/sample_CLR.fcs")
 ```
@@ -227,7 +227,7 @@ Now we want to load in our data into Seurat. Keep in mind which normalization me
 ```{r,message=FALSE,warning=FALSE,eval=FALSE}
 library(Seurat)
 
-s<-Seurat::as.Seurat(x = altExp(sce),counts="Protein",data="CLR_norm")
+s<-Seurat::as.Seurat(x = altExp(sce_subset),counts="Protein",data="CLR_norm")
 s<-SeuratObject::RenameAssays(object = s, originalexp = 'Protein')
 
 colnames(s@meta.data)
