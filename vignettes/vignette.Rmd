@@ -90,7 +90,7 @@ for a reliable call of WT, Het or Hom respectively. The last gating is the genot
 which is the minimum genotype quality necessary for a reliable genotype call.
 Afterwards this is put into a SingleCellExperiment object to standardize the data format
 for the rest of our package or to be used by others such as Suerat or dsb.
-```{r sce construction,cache=TRUE,eval=FALSE}
+```{r sce construction,eval=FALSE}
 sce<-tapestri_h5_to_sce(file=sample_file,
                       variant_set = variants_of_interest,
                       GT_cutoff=90, 

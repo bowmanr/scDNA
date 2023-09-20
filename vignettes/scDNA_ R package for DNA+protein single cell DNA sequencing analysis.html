@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<!-- saved from url=(0113)file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+
+<meta name="generator" content="pandoc">
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Michael Bowman and Bobby Bowman">
+
+
+<title>scDNA: R package for DNA+protein single cell DNA sequencing analysis</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+<script type="text/javascript" src="./scDNA_ R package for DNA+protein single cell DNA sequencing analysis_files/MathJax.js"></script><style type="text/css">.MathJax_Hover_Frame {border-radius: .25em; -webkit-border-radius: .25em; -moz-border-radius: .25em; -khtml-border-radius: .25em; box-shadow: 0px 0px 15px #83A; -webkit-box-shadow: 0px 0px 15px #83A; -moz-box-shadow: 0px 0px 15px #83A; -khtml-box-shadow: 0px 0px 15px #83A; border: 1px solid #A6D ! important; display: inline-block; position: absolute}
+.MathJax_Menu_Button .MathJax_Hover_Arrow {position: absolute; cursor: pointer; display: inline-block; border: 2px solid #AAA; border-radius: 4px; -webkit-border-radius: 4px; -moz-border-radius: 4px; -khtml-border-radius: 4px; font-family: 'Courier New',Courier; font-size: 9px; color: #F0F0F0}
+.MathJax_Menu_Button .MathJax_Hover_Arrow span {display: block; background-color: #AAA; border: 1px solid; border-radius: 3px; line-height: 0; padding: 4px}
+.MathJax_Hover_Arrow:hover {color: white!important; border: 2px solid #CCC!important}
+.MathJax_Hover_Arrow:hover span {background-color: #CCC!important}
+</style><style type="text/css">#MathJax_About {position: fixed; left: 50%; width: auto; text-align: center; border: 3px outset; padding: 1em 2em; background-color: #DDDDDD; color: black; cursor: default; font-family: message-box; font-size: 120%; font-style: normal; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; border-radius: 15px; -webkit-border-radius: 15px; -moz-border-radius: 15px; -khtml-border-radius: 15px; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+#MathJax_About.MathJax_MousePost {outline: none}
+.MathJax_Menu {position: absolute; background-color: white; color: black; width: auto; padding: 5px 0px; border: 1px solid #CCCCCC; margin: 0; cursor: default; font: menu; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; border-radius: 5px; -webkit-border-radius: 5px; -moz-border-radius: 5px; -khtml-border-radius: 5px; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_MenuItem {padding: 1px 2em; background: transparent}
+.MathJax_MenuArrow {position: absolute; right: .5em; padding-top: .25em; color: #666666; font-size: .75em}
+.MathJax_MenuActive .MathJax_MenuArrow {color: white}
+.MathJax_MenuArrow.RTL {left: .5em; right: auto}
+.MathJax_MenuCheck {position: absolute; left: .7em}
+.MathJax_MenuCheck.RTL {right: .7em; left: auto}
+.MathJax_MenuRadioCheck {position: absolute; left: .7em}
+.MathJax_MenuRadioCheck.RTL {right: .7em; left: auto}
+.MathJax_MenuLabel {padding: 1px 2em 3px 1.33em; font-style: italic}
+.MathJax_MenuRule {border-top: 1px solid #DDDDDD; margin: 4px 3px}
+.MathJax_MenuDisabled {color: GrayText}
+.MathJax_MenuActive {background-color: #606872; color: white}
+.MathJax_MenuDisabled:focus, .MathJax_MenuLabel:focus {background-color: #E8E8E8}
+.MathJax_ContextMenu:focus {outline: none}
+.MathJax_ContextMenu .MathJax_MenuItem:focus {outline: none}
+#MathJax_AboutClose {top: .2em; right: .2em}
+.MathJax_Menu .MathJax_MenuClose {top: -10px; left: -10px}
+.MathJax_MenuClose {position: absolute; cursor: pointer; display: inline-block; border: 2px solid #AAA; border-radius: 18px; -webkit-border-radius: 18px; -moz-border-radius: 18px; -khtml-border-radius: 18px; font-family: 'Courier New',Courier; font-size: 24px; color: #F0F0F0}
+.MathJax_MenuClose span {display: block; background-color: #AAA; border: 1.5px solid; border-radius: 18px; -webkit-border-radius: 18px; -moz-border-radius: 18px; -khtml-border-radius: 18px; line-height: 0; padding: 8px 0 6px}
+.MathJax_MenuClose:hover {color: white!important; border: 2px solid #CCC!important}
+.MathJax_MenuClose:hover span {background-color: #CCC!important}
+.MathJax_MenuClose:hover:focus {outline: none}
+</style><style type="text/css">.MathJax_Preview .MJXf-math {color: inherit!important}
+</style><style type="text/css">.MJX_Assistive_MathML {position: absolute!important; top: 0; left: 0; clip: rect(1px, 1px, 1px, 1px); padding: 1px 0 0 0!important; border: 0!important; height: 1px!important; width: 1px!important; overflow: hidden!important; display: block!important; -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none}
+.MJX_Assistive_MathML.MJX_Assistive_MathML_Block {width: 100%!important}
+</style><style type="text/css">#MathJax_Zoom {position: absolute; background-color: #F0F0F0; overflow: auto; display: block; z-index: 301; padding: .5em; border: 1px solid black; margin: 0; font-weight: normal; font-style: normal; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; -webkit-box-sizing: content-box; -moz-box-sizing: content-box; box-sizing: content-box; box-shadow: 5px 5px 15px #AAAAAA; -webkit-box-shadow: 5px 5px 15px #AAAAAA; -moz-box-shadow: 5px 5px 15px #AAAAAA; -khtml-box-shadow: 5px 5px 15px #AAAAAA; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+#MathJax_ZoomOverlay {position: absolute; left: 0; top: 0; z-index: 300; display: inline-block; width: 100%; height: 100%; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+#MathJax_ZoomFrame {position: relative; display: inline-block; height: 0; width: 0}
+#MathJax_ZoomEventTrap {position: absolute; left: 0; top: 0; z-index: 302; display: inline-block; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+</style><style type="text/css">.MathJax_Preview {color: #888}
+#MathJax_Message {position: fixed; left: 1em; bottom: 1.5em; background-color: #E6E6E6; border: 1px solid #959595; margin: 0px; padding: 2px 8px; z-index: 102; color: black; font-size: 80%; width: auto; white-space: nowrap}
+#MathJax_MSIE_Frame {position: absolute; top: 0; left: 0; width: 0px; z-index: 101; border: 0px; margin: 0px; padding: 0px}
+.MathJax_Error {color: #CC0000; font-style: italic}
+</style><style type="text/css">.MJXp-script {font-size: .8em}
+.MJXp-right {-webkit-transform-origin: right; -moz-transform-origin: right; -ms-transform-origin: right; -o-transform-origin: right; transform-origin: right}
+.MJXp-bold {font-weight: bold}
+.MJXp-italic {font-style: italic}
+.MJXp-scr {font-family: MathJax_Script,'Times New Roman',Times,STIXGeneral,serif}
+.MJXp-frak {font-family: MathJax_Fraktur,'Times New Roman',Times,STIXGeneral,serif}
+.MJXp-sf {font-family: MathJax_SansSerif,'Times New Roman',Times,STIXGeneral,serif}
+.MJXp-cal {font-family: MathJax_Caligraphic,'Times New Roman',Times,STIXGeneral,serif}
+.MJXp-mono {font-family: MathJax_Typewriter,'Times New Roman',Times,STIXGeneral,serif}
+.MJXp-largeop {font-size: 150%}
+.MJXp-largeop.MJXp-int {vertical-align: -.2em}
+.MJXp-math {display: inline-block; line-height: 1.2; text-indent: 0; font-family: 'Times New Roman',Times,STIXGeneral,serif; white-space: nowrap; border-collapse: collapse}
+.MJXp-display {display: block; text-align: center; margin: 1em 0}
+.MJXp-math span {display: inline-block}
+.MJXp-box {display: block!important; text-align: center}
+.MJXp-box:after {content: " "}
+.MJXp-rule {display: block!important; margin-top: .1em}
+.MJXp-char {display: block!important}
+.MJXp-mo {margin: 0 .15em}
+.MJXp-mfrac {margin: 0 .125em; vertical-align: .25em}
+.MJXp-denom {display: inline-table!important; width: 100%}
+.MJXp-denom > * {display: table-row!important}
+.MJXp-surd {vertical-align: top}
+.MJXp-surd > * {display: block!important}
+.MJXp-script-box > *  {display: table!important; height: 50%}
+.MJXp-script-box > * > * {display: table-cell!important; vertical-align: top}
+.MJXp-script-box > *:last-child > * {vertical-align: bottom}
+.MJXp-script-box > * > * > * {display: block!important}
+.MJXp-mphantom {visibility: hidden}
+.MJXp-munderover {display: inline-table!important}
+.MJXp-over {display: inline-block!important; text-align: center}
+.MJXp-over > * {display: block!important}
+.MJXp-munderover > * {display: table-row!important}
+.MJXp-mtable {vertical-align: .25em; margin: 0 .125em}
+.MJXp-mtable > * {display: inline-table!important; vertical-align: middle}
+.MJXp-mtr {display: table-row!important}
+.MJXp-mtd {display: table-cell!important; text-align: center; padding: .5em 0 0 .5em}
+.MJXp-mtr > .MJXp-mtd:first-child {padding-left: 0}
+.MJXp-mtr:first-child > .MJXp-mtd {padding-top: 0}
+.MJXp-mlabeledtr {display: table-row!important}
+.MJXp-mlabeledtr > .MJXp-mtd:first-child {padding-left: 0}
+.MJXp-mlabeledtr:first-child > .MJXp-mtd {padding-top: 0}
+.MJXp-merror {background-color: #FFFF88; color: #CC0000; border: 1px solid #CC0000; padding: 1px 3px; font-style: normal; font-size: 90%}
+.MJXp-scale0 {-webkit-transform: scaleX(.0); -moz-transform: scaleX(.0); -ms-transform: scaleX(.0); -o-transform: scaleX(.0); transform: scaleX(.0)}
+.MJXp-scale1 {-webkit-transform: scaleX(.1); -moz-transform: scaleX(.1); -ms-transform: scaleX(.1); -o-transform: scaleX(.1); transform: scaleX(.1)}
+.MJXp-scale2 {-webkit-transform: scaleX(.2); -moz-transform: scaleX(.2); -ms-transform: scaleX(.2); -o-transform: scaleX(.2); transform: scaleX(.2)}
+.MJXp-scale3 {-webkit-transform: scaleX(.3); -moz-transform: scaleX(.3); -ms-transform: scaleX(.3); -o-transform: scaleX(.3); transform: scaleX(.3)}
+.MJXp-scale4 {-webkit-transform: scaleX(.4); -moz-transform: scaleX(.4); -ms-transform: scaleX(.4); -o-transform: scaleX(.4); transform: scaleX(.4)}
+.MJXp-scale5 {-webkit-transform: scaleX(.5); -moz-transform: scaleX(.5); -ms-transform: scaleX(.5); -o-transform: scaleX(.5); transform: scaleX(.5)}
+.MJXp-scale6 {-webkit-transform: scaleX(.6); -moz-transform: scaleX(.6); -ms-transform: scaleX(.6); -o-transform: scaleX(.6); transform: scaleX(.6)}
+.MJXp-scale7 {-webkit-transform: scaleX(.7); -moz-transform: scaleX(.7); -ms-transform: scaleX(.7); -o-transform: scaleX(.7); transform: scaleX(.7)}
+.MJXp-scale8 {-webkit-transform: scaleX(.8); -moz-transform: scaleX(.8); -ms-transform: scaleX(.8); -o-transform: scaleX(.8); transform: scaleX(.8)}
+.MJXp-scale9 {-webkit-transform: scaleX(.9); -moz-transform: scaleX(.9); -ms-transform: scaleX(.9); -o-transform: scaleX(.9); transform: scaleX(.9)}
+.MathJax_PHTML .noError {vertical-align: ; font-size: 90%; text-align: left; color: black; padding: 1px 3px; border: 1px solid}
+</style></head>
+
+<body><div id="MathJax_Message" style="display: none;"></div>
+
+
+
+
+<h1 class="title toc-ignore">scDNA: R package for DNA+protein single
+cell DNA sequencing analysis</h1>
+<h4 class="author">Michael Bowman and Bobby Bowman</h4>
+<h4 class="date">9/12/2023</h4>
+
+
+
+<p>Install scDNA package.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb1-1" tabindex="-1"></a><span class="fu">library</span>(remotes)</span>
+<span id="cb1-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb1-2" tabindex="-1"></a>remotes<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">"bowmanr/scDNA"</span>)</span></code></pre></div>
+<p>loading in necessary libraries</p>
+<p>Start off by loading the scDNA package, and pointing the system to a
+h5 of interest. For speed purposes, I strongly suggest you have the file
+local as opposed to on the server. Change the folder path below to the
+match where you have placed the Sample1962.dna+protein.h5 file.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb2-1" tabindex="-1"></a>sample_file<span class="ot">&lt;-</span> <span class="st">"~/CodingCamp/Projects/scDNA_demo/Sample1962.dna+protein.h5"</span></span>
+<span id="cb2-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb2-2" tabindex="-1"></a><span class="co">#sample_file&lt;-c("/Users/bowmanrl/Desktop/Review/MSK24.cells.loom")</span></span></code></pre></div>
+<p>First, we read in the h5 file to generate the variant outputs we
+seek. This function has 2 forms: 1) an exploratory phase, and a 2)
+refinement phase. These two phases are determined by 2 cutoff parameters
+in the function. The GT_cutoff is the fraction of cells that are
+successfully genotyped for initial filtering. The VAF_cutoff is the
+variant allele frequency cutoff and is the fraction of cells that are
+mutated for initial filtering of variants (as a percent so a value of 12
+means 12%).</p>
+<p>To ensure the exploratory phase is used, set the GT_cutoff=0, and
+VAF_cutoff=0. This will produce all possible variants that may be of
+interest, disregarding quality of the cells. The refinement phase is
+used after we have ID-ed variants of interest and allows for quality
+control on the cells of expressing those variants. We recommend that to
+start with an exploratory phase first before jumping right to the
+refinement phase (GT_cutoff=35 and VAF_cutoff=5).</p>
+<p>The variant_outputs will tell you the Variant ID, along with the
+number of cells that are called wildtype, heterozygous, homozygous, or
+we can’t tell and it is labeled as Missing. Along with the
+genotyping_rate for the calls.</p>
+<p>The variants are annotated from nucleotide positions on the
+chromosomes to their standard gene nomenclature, then these are joined
+together into a single data frame. Afterwards, you can find the genes
+you are interested in. An exmaple of pulling out out 3 genes, and
+plotting the Genotyping rate vs the Variant Allele Frequency (VAF) for
+all cells. This is an essential transition point from the exploratory
+phase to the refinement phase.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb3-1" tabindex="-1"></a><span class="co">#need to install SpareMatrixStats</span></span>
+<span id="cb3-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb3-2" tabindex="-1"></a>variant_output<span class="ot">&lt;-</span><span class="fu">variant_ID</span>(<span class="at">file=</span>sample_file,</span>
+<span id="cb3-3"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb3-3" tabindex="-1"></a>                           <span class="at">txdb=</span><span class="st">"MSK_RL"</span>,</span>
+<span id="cb3-4"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb3-4" tabindex="-1"></a>                            <span class="at">GT_cutoff=</span><span class="dv">0</span>,</span>
+<span id="cb3-5"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb3-5" tabindex="-1"></a>                             <span class="at">VAF_cutoff=</span><span class="dv">0</span>)</span>
+<span id="cb3-6"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb3-6" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb3-7" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb3-8" tabindex="-1"></a>genes_of_interest <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"IDH2"</span>,<span class="st">"NRAS"</span>,<span class="st">"NPM1"</span>,<span class="st">"TET2"</span>,<span class="st">"FLT3"</span>,<span class="st">"IDH1"</span>)</span></code></pre></div>
+<p>Using the above plot can help in determining which variants we should
+gain further insight into. As an example, we are looking for
+heterozygous mutations (near the 50% VAF), with good quality genotyping
+rate. The following is how to filter the table to reduce the table to
+variants of interest.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb4-1" tabindex="-1"></a>variants_of_interest<span class="ot">&lt;-</span>variant_output<span class="sc">%&gt;%</span></span>
+<span id="cb4-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb4-2" tabindex="-1"></a>                        <span class="fu">distinct</span>()<span class="sc">%&gt;%</span></span>
+<span id="cb4-3"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb4-3" tabindex="-1"></a>                          dplyr<span class="sc">::</span><span class="fu">filter</span>(Class<span class="sc">==</span><span class="st">"Exon"</span>)<span class="sc">%&gt;%</span></span>
+<span id="cb4-4"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb4-4" tabindex="-1"></a>                          dplyr<span class="sc">::</span><span class="fu">filter</span>(VAF<span class="sc">&gt;</span><span class="fl">0.01</span>)<span class="sc">%&gt;%</span></span>
+<span id="cb4-5"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb4-5" tabindex="-1"></a>                          dplyr<span class="sc">::</span><span class="fu">filter</span>(genotyping_rate<span class="sc">&gt;</span><span class="dv">85</span>)<span class="sc">%&gt;%</span></span>
+<span id="cb4-6"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb4-6" tabindex="-1"></a>                          dplyr<span class="sc">::</span><span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(CONSEQUENCE)<span class="sc">&amp;</span>CONSEQUENCE<span class="sc">!=</span><span class="st">"synonymous"</span>)<span class="sc">%&gt;%</span></span>
+<span id="cb4-7"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb4-7" tabindex="-1"></a>                          dplyr<span class="sc">::</span><span class="fu">filter</span>(SYMBOL<span class="sc">%in%</span>genes_of_interest)<span class="sc">%&gt;%</span>   </span>
+<span id="cb4-8"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb4-8" tabindex="-1"></a>                          dplyr<span class="sc">::</span><span class="fu">arrange</span>(<span class="fu">desc</span>(VAF))<span class="sc">%&gt;%</span></span>
+<span id="cb4-9"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb4-9" tabindex="-1"></a>                          dplyr<span class="sc">::</span><span class="fu">slice</span>(<span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>))</span></code></pre></div>
+<p>Now that we have variants of interest we want to explore further,
+more stringent gates are devised to pull out “good” quality cells to
+explore. In this case, we increase the genotyping quality (so there are
+less Missing counts compared to actually good calls). The other gating
+parameters are Depth read (DP_cutoff) which is the minimum number of
+reads necessary for a reliable genotype call in a single cell, the
+Allele Frequency bandpass filter (AF_cutoff) which is the deviation from
+0, 50, or 100% for a reliable call of WT, Het or Hom respectively. The
+last gating is the genotyping quality for indiviudal cells (GQ_cutoff)
+which is the minimum genotype quality necessary for a reliable genotype
+call. Afterwards this is put into a SingleCellExperiment object to
+standardize the data format for the rest of our package or to be used by
+others such as Suerat or dsb.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb5-1" tabindex="-1"></a>sce<span class="ot">&lt;-</span><span class="fu">tapestri_h5_to_sce</span>(<span class="at">file=</span>sample_file,</span>
+<span id="cb5-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb5-2" tabindex="-1"></a>                      <span class="at">variant_set =</span> variants_of_interest,</span>
+<span id="cb5-3"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb5-3" tabindex="-1"></a>                      <span class="at">GT_cutoff=</span><span class="dv">90</span>, </span>
+<span id="cb5-4"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb5-4" tabindex="-1"></a>                      <span class="at">VAF_cutoff=</span><span class="fl">0.01</span>,</span>
+<span id="cb5-5"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb5-5" tabindex="-1"></a>                      <span class="at">DP_cutoff=</span><span class="dv">10</span>,</span>
+<span id="cb5-6"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb5-6" tabindex="-1"></a>                      <span class="at">GQ_cutoff=</span><span class="dv">20</span>,</span>
+<span id="cb5-7"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb5-7" tabindex="-1"></a>                      <span class="at">AF_cutoff=</span><span class="dv">20</span>)</span></code></pre></div>
+<p>This produces SingleCellExperiment object. Updates clones in the
+metadata for the quality check.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb6-1" tabindex="-1"></a>sce<span class="ot">&lt;-</span><span class="fu">enumerate_clones</span>(sce, <span class="at">replicates =</span> <span class="dv">500</span>)</span>
+<span id="cb6-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb6-2" tabindex="-1"></a>sce<span class="ot">&lt;-</span><span class="fu">compute_clone_statistics</span>(sce)</span></code></pre></div>
+<p>We can now look at a clonograph of the data, select a subset of
+clones and plot another clonograph</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb7-1" tabindex="-1"></a><span class="fu">clonograph</span>(sce)</span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb8-1" tabindex="-1"></a>sce_subset<span class="ot">&lt;-</span><span class="fu">select_clones</span>(sce,</span>
+<span id="cb8-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb8-2" tabindex="-1"></a>                          <span class="at">ADO_cut=</span><span class="fl">0.10</span>,</span>
+<span id="cb8-3"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb8-3" tabindex="-1"></a>                          <span class="at">GQ_cut=</span><span class="dv">30</span>,</span>
+<span id="cb8-4"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb8-4" tabindex="-1"></a>                          <span class="at">DP_cut=</span><span class="dv">10</span>,</span>
+<span id="cb8-5"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb8-5" tabindex="-1"></a>                          <span class="at">select_exact=</span><span class="cn">FALSE</span>)</span>
+<span id="cb8-6"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb8-6" tabindex="-1"></a><span class="fu">clonograph</span>(sce_subset,<span class="at">complete_only=</span><span class="cn">TRUE</span>)</span></code></pre></div>
+<p>##Reinforcement Learning Trajectory Analysis</p>
+<p>After developing the clonograph, there are two routes to for further
+analysis: 1) Trajectory Analysis of possible mutation order and cohort
+summarization, 2) Protein analysis for cell type identification.</p>
+<p>First we will discuss the trajectory analysis, then we will discuss
+protein analysis. The following function uses the trajectory_analysis
+function which finds a few different trajectories we can explore.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb9-1" tabindex="-1"></a><span class="fu">library</span>(compiler)</span>
+<span id="cb9-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb9-2" tabindex="-1"></a><span class="fu">library</span>(foreach)</span>
+<span id="cb9-3"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb9-3" tabindex="-1"></a><span class="fu">library</span>(doParallel)</span>
+<span id="cb9-4"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb9-4" tabindex="-1"></a><span class="fu">library</span>(visNetwork)</span>
+<span id="cb9-5"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb9-5" tabindex="-1"></a><span class="fu">library</span>(igraph)</span>
+<span id="cb9-6"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb9-6" tabindex="-1"></a><span class="co">#enableJIT(3) #uncomment this line to speed up the trajectory analysis.</span></span>
+<span id="cb9-7"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb9-7" tabindex="-1"></a>sce_subset<span class="ot">&lt;-</span><span class="fu">trajectory_analysis</span>(sce_subset)</span>
+<span id="cb9-8"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb9-8" tabindex="-1"></a>start_state <span class="ot">=</span><span class="st">"0_0_0"</span> <span class="co"># Change based on problem and number of variants we are using</span></span>
+<span id="cb9-9"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb9-9" tabindex="-1"></a>goal_state <span class="ot">=</span> <span class="st">"1_1_1"</span> <span class="co"># Change based on problem and number of varianrs we are using``</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb10-1" tabindex="-1"></a>sce_subset<span class="ot">&lt;-</span><span class="fu">get_own_path</span>(sce_subset,start_state,goal_state)</span>
+<span id="cb10-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb10-2" tabindex="-1"></a><span class="fu">visualize_any_optimal_path</span>(sce_subset,start_state,goal_state)</span>
+<span id="cb10-3"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb10-3" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb10-4" tabindex="-1"></a><span class="fu">print</span>(sce_subset<span class="sc">@</span>metadata<span class="sc">$</span>Trajectories<span class="sc">$</span>WT_to_last_possible_clone)</span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb11-1" tabindex="-1"></a>vis_full_net<span class="ot">&lt;-</span><span class="fu">visualize_full_network</span>(sce_subset)</span>
+<span id="cb11-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb11-2" tabindex="-1"></a>vis_full_net</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb12-1" tabindex="-1"></a>vis_best_WT_to_dominant_clone<span class="ot">&lt;-</span><span class="fu">visualize_WT_dominant_clone</span>(sce_subset)</span>
+<span id="cb12-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb12-2" tabindex="-1"></a>vis_best_WT_to_dominant_clone</span>
+<span id="cb12-3"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb12-3" tabindex="-1"></a><span class="fu">print</span>(sce_subset<span class="sc">@</span>metadata<span class="sc">$</span>Trajectories<span class="sc">$</span>WT_to_dominant_clone)</span></code></pre></div>
+<p>All paths from WT to dominant clone:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb13-1" tabindex="-1"></a>vis_all_WT_to_dominant_clone<span class="ot">&lt;-</span><span class="fu">visualize_all_WT_dominant_clone</span>(sce_subset)</span>
+<span id="cb13-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb13-2" tabindex="-1"></a>vis_all_WT_to_dominant_clone</span>
+<span id="cb13-3"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb13-3" tabindex="-1"></a><span class="fu">print</span>(sce_subset<span class="sc">@</span>metadata<span class="sc">$</span>Trajectories<span class="sc">$</span>All_WT_to_dominant_clone)</span></code></pre></div>
+<p>given user defined state, find where it can go with the clonograph
+this is done by setting observed states variable equal to the ones that
+are observed in our dataframe.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb14-1" tabindex="-1"></a>given_state <span class="ot">&lt;-</span><span class="st">"0"</span></span>
+<span id="cb14-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb14-2" tabindex="-1"></a><span class="fu">match_clonal_graph</span>(sce_subset,given_state)</span>
+<span id="cb14-3"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb14-3" tabindex="-1"></a><span class="fu">print</span>(sce_subset<span class="sc">@</span>metadata<span class="sc">$</span>Trajectories<span class="sc">$</span>WT_to_Observed_paths)</span></code></pre></div>
+<p>##Protein Now we will demonstrate how to export the protein data to
+Seurat for clustering, and producing a UMAP. We also demonstrate our
+wrapper to normalize protein data with either CLR (base Seurat) or dsb
+if you have IGg controls. Coming soon, our own normalization method for
+protein information! Stay tuned!</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb15-1" tabindex="-1"></a><span class="fu">library</span>(dsb) </span>
+<span id="cb15-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb15-2" tabindex="-1"></a><span class="fu">library</span>(Seurat)</span>
+<span id="cb15-3"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb15-3" tabindex="-1"></a>droplet_metadata<span class="ot">&lt;-</span> <span class="fu">extract_droplet_size</span>(sce)</span>
+<span id="cb15-4"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb15-4" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb15-5" tabindex="-1"></a><span class="co"># Try changing bins=1000 to see overlap empty droplets and real ones</span></span>
+<span id="cb15-6"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb15-6" tabindex="-1"></a><span class="fu">ggplot</span>(droplet_metadata, <span class="fu">aes</span>(<span class="at">x =</span> dna_size, <span class="at">y =</span> protein_size,<span class="at">color=</span>Droplet_type )) <span class="sc">+</span></span>
+<span id="cb15-7"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb15-7" tabindex="-1"></a>                  <span class="fu">theme_bw</span>() <span class="sc">+</span> </span>
+<span id="cb15-8"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb15-8" tabindex="-1"></a>                  <span class="fu">geom_density_2d</span>(<span class="at">bins=</span><span class="dv">1000</span>)<span class="sc">+</span></span>
+<span id="cb15-9"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb15-9" tabindex="-1"></a>                  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span><span class="fu">c</span>(<span class="fl">1.5</span>,<span class="dv">5</span>),<span class="at">lty=</span><span class="dv">2</span>)<span class="sc">+</span></span>
+<span id="cb15-10"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb15-10" tabindex="-1"></a>                  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span><span class="fu">c</span>(<span class="fl">0.1</span>,<span class="fl">1.5</span>),<span class="at">lty=</span><span class="dv">2</span>)</span></code></pre></div>
+<p>After obtaining the protein matrix, we now want to extract background
+cells and normalize the protein. Both strategies to normalize the data
+are shown below.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb16-1" tabindex="-1"></a>background_droplets<span class="ot">&lt;-</span>droplet_metadata<span class="sc">%&gt;%</span></span>
+<span id="cb16-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb16-2" tabindex="-1"></a>                          dplyr<span class="sc">::</span><span class="fu">filter</span>(Droplet_type<span class="sc">==</span><span class="st">"Empty"</span>)<span class="sc">%&gt;%</span></span>
+<span id="cb16-3"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb16-3" tabindex="-1"></a>                          dplyr<span class="sc">::</span><span class="fu">filter</span>(dna_size<span class="sc">&lt;</span><span class="fl">1.5</span><span class="sc">&amp;</span>dna_size<span class="sc">&gt;</span><span class="fl">0.15</span>)<span class="sc">%&gt;%</span></span>
+<span id="cb16-4"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb16-4" tabindex="-1"></a>                          <span class="fu">pull</span>(Cell)</span>
+<span id="cb16-5"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb16-5" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb16-6" tabindex="-1"></a>sce_subset<span class="ot">&lt;-</span><span class="fu">normalize_protein_data</span>(<span class="at">sce=</span>sce,</span>
+<span id="cb16-7"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb16-7" tabindex="-1"></a>                             <span class="at">metadata=</span>droplet_metadata,</span>
+<span id="cb16-8"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb16-8" tabindex="-1"></a>                             <span class="at">method=</span><span class="fu">c</span>(<span class="st">"dsb"</span>,<span class="st">"CLR"</span>),</span>
+<span id="cb16-9"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb16-9" tabindex="-1"></a>                             <span class="at">detect_IgG=</span><span class="cn">TRUE</span>,</span>
+<span id="cb16-10"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb16-10" tabindex="-1"></a>                             <span class="at">background_droplets=</span>background_droplets)</span>
+<span id="cb16-11"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb16-11" tabindex="-1"></a></span>
+<span id="cb16-12"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb16-12" tabindex="-1"></a><span class="fu">altExp</span>(sce_subset)</span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb17-1" tabindex="-1"></a><span class="fu">library</span>(Biobase)</span>
+<span id="cb17-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb17-2" tabindex="-1"></a><span class="fu">library</span>(flowCore)</span>
+<span id="cb17-3"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb17-3" tabindex="-1"></a><span class="fu">library</span>(flowViz)</span>
+<span id="cb17-4"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb17-4" tabindex="-1"></a><span class="fu">names</span>(<span class="fu">assays</span>(<span class="fu">altExp</span>(sce_subset)))</span>
+<span id="cb17-5"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb17-5" tabindex="-1"></a><span class="fu">fcs_export</span>(sce_subset,</span>
+<span id="cb17-6"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb17-6" tabindex="-1"></a>           <span class="at">slot=</span><span class="st">"CLR_norm"</span>,</span>
+<span id="cb17-7"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb17-7" tabindex="-1"></a>           <span class="at">save_path=</span><span class="st">"~/Desktop/sample_CLR.fcs"</span>)</span></code></pre></div>
+<p>Now we want to load in our data into Seurat. Keep in mind which
+normalization method for protein was used above. Comment out the one you
+do not want to use (or let it use CLR as it will currently overwrite the
+dsb one). Below follows the standard Seurat implementation where you
+apply nearest neighbor search, generate clusters, and build a UMAP.
+Afterwards, are some examples of further data exploration and plots to
+analyze your results.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb18-1" tabindex="-1"></a><span class="fu">library</span>(Seurat)</span>
+<span id="cb18-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb18-2" tabindex="-1"></a>s<span class="ot">&lt;-</span>Seurat<span class="sc">::</span><span class="fu">as.Seurat</span>(<span class="at">x =</span> <span class="fu">altExp</span>(sce_subset),<span class="at">counts=</span><span class="st">"Protein"</span>,<span class="at">data=</span><span class="st">"CLR_norm"</span>)</span>
+<span id="cb18-3"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb18-3" tabindex="-1"></a>s<span class="ot">&lt;-</span>SeuratObject<span class="sc">::</span><span class="fu">RenameAssays</span>(<span class="at">object =</span> s, <span class="at">originalexp =</span> <span class="st">'Protein'</span>)</span>
+<span id="cb18-4"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb18-4" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb18-5" tabindex="-1"></a><span class="fu">colnames</span>(s<span class="sc">@</span>meta.data)</span>
+<span id="cb18-6"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb18-6" tabindex="-1"></a><span class="fu">colnames</span>(s<span class="sc">@</span>meta.data)[<span class="dv">12</span>]<span class="ot">&lt;-</span><span class="st">"TET2"</span></span>
+<span id="cb18-7"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb18-7" tabindex="-1"></a><span class="fu">colnames</span>(s<span class="sc">@</span>meta.data)[<span class="dv">13</span>]<span class="ot">&lt;-</span><span class="st">"NPM1"</span></span>
+<span id="cb18-8"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb18-8" tabindex="-1"></a><span class="fu">colnames</span>(s<span class="sc">@</span>meta.data)[<span class="dv">14</span>]<span class="ot">&lt;-</span><span class="st">"NRAS"</span></span>
+<span id="cb18-9"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb18-9" tabindex="-1"></a><span class="fu">colnames</span>(s<span class="sc">@</span>meta.data)</span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-1" tabindex="-1"></a>s <span class="ot">&lt;-</span> Seurat<span class="sc">::</span><span class="fu">ScaleData</span>(s, <span class="at">assay =</span> <span class="st">"Protein"</span>)</span>
+<span id="cb19-2"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-2" tabindex="-1"></a>s <span class="ot">&lt;-</span> Seurat<span class="sc">::</span><span class="fu">FindVariableFeatures</span>(s,<span class="at">assay =</span> <span class="st">"Protein"</span>)</span>
+<span id="cb19-3"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-3" tabindex="-1"></a>s <span class="ot">&lt;-</span> Seurat<span class="sc">::</span><span class="fu">RunPCA</span>(s, <span class="at">features =</span> <span class="fu">VariableFeatures</span>(<span class="at">object =</span> s))</span>
+<span id="cb19-4"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-4" tabindex="-1"></a>s <span class="ot">&lt;-</span> Seurat<span class="sc">::</span><span class="fu">FindNeighbors</span>(s, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>)</span>
+<span id="cb19-5"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-5" tabindex="-1"></a>s <span class="ot">&lt;-</span> Seurat<span class="sc">::</span><span class="fu">FindClusters</span>(s, <span class="at">resolution =</span> <span class="fl">0.5</span>)</span>
+<span id="cb19-6"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-6" tabindex="-1"></a><span class="co"># cluster and run umap (based directly on dsb normalized values without isotype controls)</span></span>
+<span id="cb19-7"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-7" tabindex="-1"></a></span>
+<span id="cb19-8"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-8" tabindex="-1"></a></span>
+<span id="cb19-9"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-9" tabindex="-1"></a>s <span class="ot">&lt;-</span> <span class="fu">FindNeighbors</span>(<span class="at">object =</span> s,</span>
+<span id="cb19-10"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-10" tabindex="-1"></a>                   <span class="at">dims =</span> <span class="cn">NULL</span>,  </span>
+<span id="cb19-11"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-11" tabindex="-1"></a>                   <span class="at">k.param =</span> <span class="dv">30</span>)</span>
+<span id="cb19-12"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-12" tabindex="-1"></a></span>
+<span id="cb19-13"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-13" tabindex="-1"></a><span class="co"># direct graph clustering </span></span>
+<span id="cb19-14"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-14" tabindex="-1"></a>s <span class="ot">&lt;-</span> <span class="fu">FindClusters</span>(<span class="at">object =</span> s, </span>
+<span id="cb19-15"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-15" tabindex="-1"></a>                  <span class="at">assay =</span> <span class="st">"Protein"</span>,</span>
+<span id="cb19-16"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-16" tabindex="-1"></a>                  <span class="at">resolution =</span> <span class="dv">1</span>, </span>
+<span id="cb19-17"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-17" tabindex="-1"></a>                  <span class="at">algorithm =</span> <span class="dv">3</span>, </span>
+<span id="cb19-18"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-18" tabindex="-1"></a>                  <span class="at">verbose =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb19-19"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-19" tabindex="-1"></a></span>
+<span id="cb19-20"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-20" tabindex="-1"></a><span class="co"># umap for visualization only; (this is optional)</span></span>
+<span id="cb19-21"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-21" tabindex="-1"></a>s <span class="ot">=</span> <span class="fu">RunUMAP</span>(<span class="at">object =</span> s, </span>
+<span id="cb19-22"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-22" tabindex="-1"></a>            <span class="at">seed.use =</span> <span class="dv">1990</span>, </span>
+<span id="cb19-23"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-23" tabindex="-1"></a>            <span class="at">min.dist =</span> <span class="fl">0.2</span>, </span>
+<span id="cb19-24"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-24" tabindex="-1"></a>            <span class="at">n.neighbors =</span> <span class="dv">50</span>, </span>
+<span id="cb19-25"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-25" tabindex="-1"></a>            <span class="at">features=</span>s<span class="sc">@</span>assays<span class="sc">$</span>Protein<span class="sc">@</span>var.features,</span>
+<span id="cb19-26"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-26" tabindex="-1"></a>            <span class="at">verbose =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb19-27"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-27" tabindex="-1"></a></span>
+<span id="cb19-28"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-28" tabindex="-1"></a><span class="fu">DimPlot</span>(s,<span class="at">reduction =</span> <span class="st">"umap"</span>,<span class="at">group.by =</span><span class="st">"Clone"</span> )</span>
+<span id="cb19-29"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-29" tabindex="-1"></a></span>
+<span id="cb19-30"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-30" tabindex="-1"></a><span class="fu">FeaturePlot</span>(s,<span class="at">features =</span> <span class="fu">c</span>(<span class="st">"CD19"</span>))</span>
+<span id="cb19-31"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-31" tabindex="-1"></a><span class="fu">Idents</span>(s)<span class="ot">&lt;-</span><span class="st">"Clone"</span></span>
+<span id="cb19-32"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-32" tabindex="-1"></a>Seurat<span class="sc">::</span><span class="fu">FindMarkers</span>(s,<span class="at">ident.1 =</span> <span class="st">"0_0_0"</span>,<span class="at">ident.2 =</span> <span class="st">"1_1_1"</span>)</span>
+<span id="cb19-33"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-33" tabindex="-1"></a></span>
+<span id="cb19-34"><a href="file:///private/var/folders/4x/sfx76_jx3cx_970q5klyb3pr0000gp/T/RtmpxJe714/preview-3cc3157aa88c.dir/vignette.html#cb19-34" tabindex="-1"></a>Seurat<span class="sc">::</span><span class="fu">RidgePlot</span>(s,<span class="at">features =</span> <span class="st">"CD3"</span>)</span></code></pre></div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+
+
+</body></html>
