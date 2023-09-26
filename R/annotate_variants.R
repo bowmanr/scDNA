@@ -15,7 +15,8 @@ annotate_variants<- function(file,
                              ){
   
   load(system.file(paste0('data/cBioPortal_annotation.rDa'), package = 'scDNA'))
-    if(is.null(txdb)){
+    
+  if(is.null(txdb)){
       print("No TXDB provided, defaulting to complete TxDb.Hsapiens.UCSC.hg19.knownGene")
       custom_txdb<-TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
       genes_found<-genes(custom_txdb)$gene_id
@@ -26,9 +27,7 @@ annotate_variants<- function(file,
       
     } else if(txdb=="MSK_RL"){
       print("Loading TxDB for Myeloid Clonal Evolution (Levine, MSK)/MSK_RL")
-      custom_txdb<-loadDb(system.file('data/MSK_RL_txdb', package = 'scDNA')) # loads in as variable annotation_file?
-      #custom_txdb<-loadDb("/Users/bowmanrl/Projects/R_packages/scDNA/data/MSK_RL_txdb")# loads in as variable annotation_file?
-      #load(system.file('data/cBioPortal_annotation.rDa', package = 'scDNA')) # loads in as variable annotation_file?
+      custom_txdb<-AnnotationDbi::loadDb(system.file('data/MSK_RL_txdb', package = 'scDNA')) # loads in as variable annotation_file?
       genes_found<-genes(custom_txdb)$gene_id
       complete_gene_annotation<-cBioPortal_annotation%>%
         dplyr::filter(ensembl_canonical_gene%in%genes_found)%>%
@@ -46,7 +45,7 @@ annotate_variants<- function(file,
       
     } else if(file.exists(txdb)){
       print("Loading custom TxBD")
-      custom_txdb<-loadDb(txdb)
+      custom_txdb<-AnnotationDbi::loadDb(txdb)
       genes_found<-genes(custom_txdb)$gene_id
       
       if(any(grepl("ENSG",genes_found))){

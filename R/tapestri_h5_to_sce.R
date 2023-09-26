@@ -21,7 +21,6 @@ tapestri_h5_to_sce<-function(file,
                     GQ_cutoff=30,
                     AF_cutoff=25,
                     variant_set=NULL,
-                    final_mutation_set=NULL,
                     protein=TRUE,
                     return_variants_only=FALSE){
   
@@ -198,7 +197,7 @@ tapestri_h5_to_sce<-function(file,
                                     values_from = NGT)%>%
     dplyr::select(-id)%>%
     colnames()
-  rownames(sce)<-rowData(sce)$final_annot
+  rownames(sce)<-SummarizedExperiment::rowData(sce)$final_annot
 
   print("Reordering sce rows (variants) based on bulk VAF")
   # this is newly added so we can get correct order for annotation later.
@@ -216,23 +215,28 @@ tapestri_h5_to_sce<-function(file,
     SingleCellExperiment::altExp(sce, "Protein") <- SingleCellExperiment::SingleCellExperiment(list(Protein=protein_mat))
   }
   
+  print("Adding on Copy Number Data")
+    amplicon_data<-rhdf5::h5read(file=file,name="/assays/dna_read_counts/layers/read_counts",index=list(NULL,viable_barcodes))%>% data.frame()
+    colnames(amplicon_data) <- rhdf5::h5read(file=file,name="/assays/dna_read_counts/ra/barcode",index=list(viable_barcodes))
+    rownames(amplicon_data) <- rhdf5::h5read(file=file,name="/assays/dna_read_counts/ca/id",index=list(NULL))
+    SingleCellExperiment::altExp(sce, "CNV") <- SingleCellExperiment::SingleCellExperiment(list(CNV=amplicon_data))
+    
   print("Tabulating cell QC")
-  logical_operation <- function(...) Reduce(`&`, ...)
-  
-  complete_cells<-sce%>%
-    {list(.@assays@data$NGT_mask,
-          .@assays@data$AF_mask,
-          .@assays@data$DP_mask,
-          .@assays@data$GQ_mask)}%>%
-    logical_operation%>%
-    data.frame%>%
-    dplyr::select_if(~all(. == TRUE))%>%
-    {ifelse(colnames(sce@assays@data$NGT)%in%colnames(.), "Complete", "Other")}
-  print(table(complete_cells))
-  existing_metadata <- SummarizedExperiment::colData(sce)
-  existing_metadata$Required<-complete_cells
-  SummarizedExperiment::colData(sce)<-existing_metadata
- 
+    logical_operation <- function(...) Reduce(`&`, ...)
+    complete_cells<-sce%>%
+      {list(.@assays@data$NGT_mask,
+            .@assays@data$AF_mask,
+            .@assays@data$DP_mask,
+            .@assays@data$GQ_mask)}%>%
+      logical_operation%>%
+      data.frame%>%
+      dplyr::select_if(~all(. == TRUE))%>%
+      {ifelse(colnames(sce@assays@data$NGT)%in%colnames(.), "Complete", "Other")}
+    print(table(complete_cells))
+    existing_metadata <- SummarizedExperiment::colData(sce)
+    existing_metadata$Required<-complete_cells
+    SummarizedExperiment::colData(sce)<-existing_metadata
+   
   sce@metadata$file<-file
   return(sce)
 }

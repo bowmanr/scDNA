@@ -18,7 +18,7 @@ compute_clone_statistics<-function(sce,
   print("Computing clone level statistics")
   sce@metadata$Clones<-(quality_output(file=as.character(sce@metadata$file),
                                                               filter=FALSE,
-                                                              input_variants=rowData(sce)$id,
+                                                              input_variants=SummarizedExperiment::rowData(sce)$id,
                                                               input_cells= sce@metadata$NGT$Cell,
                                                               NGT=  sce@metadata$NGT,
                                                               DP_cut=10,
@@ -40,14 +40,14 @@ compute_clone_statistics<-function(sce,
          dplyr::filter(n_Complete>clone_size_cutoff)%>%
          dplyr::distinct(Clone,n_Complete)%>%
          dplyr::reframe("Shannon"=vegan::diversity(n_Complete,index="shannon"),.groups=NULL) %>%
-         pull(Shannon),
+         dplyr::pull(Shannon),
        "Number_of_clones"=sce@metadata$Clones%>%
          dplyr::ungroup()%>%
          dplyr::filter(Group=="Complete")%>%
          dplyr::filter(n_Complete>clone_size_cutoff)%>%
          dplyr::distinct(Clone,n_Complete)%>%
          dplyr::reframe("Number_of_clones"=nrow(.)) %>%
-         pull(Number_of_clones),
+         dplyr::pull(Number_of_clones),
        "Number_of_mutations"=length(rownames(sce)),
        "Number_of_mutations_in_dominant_clone"=sce@metadata$Clones%>%
                                                    dplyr::ungroup()%>%
@@ -68,7 +68,7 @@ compute_clone_statistics<-function(sce,
                                                      WT_clone=="Mutant"&n_Complete==max(n_Complete)~"Dominant",
                                                      TRUE~"Other"))%>%
                                                    dplyr::reframe("Dominant_clone_size"=n_Complete[Dominant_clone=="Dominant"]/sum(n_Complete))%>%
-                                                    dplyr::pull("Dominant_clone_size")
+                                                   dplyr::pull("Dominant_clone_size")
           )
                                                     
          
