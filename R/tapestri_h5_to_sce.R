@@ -238,5 +238,7 @@ tapestri_h5_to_sce<-function(file,
     SummarizedExperiment::colData(sce)<-existing_metadata
    
   sce@metadata$file<-file
+  #sce <-readDNA_CN_H5(sce,reference_cells = NULL) # need to move this to after enumerate clones so we can use NGT
+  
   return(sce)
 }

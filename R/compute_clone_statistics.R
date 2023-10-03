@@ -71,7 +71,9 @@ compute_clone_statistics<-function(sce,
                                                    dplyr::pull("Dominant_clone_size")
           )
                                                     
-         
+    print("Computing Ploidy")   
+    sce<-readDNA_CN_H5(sce)
 
+  
   return(sce)
 }
