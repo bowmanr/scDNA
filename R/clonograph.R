@@ -70,7 +70,7 @@ gg_heatmap <- ggplot(data=clonal_architecture,
                              "Unknown"="grey50"),name="Genotype")+
   theme_classic(base_size=7) +
   ylab("Mutation")+
-  scale_y_discrete(limits = rev(levels(clonal_architecture$final_annot)))+
+  scale_y_discrete(limits = rev(mutant_order))+#rev(levels((clonal_architecture$final_annot))))
   theme(legend.position = "right", legend.direction = "vertical",
         axis.text.x = element_blank(),
         axis.line=element_blank(),

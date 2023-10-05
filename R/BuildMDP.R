@@ -143,9 +143,9 @@ BuildMDP <-function(num_mutations,use_ADO=FALSE){
   adj_list<-adj_list %>%
     dplyr::group_by(current_state,next_state,legal_action,action_type)%>%
     dplyr::mutate(rank = rank(action_type,ties.method="first"))%>%
-    dplyr::mutate(action_type=ifelse(rank==2,"forward_ADO",action_type))%>%
-    dplyr::ungroup()%>%
-    dplyr::select(-rank)
+    dplyr::mutate(action_type=ifelse(rank==2,"forward_ADO",action_type))#%>%
+    #dplyr::ungroup()%>%
+    #dplyr::select(-rank)
     
     
     

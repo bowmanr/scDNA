@@ -63,9 +63,11 @@ mdp_Q_learning_with_linklist<-function(df, discount, N) {
       # Reinitialisation of trajectories for a few different reasons:
       # 1) every terminal node hit (when we break while loop below)
       #if ( n %% 100 == 0 ) {
-        state <- sample(total_state_list,1,replace=T)
+        if(n >1){
+          state <- sample(total_state_list,1,replace=T)
       #}
-        next_state<-state
+          next_state<-state
+        }
         # we will explore until we reach terminal state (last one in our total_state_list)
         # and we have already stayed at this location for 1 iteration.(needed so we build up and explore)
         # there may be another terminating step in the future, but need to think on this.
