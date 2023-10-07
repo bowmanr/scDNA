@@ -12,8 +12,8 @@
 #' @examples
 variant_ID<-function(file,
                     txdb="MSK_RL",
-                    GT_cutoff=35,
-                    VAF_cutoff=5){
+                    GT_cutoff=0,
+                    VAF_cutoff=0){
   
   if(grepl("loom",file)){
   print(paste("Input file is loom :",file))
@@ -100,8 +100,7 @@ variant_ID<-function(file,
       annotated_variants<- annotate_variants(file,txdb=txdb,select_variants=total_variants_new$id)
       out<-annotated_variants%>% 
         dplyr::inner_join(total_variants_new,by="id")%>%
-        data.frame()%>%
-        dplyr::arrange(desc(VAF))
+        data.frame()
       return(out)             
   } else if(length(sample_set)>2) {
       print("Not currently functionining for multiple samples")
@@ -110,3 +109,4 @@ variant_ID<-function(file,
     }
  
 }
+
