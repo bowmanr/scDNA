@@ -12,68 +12,68 @@
 annotate_variants<- function(file,
                              txdb=NULL,
                              select_variants=NULL
-                             ){
+){
   
   load(system.file(paste0('data/cBioPortal_annotation.rDa'), package = 'scDNA'))
-    
   if(is.null(txdb)){
-      print("No TXDB provided, defaulting to complete TxDb.Hsapiens.UCSC.hg19.knownGene")
-      custom_txdb<-TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
-      genes_found<-GenomicFeatures::genes(custom_txdb)$gene_id
+    print("No TXDB provided, defaulting to complete TxDb.Hsapiens.UCSC.hg19.knownGene")
+    custom_txdb<-TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
+    genes_found<-genes(custom_txdb)$gene_id
+    complete_gene_annotation<-cBioPortal_annotation%>%
+      dplyr::filter(entrez_gene_id%in%genes_found)%>%
+      dplyr::select(hgnc_symbol,ensembl_canonical_gene,ensembl_canonical_transcript,mskcc_canonical_transcript,ccds_id)%>%
+      dplyr::mutate(final_transcript_id=ifelse(mskcc_canonical_transcript=="",ensembl_canonical_transcript,mskcc_canonical_transcript))
+    
+  } else if(txdb=="MSK_RL"){
+    print("Loading TxDB for Myeloid Clonal Evolution (Levine, MSK)/MSK_RL")
+    custom_txdb<-loadDb(system.file('data/MSK_RL_txdb', package = 'scDNA')) # loads in as variable annotation_file?
+    #custom_txdb<-loadDb("/Users/bowmanrl/Projects/R_packages/scDNA/data/MSK_RL_txdb")# loads in as variable annotation_file?
+    #load(system.file('data/cBioPortal_annotation.rDa', package = 'scDNA')) # loads in as variable annotation_file?
+    genes_found<-genes(custom_txdb)$gene_id
+    complete_gene_annotation<-cBioPortal_annotation%>%
+      dplyr::filter(ensembl_canonical_gene%in%genes_found)%>%
+      dplyr::select(hgnc_symbol,ensembl_canonical_gene,ensembl_canonical_transcript,mskcc_canonical_transcript,ccds_id)%>%
+      dplyr::mutate(final_transcript_id=ifelse(mskcc_canonical_transcript=="",ensembl_canonical_transcript,mskcc_canonical_transcript))
+    
+  } else if(txdb=="UCSC"){
+    print("Loading TxDb.Hsapiens.UCSC.hg19.knownGene")
+    custom_txdb<-TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
+    genes_found<-genes(custom_txdb)$gene_id
+    complete_gene_annotation<-cBioPortal_annotation%>%
+      dplyr::filter(entrez_gene_id%in%genes_found)%>%
+      dplyr::select(hgnc_symbol,ensembl_canonical_gene,ensembl_canonical_transcript,mskcc_canonical_transcript,ccds_id)%>%
+      dplyr::mutate(final_transcript_id=ifelse(mskcc_canonical_transcript=="",ensembl_canonical_transcript,mskcc_canonical_transcript))
+    
+  } else if(file.exists(txdb)){
+    print("Loading custom TxBD")
+    custom_txdb<-loadDb(txdb)
+    genes_found<-genes(custom_txdb)$gene_id
+    
+    if(any(grepl("ENSG",genes_found))){
+      print("Gene ID appears to be ensemble")
       complete_gene_annotation<-cBioPortal_annotation%>%
         dplyr::filter(entrez_gene_id%in%genes_found)%>%
-        dplyr::select(hgnc_symbol,entrez_gene_id,ensembl_canonical_gene,ensembl_canonical_transcript,mskcc_canonical_transcript,ccds_id)%>%
+        dplyr::select(ensembl_canonical_gene,ensembl_canonical_gene,ensembl_canonical_transcript,mskcc_canonical_transcript,ccds_id)%>%
         dplyr::mutate(final_transcript_id=ifelse(mskcc_canonical_transcript=="",ensembl_canonical_transcript,mskcc_canonical_transcript))
-      
-    } else if(txdb=="MSK_RL"){
-      print("Loading TxDB for Myeloid Clonal Evolution (Levine, MSK)/MSK_RL")
-      custom_txdb<-AnnotationDbi::loadDb(system.file('data/MSK_RL_txdb', package = 'scDNA')) # loads in as variable annotation_file?
-      genes_found<-GenomicFeatures::genes(custom_txdb)$gene_id
-      complete_gene_annotation<-cBioPortal_annotation%>%
-        dplyr::filter(ensembl_canonical_gene%in%genes_found)%>%
-        dplyr::select(hgnc_symbol,gene_id=ensembl_canonical_gene,ensembl_canonical_transcript,mskcc_canonical_transcript,ccds_id)%>%
-        dplyr::mutate(final_transcript_id=ifelse(mskcc_canonical_transcript=="",ensembl_canonical_transcript,mskcc_canonical_transcript))
-      
-      } else if(txdb=="UCSC"){
-      print("Loading TxDb.Hsapiens.UCSC.hg19.knownGene")
-      custom_txdb<-TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
-      genes_found<-GenomicFeatures::genes(custom_txdb)$gene_id
+    } else if(!any(grepl("ENSG",genes_found))) {
+      print("Trying Entrez Gene ID")
       complete_gene_annotation<-cBioPortal_annotation%>%
         dplyr::filter(entrez_gene_id%in%genes_found)%>%
-        dplyr::select(hgnc_symbol,gene_id=entrez_gene_id,ensembl_canonical_gene,ensembl_canonical_transcript,mskcc_canonical_transcript,ccds_id)%>%
-        dplyr::mutate(gene_id=as.character(gene_id))%>%
+        dplyr::select(ensembl_canonical_gene,ensembl_canonical_gene,ensembl_canonical_transcript,mskcc_canonical_transcript,ccds_id)%>%
         dplyr::mutate(final_transcript_id=ifelse(mskcc_canonical_transcript=="",ensembl_canonical_transcript,mskcc_canonical_transcript))
-      
-    } else if(file.exists(txdb)){
-      print("Loading custom TxBD")
-      custom_txdb<-AnnotationDbi::loadDb(txdb)
-      genes_found<-GenomicFeatures::genes(custom_txdb)$gene_id
-      
-      if(any(grepl("ENSG",genes_found))){
-        print("Gene ID appears to be ensemble")
-        complete_gene_annotation<-cBioPortal_annotation%>%
-          dplyr::filter(entrez_gene_id%in%genes_found)%>%
-          dplyr::select(ensembl_canonical_gene,ensembl_canonical_gene,ensembl_canonical_transcript,mskcc_canonical_transcript,ccds_id)%>%
-          dplyr::mutate(final_transcript_id=ifelse(mskcc_canonical_transcript=="",ensembl_canonical_transcript,mskcc_canonical_transcript))
-      } else if(!any(grepl("ENSG",genes_found))) {
-        print("Trying Entrez Gene ID")
-        complete_gene_annotation<-cBioPortal_annotation%>%
-          dplyr::filter(entrez_gene_id%in%genes_found)%>%
-          dplyr::select(ensembl_canonical_gene,ensembl_canonical_gene,ensembl_canonical_transcript,mskcc_canonical_transcript,ccds_id)%>%
-          dplyr::mutate(final_transcript_id=ifelse(mskcc_canonical_transcript=="",ensembl_canonical_transcript,mskcc_canonical_transcript))
-       }
-        if(nrow(complete_gene_annotation)>1) {
-          print(paste0("Entrez Gene ID extracted. n=",nrow(complete_gene_annotation), " genes detected."))
-        } else {
-        print("Gene ID could not be detected. Suggest remaking txDB so that ensemble gene names are stored in the gene_id column.")
-        print("e.g. ENSG00000122025")
-        break
-      }
     }
-
+    if(nrow(complete_gene_annotation)>1) {
+      print(paste0("Entrez Gene ID extracted. n=",nrow(complete_gene_annotation), " genes detected."))
+    } else {
+      print("Gene ID could not be detected. Suggest remaking txDB so that ensemble gene names are stored in the gene_id column.")
+      print("e.g. ENSG00000122025")
+      break
+    }
+  }
+  
   
   print("Load annotation data")
-
+  
   print("Extracting Variation Matrix")
   if(grepl("loom",file)){
     SNV_mat_prefilter<-data.frame(do.call(cbind, rhdf5::h5read(file=file,name="/row_attrs/"))) 
@@ -86,7 +86,8 @@ annotate_variants<- function(file,
     dplyr::mutate(ALT=gsub("\\*","N",.data$ALT))%>%
     dplyr::mutate(REF=gsub("\\*","N",.data$REF))%>%
     dplyr::mutate(CHROM=paste0("chr",.data$CHROM))%>%
-    dplyr::mutate(QUAL=as.numeric(QUAL))
+    dplyr::mutate(QUAL=as.numeric(QUAL))%>%
+    dplyr::mutate(QUERYID=1:nrow(.))
   
   SNV_mat<-SNV_mat_prefilter%>%  
     dplyr::filter(!grepl("N",REF))
@@ -96,8 +97,6 @@ annotate_variants<- function(file,
   if (!is.null(select_variants)) {
     SNV_mat <- SNV_mat %>% dplyr::filter(id %in% select_variants)
   }
-  
-  SNV_mat<-SNV_mat%>%dplyr::mutate(QUERYID=1:nrow(.))
   
   #necessary for meaningful GRangess
   SNV_mat$REF<-as(SNV_mat$REF, "DNAStringSet")
@@ -110,17 +109,16 @@ annotate_variants<- function(file,
   
   print("Annotating Variants based on location")
   gene_subset<-GenomicFeatures::genes(custom_txdb)
-  non_gene_variants<- IRanges::subsetByOverlaps(variant_gRange,gene_subset,invert = T)
-  genic_variant_gRange_subset<-IRanges::subsetByOverlaps(variant_gRange,gene_subset,invert = F)
+  non_gene_variants<-variant_gRange[-queryHits(findOverlaps(variant_gRange,gene_subset))]
+  genic_variant_gRange_subset<-variant_gRange[queryHits(findOverlaps(variant_gRange,gene_subset))]
   
-  if(length(non_gene_variants)>0){
-      print(paste("n =",length(non_gene_variants), "variants were not annotated to be in a gene body"))
-      print("They can be found in the following regions and will be annotated with genomic location only")
-      print(GenomicRanges::reduce(non_gene_variants, min.gapwidth = 50)%>%data.frame())
-  }
+  print(paste("n =",length(non_gene_variants), "variants were not annotated to be in a gene body"))
+  print("They can be found in the following regions and will be annotated with genomic location only")
+  print(GenomicRanges::reduce(non_gene_variants, min.gapwidth = 50)%>%data.frame())
+  
   exon_subset<-GenomicFeatures::exons(custom_txdb)
-  exonic_variant_gRange_subset<-IRanges::subsetByOverlaps(genic_variant_gRange_subset,exon_subset)
-  non_exonic_variant_gRange_subset<-IRanges::subsetByOverlaps(genic_variant_gRange_subset,exon_subset,invert = T)
+  exonic_variant_gRange_subset<-genic_variant_gRange_subset[S4Vectors::queryHits(GenomicRanges::findOverlaps(genic_variant_gRange_subset,exon_subset))]
+  non_exonic_variant_gRange_subset<-genic_variant_gRange_subset[-S4Vectors::queryHits(GenomicRanges::findOverlaps(genic_variant_gRange_subset,exon_subset))]
   
   print(paste("The following n =",length(genic_variant_gRange_subset), "variants were found within the following regions of a gene body"))
   all_genic_variant_lists<-list(
@@ -132,12 +130,12 @@ annotate_variants<- function(file,
     "Promoter" = suppressWarnings(suppressMessages(VariantAnnotation::locateVariants(query = (genic_variant_gRange_subset), subject = custom_txdb,region = VariantAnnotation::IntergenicVariants()))))
   
   variant_QUERYID_by_region<-lapply(names(all_genic_variant_lists),function(x){
-
+    
     if(length(unique(all_genic_variant_lists[[x]]$QUERYID))>0){
       data.frame("Region"=x,
                  "QUERYID"=(all_genic_variant_lists[[x]]$QUERYID),
                  "LOCSTART"=(all_genic_variant_lists[[x]]$LOCSTART))%>%
-      dplyr::distinct(Region,QUERYID,LOCSTART)
+        dplyr::distinct(Region,QUERYID,LOCSTART)
       
     } else{
       print(paste("No",x,"variants found"))
@@ -165,12 +163,12 @@ annotate_variants<- function(file,
   print("Annotating coding variants")
   variant_annotation_location_list<-setNames(lapply(list("Coding","Splice","Intronic"),function(Region_test){
     region_QUERYID<-variant_prioritized_grouping%>%
-                            dplyr::filter(Region==Region_test)%>%
-                            dplyr::pull(QUERYID)
+      dplyr::filter(Region==Region_test)%>%
+      dplyr::pull(QUERYID)
     
     region_gRange<- variant_gRange[variant_gRange$QUERYID%in%region_QUERYID]
-    exonic_region_variant_gRanges<-subsetByOverlaps(region_gRange,exonic_variant_gRange_subset)
-    non_exonic_region_variant_gRanges<-subsetByOverlaps(region_gRange,non_exonic_variant_gRange_subset)
+    exonic_region_variant_gRanges<-region_gRange[unique(queryHits(findOverlaps(region_gRange,exonic_variant_gRange_subset)))]
+    non_exonic_region_variant_gRanges<-region_gRange[unique(queryHits(findOverlaps(region_gRange,non_exonic_variant_gRange_subset)))]
     border_region_ids <- setdiff(region_gRange$id,union(exonic_region_variant_gRanges$id,non_exonic_region_variant_gRanges$id))
     border_region_gRange<-variant_gRange[variant_gRange$id%in%border_region_ids]
     
@@ -200,18 +198,15 @@ annotate_variants<- function(file,
     })
   })))
   
-  
   final_protein_annotation<-do.call(rbind,lapply(unlist(variant_annotation_location_list)%>%names,function(variant_list){
     unlist(variant_annotation_location_list)[[variant_list]]%>%
       data.frame%>%
       mutate(Class=variant_list)}))%>%
-    dplyr::full_join(complete_gene_annotation,by=c("GENEID"="gene_id"))%>%
+    dplyr::full_join(complete_gene_annotation,by=c("GENEID"="ensembl_canonical_gene"))%>%
     dplyr::mutate(AA_change=paste0(hgnc_symbol,".",REFAA,PROTEINLOC,VARAA))#%>%
   
-  
   non_annotated_genic_GRanges<-genic_variant_gRange_subset[!genic_variant_gRange_subset$id%in%final_protein_annotation$id]
-  non_annotated_genic_GRanges<- subsetByOverlaps(non_annotated_genic_GRanges,gene_subset)
-  non_annotated_genic_GRanges$GENEID<-gene_subset[findOverlaps(non_annotated_genic_GRanges,gene_subset,select="first")]$gene_id
+  non_annotated_genic_GRanges$GENEID<-gene_subset[subjectHits(findOverlaps(non_annotated_genic_GRanges,gene_subset))]$gene_id
   non_annotated_nongenic_GRanges<-genic_variant_gRange_subset[!genic_variant_gRange_subset$id%in%final_protein_annotation$id]
   
   
@@ -219,21 +214,21 @@ annotate_variants<- function(file,
     dplyr::bind_rows(non_annotated_genic_GRanges%>%
                        data.frame%>%
                        dplyr::mutate(Class="non_coding")%>%
-                       dplyr::inner_join(.,complete_gene_annotation,by=c("GENEID"="ensembl_canonical_gene")))%>%
+                       dplyr::inner_join(complete_gene_annotation,by=c("GENEID"="ensembl_canonical_gene")))%>%
     dplyr::filter(!is.na(id))%>%
     dplyr::bind_rows(non_gene_variants%>%
                        data.frame%>%
                        dplyr::mutate(Class="Intergenic"))%>%
     dplyr::full_join(variant_prioritized_grouping%>%
-                      dplyr::select(QUERYID,LOCSTART),
+                       dplyr::select(QUERYID,LOCSTART),
                      by="QUERYID")%>%
     dplyr::select(id,seqnames,start,end,width,strand,REF,ALT,QUAL,amplicon,QUERYID,
                   final_transcript_id,SYMBOL=hgnc_symbol,CDSLOC=LOCSTART, REFAA,PROTEINLOC,VARAA,AA_change,CONSEQUENCE,Class)%>%
     dplyr::mutate(CDS_change=paste0(SYMBOL,":c.",CDSLOC,REF,">",ALT))%>%
     dplyr::mutate(final_annot=case_when(
-              !is.na(AA_change)~AA_change,
-              is.na(AA_change)&!is.na(CDS_change)~CDS_change,
-              is.na(AA_change)&is.na(CDS_change)~id
+      !is.na(AA_change)~AA_change,
+      is.na(AA_change)&!is.na(CDS_change)~CDS_change,
+      is.na(AA_change)&is.na(CDS_change)~id
     ))%>%
     dplyr::mutate(final_annot=dplyr::case_when(
       !is.na(AA_change)~AA_change,
@@ -249,7 +244,7 @@ annotate_variants<- function(file,
       Class=="non_coding"~"Intronic",
       TRUE~Class
     ))
-
-      print("Final annotation complete")
+  
+  print("Final annotation complete")
   return(final_annotation)
 }
