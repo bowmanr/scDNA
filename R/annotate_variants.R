@@ -162,7 +162,7 @@ annotate_variants<- function(file,
   final_protein_annotation<-do.call(rbind,lapply(unlist(variant_annotation_location_list)%>%names,function(variant_list){
     unlist(variant_annotation_location_list)[[variant_list]]%>%
       data.frame%>%
-      mutate(Class=variant_list)}))%>%
+    dplyr::mutate(Class=variant_list)}))%>%
     dplyr::full_join(complete_gene_annotation,by=c("GENEID"="ensembl_canonical_gene"))%>%
     dplyr::mutate(AA_change=paste0(hgnc_symbol,".",REFAA,PROTEINLOC,VARAA))#%>%
   
@@ -186,7 +186,7 @@ annotate_variants<- function(file,
     dplyr::select(id,seqnames,start,end,width,strand,REF,ALT,QUAL,amplicon,QUERYID,
                   final_transcript_id,SYMBOL=hgnc_symbol,CDSLOC=LOCSTART, REFAA,PROTEINLOC,VARAA,AA_change,CONSEQUENCE,Class)%>%
     dplyr::mutate(CDS_change=paste0(SYMBOL,":c.",CDSLOC,REF,">",ALT))%>%
-    dplyr::mutate(final_annot=case_when(
+    dplyr::mutate(final_annot=dplyr::case_when(
       !is.na(AA_change)~AA_change,
       is.na(AA_change)&!is.na(CDS_change)~CDS_change,
       is.na(AA_change)&is.na(CDS_change)~id
@@ -199,7 +199,7 @@ annotate_variants<- function(file,
       is.na(SYMBOL)~id,
       TRUE~id
     ))%>%
-    dplyr::mutate(Class=case_when(
+    dplyr::mutate(Class=dplyr::case_when(
       Class=="Coding.Exonic"~"Exon",
       Class=="Intronic.Exonic"~"Exon_Boundary",
       Class=="non_coding"~"Intronic",
