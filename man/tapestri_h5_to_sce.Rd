@@ -12,7 +12,6 @@ tapestri_h5_to_sce(
   GQ_cutoff = 30,
   AF_cutoff = 25,
   variant_set = NULL,
-  final_mutation_set = NULL,
   protein = TRUE,
   return_variants_only = FALSE
 )

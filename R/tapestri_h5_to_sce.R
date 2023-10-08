@@ -44,15 +44,10 @@ tapestri_h5_to_sce<-function(file,
   
   if(!is.null(variant_set)){
     # variant_set has all info, so we need to pull out the id for the h5 file
-    VAF_cut_variants<- variant_set%>%
-      dplyr::filter(genotyping_rate>=GT_cutoff)%>%
-      dplyr::filter(VAF>=VAF_cutoff)%>%
-      dplyr::arrange(desc(VAF))%>%
-      pull(id)
+    VAF_cut_variants<- variant_set%>%pull(id)
     
     print(paste("Loading n=",length(VAF_cut_variants),"variants")) 
-    print(paste("VAF Range:", variants_of_interest%>%reframe(range=range(VAF))%>%pull(range)%>%round(digits = 2)))
-    
+
     print(paste("Input file:",file))
     sample_set<-rhdf5::h5read(file=file,name="/assays/dna_variants/metadata/sample_name")[1,]
     
@@ -201,23 +196,35 @@ tapestri_h5_to_sce<-function(file,
 
   print("Reordering sce rows (variants) based on bulk VAF")
   # this is newly added so we can get correct order for annotation later.
+  
   sce<- sce[match(SummarizedExperiment::rowData(sce)%>%
                     data.frame()%>%
-                    dplyr::arrange(desc(VAF))%>%
+                    dplyr::arrange(desc(pick(starts_with("VAF"))))%>%
                     dplyr::pull(final_annot),
                   rownames(sce)),]
 
-  print("Adding on protein Data")
-  if(protein==TRUE){
+  skip=FALSE
+  skip<-tryCatch(protein_mat <- rhdf5::h5read(file = file, 
+                                            name = "/assays/protein_read_counts/layers/read_counts",
+                                            index=list(NULL,viable_barcodes)), 
+              error = function(e) { 
+                print(paste("'Protein' dataset not found"))
+                skip<-TRUE
+                return(skip)
+                })
+  if(protein==TRUE&skip==FALSE){
+    print("Adding Protein data")
     protein_mat <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/layers/read_counts",index=list(NULL,viable_barcodes))
     rownames(protein_mat) <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/ca/id")
+    colnames(protein_mat) <- gsub("-","\\.",colnames(protein_mat))
     colnames(protein_mat) <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/ra/barcode",index=list(viable_barcodes))
     SingleCellExperiment::altExp(sce, "Protein") <- SingleCellExperiment::SingleCellExperiment(list(Protein=protein_mat))
   }
   
-  print("Adding on Copy Number Data")
+  print("Adding Copy Number data")
     amplicon_data<-rhdf5::h5read(file=file,name="/assays/dna_read_counts/layers/read_counts",index=list(NULL,viable_barcodes))%>% data.frame()
     colnames(amplicon_data) <- rhdf5::h5read(file=file,name="/assays/dna_read_counts/ra/barcode",index=list(viable_barcodes))
+    colnames(amplicon_data) <- gsub("-","\\.",colnames(amplicon_data))
     rownames(amplicon_data) <- rhdf5::h5read(file=file,name="/assays/dna_read_counts/ca/id",index=list(NULL))
     SingleCellExperiment::altExp(sce, "CNV") <- SingleCellExperiment::SingleCellExperiment(list(CNV=amplicon_data))
     

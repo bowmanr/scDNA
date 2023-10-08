@@ -34,7 +34,7 @@ use_r("generate_txdb")
 use_r("compute_clone_statistics")
 use_r("fcs_export")
 use_r("readDNA_CN_H5")
-
+use_r("optimize_AF_mat")
 use_readme_rmd()
 use_devtools()
 

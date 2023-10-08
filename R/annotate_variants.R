@@ -10,71 +10,31 @@
 #' @export
 #' @examples
 annotate_variants<- function(file,
-                             txdb=NULL,
-                             select_variants=NULL
-){
+                             panel=NULL,
+                             select_variants=NULL){
   
   load(system.file(paste0('data/cBioPortal_annotation.rDa'), package = 'scDNA'))
-  if(is.null(txdb)){
-    print("No TXDB provided, defaulting to complete TxDb.Hsapiens.UCSC.hg19.knownGene")
-    custom_txdb<-TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
-    genes_found<-genes(custom_txdb)$gene_id
-    complete_gene_annotation<-cBioPortal_annotation%>%
-      dplyr::filter(entrez_gene_id%in%genes_found)%>%
-      dplyr::select(hgnc_symbol,ensembl_canonical_gene,ensembl_canonical_transcript,mskcc_canonical_transcript,ccds_id)%>%
-      dplyr::mutate(final_transcript_id=ifelse(mskcc_canonical_transcript=="",ensembl_canonical_transcript,mskcc_canonical_transcript))
-    
-  } else if(txdb=="MSK_RL"){
+  
+  if(panel=="MSK_RL"){
     print("Loading TxDB for Myeloid Clonal Evolution (Levine, MSK)/MSK_RL")
     custom_txdb<-loadDb(system.file('data/MSK_RL_txdb', package = 'scDNA')) # loads in as variable annotation_file?
-    #custom_txdb<-loadDb("/Users/bowmanrl/Projects/R_packages/scDNA/data/MSK_RL_txdb")# loads in as variable annotation_file?
-    #load(system.file('data/cBioPortal_annotation.rDa', package = 'scDNA')) # loads in as variable annotation_file?
-    genes_found<-genes(custom_txdb)$gene_id
-    complete_gene_annotation<-cBioPortal_annotation%>%
-      dplyr::filter(ensembl_canonical_gene%in%genes_found)%>%
-      dplyr::select(hgnc_symbol,ensembl_canonical_gene,ensembl_canonical_transcript,mskcc_canonical_transcript,ccds_id)%>%
-      dplyr::mutate(final_transcript_id=ifelse(mskcc_canonical_transcript=="",ensembl_canonical_transcript,mskcc_canonical_transcript))
-    
-  } else if(txdb=="UCSC"){
-    print("Loading TxDb.Hsapiens.UCSC.hg19.knownGene")
-    custom_txdb<-TxDb.Hsapiens.UCSC.hg19.knownGene::TxDb.Hsapiens.UCSC.hg19.knownGene
-    genes_found<-genes(custom_txdb)$gene_id
-    complete_gene_annotation<-cBioPortal_annotation%>%
-      dplyr::filter(entrez_gene_id%in%genes_found)%>%
-      dplyr::select(hgnc_symbol,ensembl_canonical_gene,ensembl_canonical_transcript,mskcc_canonical_transcript,ccds_id)%>%
-      dplyr::mutate(final_transcript_id=ifelse(mskcc_canonical_transcript=="",ensembl_canonical_transcript,mskcc_canonical_transcript))
-    
-  } else if(file.exists(txdb)){
-    print("Loading custom TxBD")
-    custom_txdb<-loadDb(txdb)
-    genes_found<-genes(custom_txdb)$gene_id
-    
-    if(any(grepl("ENSG",genes_found))){
-      print("Gene ID appears to be ensemble")
-      complete_gene_annotation<-cBioPortal_annotation%>%
-        dplyr::filter(entrez_gene_id%in%genes_found)%>%
-        dplyr::select(ensembl_canonical_gene,ensembl_canonical_gene,ensembl_canonical_transcript,mskcc_canonical_transcript,ccds_id)%>%
-        dplyr::mutate(final_transcript_id=ifelse(mskcc_canonical_transcript=="",ensembl_canonical_transcript,mskcc_canonical_transcript))
-    } else if(!any(grepl("ENSG",genes_found))) {
-      print("Trying Entrez Gene ID")
-      complete_gene_annotation<-cBioPortal_annotation%>%
-        dplyr::filter(entrez_gene_id%in%genes_found)%>%
-        dplyr::select(ensembl_canonical_gene,ensembl_canonical_gene,ensembl_canonical_transcript,mskcc_canonical_transcript,ccds_id)%>%
-        dplyr::mutate(final_transcript_id=ifelse(mskcc_canonical_transcript=="",ensembl_canonical_transcript,mskcc_canonical_transcript))
-    }
-    if(nrow(complete_gene_annotation)>1) {
-      print(paste0("Entrez Gene ID extracted. n=",nrow(complete_gene_annotation), " genes detected."))
-    } else {
-      print("Gene ID could not be detected. Suggest remaking txDB so that ensemble gene names are stored in the gene_id column.")
-      print("e.g. ENSG00000122025")
-      break
-    }
-  }
+  } else if(panel=="Myeloid"){
+    print("Loading TxDB for Myeloid Panel")
+    custom_txdb<-loadDb(system.file('data/myeloid_txdb', package = 'scDNA')) # loads in as variable annotation_file?
+  } else if(panel=="UCSC"){
+    print("Loading TxDB derived from TxDb.Hsapiens.UCSC.hg19.knownGene")
+    custom_txdb<-loadDb(system.file('data/hg19_ensembl_txdb', package = 'scDNA')) # loads in as variable annotation_file?
+  } 
   
+  genes_found<-genes(custom_txdb)$gene_id
+  complete_gene_annotation<-cBioPortal_annotation%>%
+    dplyr::filter(ensembl_canonical_gene%in%genes_found)%>%
+    dplyr::select(hgnc_symbol,ensembl_canonical_gene,ensembl_canonical_transcript,mskcc_canonical_transcript,ccds_id)%>%
+    dplyr::mutate(final_transcript_id=ifelse(mskcc_canonical_transcript=="",ensembl_canonical_transcript,mskcc_canonical_transcript))
   
   print("Load annotation data")
   
-  print("Extracting Variation Matrix")
+  print("Extracting Variant Matrix")
   if(grepl("loom",file)){
     SNV_mat_prefilter<-data.frame(do.call(cbind, rhdf5::h5read(file=file,name="/row_attrs/"))) 
   } else if(grepl("h5",file)){

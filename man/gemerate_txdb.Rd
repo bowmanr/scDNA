@@ -4,7 +4,7 @@
 \alias{gemerate_txdb}
 \title{Title}
 \usage{
-gemerate_txdb(panel_bed_path, panel_name = NULL, save_path = NULL)
+gemerate_txdb(panel_bed_path, save_path = NULL)
 }
 \arguments{
 \item{panel_bed_path}{}
