@@ -78,18 +78,18 @@ gg_heatmap <- ggplot(data=clonal_architecture,
         axis.ticks.x = element_blank(),
         plot.margin=unit(c(0,0,0,0),"cm"))
 
-gg_QC_heatmap <- ggplot(data=consolidated_clonal_abundance,
-                     aes(x=Clone, y=Group, fill=ADO_med))+
-  geom_tile() +
-  colorspace::scale_fill_continuous_divergingx(palette = 'RdBu', mid = 0.1,
-                                                    rev=FALSE,na.value = "grey80")+#,limits=c(0,0.25))+
-  theme_classic(base_size=7) +
-  theme(legend.position = "right", legend.direction = "horizontal",
-        axis.text.x = element_blank(),
-        axis.line=element_blank(),
-        axis.title.x=element_blank(),
-        axis.ticks.x = element_blank(),
-        plot.margin=unit(c(0,0,0,0),"cm"))
+# gg_QC_heatmap <- ggplot(data=consolidated_clonal_abundance,
+#                      aes(x=Clone, y=Group, fill=ADO_med))+
+#   geom_tile() +
+#   colorspace::scale_fill_continuous_divergingx(palette = 'RdBu', mid = 0.1,
+#                                                     rev=FALSE,na.value = "grey80")+#,limits=c(0,0.25))+
+#   theme_classic(base_size=7) +
+#   theme(legend.position = "right", legend.direction = "horizontal",
+#         axis.text.x = element_blank(),
+#         axis.line=element_blank(),
+#         axis.title.x=element_blank(),
+#         axis.ticks.x = element_blank(),
+#         plot.margin=unit(c(0,0,0,0),"cm"))
 
 
 gg_QC_heatmap_GQ <- ggplot(data=consolidated_clonal_abundance,
@@ -119,5 +119,6 @@ gg_QC_heatmap_DP <- ggplot(data=consolidated_clonal_abundance,
         plot.margin=unit(c(0,0,0,0),"cm"))
 
 # Put it all together
-return(cowplot::plot_grid(gg_clonal_barplot,gg_heatmap,gg_QC_heatmap,gg_QC_heatmap_GQ,gg_QC_heatmap_DP,ncol=1,align="v",axis="lr",rel_heights = c(1,0.5,0.25,0.25,0.25)))
+return(cowplot::plot_grid(gg_clonal_barplot,gg_heatmap,#gg_QC_heatmap,
+                                    gg_QC_heatmap_GQ,gg_QC_heatmap_DP,ncol=1,align="v",axis="lr",rel_heights = c(1,0.5,0.25,0.25,0.25)))
 }

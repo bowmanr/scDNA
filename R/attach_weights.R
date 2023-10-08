@@ -7,8 +7,7 @@ attach_weights <-function(sce,adj_linklist){
   #adj_linklist<-adj_list
   # first we obtain weights from our final_summary dataframe (this was taken from the myeloid one)
   # TODO: Change the filtering, not sure if we always want "complete" or "other" or both?
-  sce_subset@metadata$Architecture
-  
+
   data_frame_clarity<-dplyr::inner_join(sce@metadata$Architecture,
                                        as.data.frame(sce@metadata$Clones)%>%
                                          dplyr::mutate(Count=ifelse(Group=="Other",n_Other,n_Complete))%>%

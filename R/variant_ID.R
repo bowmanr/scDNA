@@ -107,17 +107,18 @@ variant_ID<-function(file,
     if(length(sample_set)==1){
         annotated_variants<- annotate_variants(file,panel=panel,select_variants=total_variants$id)
         out<-annotated_variants%>% 
-          dplyr::full_join(total_variants,by="id")%>%
+          dplyr::full_join(total_variants[[1]],by="id")%>%
           dplyr::filter(!is.na(id))%>%
           dplyr::mutate(final_annot=case_when(
             is.na(final_annot)~id,
             TRUE~final_annot))%>%
           data.frame()
-        if(nrow(out)==nrow(total_variants_new)){
+        if(nrow(out)==nrow(total_variants[[1]])){
           print("All variants accounted for")
         } else {
-          print(paste("Lost",nrow(total_variants_new)-nrow(out),"variants"))
+          print(paste("Lost",nrow(total_variants[[1]])-nrow(out),"variants"))
         }
+        return(out)             
     } else if(length(sample_set)==2) {
       total_variants_new<-dplyr::full_join(total_variants[[1]],
                                            total_variants[[2]],

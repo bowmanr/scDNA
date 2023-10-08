@@ -203,22 +203,24 @@ tapestri_h5_to_sce<-function(file,
                     dplyr::pull(final_annot),
                   rownames(sce)),]
 
-  skip=FALSE
-  skip<-tryCatch(protein_mat <- rhdf5::h5read(file = file, 
-                                            name = "/assays/protein_read_counts/layers/read_counts",
-                                            index=list(NULL,viable_barcodes)), 
-              error = function(e) { 
-                print(paste("'Protein' dataset not found"))
-                skip<-TRUE
-                return(skip)
-                })
-  if(protein==TRUE&skip==FALSE){
-    print("Adding Protein data")
-    protein_mat <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/layers/read_counts",index=list(NULL,viable_barcodes))
-    rownames(protein_mat) <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/ca/id")
-    colnames(protein_mat) <- gsub("-","\\.",colnames(protein_mat))
-    colnames(protein_mat) <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/ra/barcode",index=list(viable_barcodes))
-    SingleCellExperiment::altExp(sce, "Protein") <- SingleCellExperiment::SingleCellExperiment(list(Protein=protein_mat))
+  if(protein==TRUE){
+          skip <- FALSE
+          skip <- tryCatch( rhdf5::h5read(file = file, 
+                                                    name = "/assays/protein_read_counts/layers/read_counts",
+                                                    index=list(NULL,viable_barcodes))%>%
+                              nrow(), 
+                      error = function(e) { 
+                        print(paste("'Protein' dataset not found"))
+                        return(TRUE)
+                        })
+          if(length(skip>1)){
+            print("Adding Protein data")
+            protein_mat <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/layers/read_counts",index=list(NULL,viable_barcodes))
+            rownames(protein_mat) <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/ca/id")
+            colnames(protein_mat) <- gsub("-","\\.",colnames(protein_mat))
+            colnames(protein_mat) <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/ra/barcode",index=list(viable_barcodes))
+            SingleCellExperiment::altExp(sce, "Protein") <- SingleCellExperiment::SingleCellExperiment(list(Protein=protein_mat))
+          }
   }
   
   print("Adding Copy Number data")

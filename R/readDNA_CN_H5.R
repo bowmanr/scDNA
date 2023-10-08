@@ -35,7 +35,7 @@ readDNA_CN_H5<-function(sce,reference_cells=NULL){
 
   
   # associated amplicons with variant information
-  mutant_subset_amplicon_data<-dplyr::inner_join(dplyr::inner_join(rowData(sce)%>%
+  mutant_subset_amplicon_data<-dplyr::inner_join(dplyr::inner_join(SummarizedExperiment::rowData(sce)%>%
                                                        data.frame%>%
                                                        dplyr::select(id,amplicon,final_annot),
                                                      sce@metadata$NGT%>%
@@ -45,7 +45,7 @@ readDNA_CN_H5<-function(sce,reference_cells=NULL){
                                           all_amplicon_data,
                                             by=c("barcode","amplicon"))%>%
                                 dplyr::mutate(final_annot=factor(final_annot,
-                                                           levels=rowData(sce)%>%
+                                                           levels=SummarizedExperiment::rowData(sce)%>%
                                                                    data.frame%>%
                                                                    dplyr::pull(final_annot)))
   CNV_sce@metadata$full_ploidy<-(all_amplicon_data)

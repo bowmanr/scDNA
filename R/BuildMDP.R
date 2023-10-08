@@ -6,10 +6,10 @@
 #' 2) a function that finds the difference in states that are < 1 mutation away
 #' 3) a function that does bit logic subtraction for the ternary variables
 #' @export
+#' @importFrom foreach %dopar% foreach
 #' @param num_mutations The number of variants we are using (automatically obtained from the Architecture)
 
 BuildMDP <-function(num_mutations,use_ADO=FALSE){
-
   num_mutations =3
   getidx <-function(n) {ifelse( (n==0|n==1),TRUE,FALSE)}
   dsum <- function(n) {ifelse(n < 10, n, n %% 10 + dsum(floor(n / 10)))}
@@ -133,8 +133,8 @@ BuildMDP <-function(num_mutations,use_ADO=FALSE){
   colnames(adj_list) <-c("current_state","next_state","legal_action")
   # this unsets the duplicate rows so we can set forward ADO and mutation
   adj_list<-adj_list%>%
-    uncount(legal_action)%>%
-    mutate(legal_action=1)
+    tidyr::uncount(legal_action)%>%
+    dplyr::mutate(legal_action=1)
   
   # labeling forward ADO, backward ADO, mutation, or none
   adj_list$action_type <-"mutation"
