@@ -230,22 +230,23 @@ tapestri_h5_to_sce<-function(file,
     rownames(amplicon_data) <- rhdf5::h5read(file=file,name="/assays/dna_read_counts/ca/id",index=list(NULL))
     SingleCellExperiment::altExp(sce, "CNV") <- SingleCellExperiment::SingleCellExperiment(list(CNV=amplicon_data))
     
-  print("Tabulating cell QC")
-    logical_operation <- function(...) Reduce(`&`, ...)
-    complete_cells<-sce%>%
-      {list(.@assays@data$NGT_mask,
-            .@assays@data$AF_mask,
-            .@assays@data$DP_mask,
-            .@assays@data$GQ_mask)}%>%
-      logical_operation%>%
-      data.frame%>%
-      dplyr::select_if(~all(. == TRUE))%>%
-      {ifelse(colnames(sce@assays@data$NGT)%in%colnames(.), "Complete", "Other")}
-    print(table(complete_cells))
-    existing_metadata <- SummarizedExperiment::colData(sce)
-    existing_metadata$Required<-complete_cells
-    SummarizedExperiment::colData(sce)<-existing_metadata
-   
+  # Moved this to enumerate_clones  
+  # print("Tabulating cell QC")
+  #   logical_operation <- function(...) Reduce(`&`, ...)
+  #   complete_cells<-sce%>%
+  #     {list(.@assays@data$NGT_mask,
+  #           .@assays@data$AF_mask,
+  #           .@assays@data$DP_mask,
+  #           .@assays@data$GQ_mask)}%>%
+  #     logical_operation%>%
+  #     data.frame%>%
+  #     dplyr::select_if(~all(. == TRUE))%>%
+  #     {ifelse(colnames(sce@assays@data$NGT)%in%colnames(.), "Complete", "Other")}
+  #   print(table(complete_cells))
+  #   existing_metadata <- SummarizedExperiment::colData(sce)
+  #   existing_metadata$Required<-complete_cells
+  #   SummarizedExperiment::colData(sce)<-existing_metadata
+  #  
   sce@metadata$file<-file
   #sce <-readDNA_CN_H5(sce,reference_cells = NULL) # need to move this to after enumerate clones so we can use NGT
   

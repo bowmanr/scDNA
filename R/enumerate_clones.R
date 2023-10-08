@@ -16,6 +16,22 @@ enumerate_clones<-function(sce,
   
   print("Computing clones")
 
+  print("Tabulating cell QC")
+  logical_operation <- function(...) Reduce(`&`, ...)
+  complete_cells<-sce%>%
+    {list(.@assays@data$NGT_mask,
+          .@assays@data$AF_mask,
+          .@assays@data$DP_mask,
+          .@assays@data$GQ_mask)}%>%
+    logical_operation%>%
+    data.frame%>%
+    dplyr::select_if(~all(. == TRUE))%>%
+    {ifelse(colnames(sce@assays@data$NGT)%in%colnames(.), "Complete", "Other")}
+  print(table(complete_cells))
+  existing_metadata <- SummarizedExperiment::colData(sce)
+  existing_metadata$Required<-complete_cells
+  SummarizedExperiment::colData(sce)<-existing_metadata
+  
   reordered_NGT<-sce@assays@data$NGT
   clone_code<-apply(reordered_NGT,2,function(x){
     paste(ifelse(is.na(x),3,x), sep = "_", collapse = "_")
