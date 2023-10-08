@@ -6,6 +6,7 @@
 #' @importFrom TxDb.Hsapiens.UCSC.hg19.knownGene TxDb.Hsapiens.UCSC.hg19.knownGene
 #' @importFrom methods as
 #' @importFrom rlang .data
+#' @importFrom dplyr n
 #' @return variant annotation matrix
 #' @export
 #' @examples
@@ -107,14 +108,14 @@ annotate_variants<- function(file,
   variant_breakdown<-variant_QUERYID_by_region_df%>%
     dplyr::mutate(Region=factor(Region,levels=names(all_genic_variant_lists)))%>%
     dplyr::group_by(Region)%>%
-    dplyr::summarise(Count=n())
+    dplyr::summarise(Count=dplyr::n())
   variant_prioritized_grouping<-variant_QUERYID_by_region_df%>%
     dplyr::mutate(Region=factor(Region,levels=names(all_genic_variant_lists)))%>%
     dplyr::arrange(Region)%>%
     dplyr::distinct(QUERYID,.keep_all = TRUE)
   variant_breakdown_final<-variant_prioritized_grouping%>%
     dplyr::group_by(Region)%>%
-    dplyr::summarise(Count=n())%>% 
+    dplyr::summarise(Count=dplyr::n())%>%
     dplyr::full_join(variant_breakdown,.,by="Region",suffix=c("_Initial","_Reduced"))
   print("Prioritizing annotation for variants that appear in more than one group")
   print(variant_breakdown_final)
