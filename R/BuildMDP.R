@@ -10,7 +10,6 @@
 #' @param num_mutations The number of variants we are using (automatically obtained from the Architecture)
 
 BuildMDP <-function(num_mutations,use_ADO=FALSE){
-  num_mutations =3
   getidx <-function(n) {ifelse( (n==0|n==1),TRUE,FALSE)}
   dsum <- function(n) {ifelse(n < 10, n, n %% 10 + dsum(floor(n / 10)))}
   getTernaryFromState<-function(x,base=3){
