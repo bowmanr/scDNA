@@ -104,19 +104,19 @@ variant_ID<-function(file,
     # The following if else are the changes made to this file to pull in all the variants.
     # I think the else needs to be changed to handle multiple samples correctly?
     # Plus another input needs to be selected that might be missing.
-    if(length(sample_set)==1){
+    if(length(sample_set)==1){ 
         annotated_variants<- annotate_variants(file,panel=panel,select_variants=total_variants$id)
         out<-annotated_variants%>% 
-          dplyr::full_join(total_variants[[1]],by="id")%>%
+          dplyr::full_join(total_variants[[1]] ,by="id")%>%
           dplyr::filter(!is.na(id))%>%
           dplyr::mutate(final_annot=case_when(
             is.na(final_annot)~id,
             TRUE~final_annot))%>%
           data.frame()
-        if(nrow(out)==nrow(total_variants[[1]])){
+        if(nrow(out)==nrow(total_variants[[1]] )){
           print("All variants accounted for")
         } else {
-          print(paste("Lost",nrow(total_variants[[1]])-nrow(out),"variants"))
+          print(paste("Lost",nrow(total_variants[[1]] )-nrow(out),"variants"))
         }
         return(out)             
     } else if(length(sample_set)==2) {
