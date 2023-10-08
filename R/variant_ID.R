@@ -109,7 +109,7 @@ variant_ID<-function(file,
         out<-annotated_variants%>% 
           dplyr::full_join(total_variants[[1]] ,by="id")%>%
           dplyr::filter(!is.na(id))%>%
-          dplyr::mutate(final_annot=case_when(
+          dplyr::mutate(final_annot=dplyr::case_when(
             is.na(final_annot)~id,
             TRUE~final_annot))%>%
           data.frame()
@@ -129,7 +129,7 @@ variant_ID<-function(file,
       out<-annotated_variants%>% 
         dplyr::full_join(total_variants_new,by="id")%>%
         dplyr::filter(!is.na(id))%>%
-        dplyr::mutate(final_annot=case_when(
+        dplyr::mutate(final_annot=dplyr::case_when(
           is.na(final_annot)~id,
           TRUE~final_annot))%>%
         data.frame()
