@@ -17,13 +17,13 @@ annotate_variants<- function(file,
   
   if(panel=="MSK_RL"){
     print("Loading TxDB for Myeloid Clonal Evolution (Levine, MSK)/MSK_RL")
-    custom_txdb<-loadDb(system.file('data/MSK_RL_txdb', package = 'scDNA')) # loads in as variable annotation_file?
+    custom_txdb<- AnnotationDbi::loadDb(system.file('data/MSK_RL_txdb', package = 'scDNA')) # loads in as variable annotation_file?
   } else if(panel=="Myeloid"){
     print("Loading TxDB for Myeloid Panel")
-    custom_txdb<-loadDb(system.file('data/myeloid_txdb', package = 'scDNA')) # loads in as variable annotation_file?
+    custom_txdb<- AnnotationDbi::loadDb(system.file('data/myeloid_txdb', package = 'scDNA')) # loads in as variable annotation_file?
   } else if(panel=="UCSC"){
     print("Loading TxDB derived from TxDb.Hsapiens.UCSC.hg19.knownGene")
-    custom_txdb<-loadDb(system.file('data/hg19_ensembl_txdb', package = 'scDNA')) # loads in as variable annotation_file?
+    custom_txdb<- AnnotationDbi::loadDb(system.file('data/hg19_ensembl_txdb', package = 'scDNA')) # loads in as variable annotation_file?
   } 
   
   genes_found<-genes(custom_txdb)$gene_id
