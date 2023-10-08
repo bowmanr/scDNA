@@ -12,7 +12,7 @@ trajectory_analysis<-function(sce,use_ADO=TRUE){
   # This builds the theoretical Markov decision process (MDP) of all possible mutation combinations
   print("Building MDP")
   
-  adj_list<-BuildMDP(mutation_states,use_ADO=TRUE)
+  adj_list<-BuildMDP(mutation_states,use_ADO)
   # we attach the weights as rewards for our list to design the possible and likely MDP.
   print("Adding Weighted Edges")
 
