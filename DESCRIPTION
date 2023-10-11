@@ -57,3 +57,4 @@ NeedsCompilation: no
 Packaged: 2023-09-19 20:51:10 UTC; bowmanrl
 Author: Bobby Bowman [aut, cre] (bowman_rl)
 Maintainer: Bobby Bowman <robert.bowman@pennmedicine.upenn.edu>
+URL: https://bowmanr.github.io/scDNA/
