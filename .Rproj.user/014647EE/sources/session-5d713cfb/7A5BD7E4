@@ -1,0 +1,26 @@
+{
+    "id": "7A5BD7E4",
+    "path": "~/Projects/R_packages/scDNA/building_package.R",
+    "project_path": "building_package.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1696993876355.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "13,0",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1696993856,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1696993856,
+    "read_only": false,
+    "read_only_alternatives": []
+}
