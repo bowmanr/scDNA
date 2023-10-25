@@ -167,7 +167,7 @@ annotate_variants<- function(file,
     dplyr::mutate(AA_change=paste0(hgnc_symbol,".",REFAA,PROTEINLOC,VARAA))#%>%
   
   non_annotated_genic_GRanges<-genic_variant_gRange_subset[!genic_variant_gRange_subset$id%in%final_protein_annotation$id]
-  non_annotated_genic_GRanges$GENEID<-gene_subset[subjectHits(findOverlaps(non_annotated_genic_GRanges,gene_subset))]$gene_id
+  non_annotated_genic_GRanges$GENEID<-gene_subset[findOverlaps(non_annotated_genic_GRanges,gene_subset,select="first")]$gene_id
   non_annotated_nongenic_GRanges<-genic_variant_gRange_subset[!genic_variant_gRange_subset$id%in%final_protein_annotation$id]
   
   

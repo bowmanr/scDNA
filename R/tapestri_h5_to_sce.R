@@ -190,11 +190,11 @@ tapestri_h5_to_sce<-function(file,
                   rownames(sce)),]
 
   if(protein==TRUE){
-          skip <- FALSE
+          skip <- TRUE
           skip <- tryCatch( rhdf5::h5read(file = file, 
                                                     name = "/assays/protein_read_counts/layers/read_counts",
                                                     index=list(NULL,viable_barcodes))%>%
-                              nrow()%>%.>0, 
+                              nrow()%>%{.>0}, 
                       error = function(e) { 
                         print(paste("'Protein' dataset not found"))
                         return(FALSE)
