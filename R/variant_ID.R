@@ -116,7 +116,7 @@ variant_ID<-function(file,
         if(nrow(out)==nrow(total_variants[[1]] )){
           print("All variants accounted for")
         } else {
-          print(paste("Lost",nrow(total_variants[[1]] )-nrow(out),"variants"))
+          print(paste("Lost",nrow(total_variants[[1]])-nrow(out),"variants out of",nrow(total_variants[[1]]), "total variants due to poor annotation."))
         }
         return(out)             
     } else if(length(sample_set)==2) {
@@ -136,8 +136,8 @@ variant_ID<-function(file,
       if(nrow(out)==nrow(total_variants_new)){
         print("All variants accounted for")
       } else {
-        print(paste("Lost",nrow(total_variants_new)-nrow(out),"variants"))
-      }
+        print(paste("Lost",nrow(total_variants_new)-nrow(out),"variants out of",nrow(total_variants[[1]]), "total variants due to poor annotation."))
+              }
       return(out)             
   } else if(length(sample_set)>2) {
       print("Not currently functionining for multiple samples")

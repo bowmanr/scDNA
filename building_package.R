@@ -6,7 +6,7 @@ library(fs)
 use_git()
 use_mit_license("Bobby Bowman")
 
-setwd("~/Projects/R_packages/scDNA")
+setwd("~/Projects/scDNA")
 
 use_r("read_tapestri_h5_NGT")
 use_r("quality_filter_NGT")

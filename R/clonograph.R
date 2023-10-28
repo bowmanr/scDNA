@@ -52,7 +52,7 @@ gg_clonal_barplot <- ggplot(data=consolidated_clonal_abundance, aes(x=Clone, y=C
   ylab("Cell Count")+
   geom_errorbar(aes(ymin = LCI, ymax = UCI), width = 0.2)+
   scale_fill_manual(values=c("Other"="Grey70",
-                              "Complete"=RColorBrewer::brewer.pal(5,tidyselect::all_of(color_pal))[5])) +
+                              "Complete"=RColorBrewer::brewer.pal(n = 5,name = color_pal)[5])) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
@@ -64,9 +64,9 @@ gg_clonal_barplot <- ggplot(data=consolidated_clonal_abundance, aes(x=Clone, y=C
 gg_heatmap <- ggplot(data=clonal_architecture,
                      aes(x=Clone,y=final_annot,fill=Genotype))+
   geom_tile() +
-  scale_fill_manual(values=c("WT"=RColorBrewer::brewer.pal(7,tidyselect::all_of(color_pal))[1],
-                             "Heterozygous"=RColorBrewer::brewer.pal(7,tidyselect::all_of(color_pal))[3],
-                             "Homozygous"=RColorBrewer::brewer.pal(7,tidyselect::all_of(color_pal))[6],
+  scale_fill_manual(values=c("WT"=RColorBrewer::brewer.pal(7,color_pal)[1],
+                             "Heterozygous"=RColorBrewer::brewer.pal(7,color_pal)[3],
+                             "Homozygous"=RColorBrewer::brewer.pal(7,color_pal)[6],
                              "Unknown"="grey50"),name="Genotype")+
   theme_classic(base_size=7) +
   ylab("Mutation")+
