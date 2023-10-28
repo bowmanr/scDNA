@@ -58,7 +58,7 @@ normalize_protein_data<-function(sce,
   } 
   if("CLR"%in%method|"clr"%in%method){
     print("CLR normalization")
-    s <- Seurat::CreateSeuratObject(counts=protein_mat, 
+    s <- Seurat::CreateSeuratObject(counts=protein_mat%>%Seurat::as.sparse, 
                             assay="Protein")
     s <- Seurat::NormalizeData(s,normalization.method = "CLR")
     assay(protein_sce, "CLR_norm")<-s@assays$Protein@data
