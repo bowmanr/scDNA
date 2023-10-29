@@ -16,17 +16,19 @@ enumerate_clones<-function(sce,
   
   print("Computing clones")
 
-  print("Tabulating cell QC")
+  print("Tabulating Cell QC")
   logical_operation <- function(...) Reduce(`&`, ...)
-  complete_cells<-sce%>%
-    {list(.@assays@data$NGT_mask,
-          .@assays@data$AF_mask,
-          .@assays@data$DP_mask,
-          .@assays@data$GQ_mask)}%>%
+  
+  complete_cells <- sce %>% {
+    list(.@assays@data$NGT_mask, 
+         .@assays@data$AF_mask, 
+         .@assays@data$DP_mask, 
+         .@assays@data$GQ_mask)
+  }%>% 
     logical_operation%>%
-    data.frame%>%
-    dplyr::select_if(~all(. == TRUE))%>%
-    {ifelse(colnames(sce@assays@data$NGT)%in%colnames(.), "Complete", "Other")}
+    {colSums(.)/nrow(.)}%>%
+    {ifelse(.==1, "Complete", "Other")}
+  
   print(table(complete_cells))
   existing_metadata <- SummarizedExperiment::colData(sce)
   existing_metadata$Required<-complete_cells

@@ -106,7 +106,6 @@ tapestri_h5_to_sce<-function(file,
   final_barcodes_index<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")%in%final_barcodes)
   
   print("Formating Single Cell Experiment")
-  
   sce<-SingleCellExperiment::SingleCellExperiment(list(
     NGT=as.data.frame(tidyr::pivot_wider(out,
                            id_cols=id,
@@ -165,9 +164,10 @@ tapestri_h5_to_sce<-function(file,
                                     names_from=barcode,
                                     values_fill=NA,
                                     values_from = NGT)%>%
-    dplyr::pull(id)
+                        dplyr::pull(id)
   
-  SummarizedExperiment::rowData(sce)<-S4Vectors::DataFrame(variant_set%>%
+
+ SummarizedExperiment::rowData(sce)<-S4Vectors::DataFrame(variant_set%>%
                                                              dplyr::rename(Widht=width,Strand=strand,Seqnames=seqnames,Start=start,End=end)%>%
                                                              dplyr::arrange(factor(id,levels=rownames(sce))))
   
@@ -180,15 +180,30 @@ tapestri_h5_to_sce<-function(file,
     colnames()
   rownames(sce)<-SummarizedExperiment::rowData(sce)$final_annot
 
+  print("Tabulating Variant QC")
+  logical_operation <- function(...) Reduce(`&`, ...)
+  variant_genotype_QC <- sce %>% {
+                            list(.@assays@data$NGT_mask, 
+                                 .@assays@data$AF_mask, 
+                                 .@assays@data$DP_mask, 
+                                 .@assays@data$GQ_mask)
+                                }%>% 
+                            logical_operation %>% 
+                            {rowSums(.)/ncol(.)*100}
+  existing_rowData <- SummarizedExperiment::rowData(sce)
+  existing_rowData$variant_QC<-variant_genotype_QC
+  SummarizedExperiment::rowData(sce)<-existing_rowData
+  
   print("Reordering sce rows (variants) based on bulk VAF")
   # this is newly added so we can get correct order for annotation later.
-  
   sce<- sce[match(SummarizedExperiment::rowData(sce)%>%
                     data.frame()%>%
                     dplyr::arrange(desc(pick(starts_with("VAF"))))%>%
                     dplyr::pull(final_annot),
                   rownames(sce)),]
 
+ 
+  #### protein starts here
   if(protein==TRUE){
           skip <- TRUE
           skip <- tryCatch( rhdf5::h5read(file = file, 
@@ -215,7 +230,7 @@ tapestri_h5_to_sce<-function(file,
     colnames(amplicon_data) <- gsub("-","\\.",colnames(amplicon_data))
     rownames(amplicon_data) <- rhdf5::h5read(file=file,name="/assays/dna_read_counts/ca/id",index=list(NULL))
     SingleCellExperiment::altExp(sce, "CNV") <- SingleCellExperiment::SingleCellExperiment(list(CNV=amplicon_data))
-    
+  
   # Moved this to enumerate_clones  
   # print("Tabulating cell QC")
   #   logical_operation <- function(...) Reduce(`&`, ...)
