@@ -4,7 +4,7 @@
 \alias{trajectory_analysis}
 \title{Run Trajectory Analysis after extraction from SingleCellExperiment object}
 \usage{
-trajectory_analysis(sce)
+trajectory_analysis(sce, use_ADO = TRUE)
 }
 \arguments{
 \item{sce}{is the SingleCellExperiment Object}

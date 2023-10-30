@@ -4,7 +4,7 @@
 \alias{annotate_variants}
 \title{Annotate variants of interest}
 \usage{
-annotate_variants(file, txdb = NULL, select_variants = NULL)
+annotate_variants(file, panel = NULL, select_variants = NULL)
 }
 \arguments{
 \item{file}{path to h5 file to pull out relevant DNA information}

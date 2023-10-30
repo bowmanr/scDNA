@@ -4,7 +4,7 @@
 \alias{BuildMDP}
 \title{The main function builds an adjacency list of the theoretical order of mutations. The same MDP mask can be reused different mutations}
 \usage{
-BuildMDP(num_mutations)
+BuildMDP(num_mutations, use_ADO = FALSE)
 }
 \arguments{
 \item{num_mutations}{The number of variants we are using (automatically obtained from the Architecture)}

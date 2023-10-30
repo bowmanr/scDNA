@@ -21,39 +21,19 @@ tapestri_h5_to_sce<-function(file,
                     GQ_cutoff=30,
                     AF_cutoff=25,
                     variant_set=NULL,
-                    final_mutation_set=NULL,
-                    protein=TRUE,
-                    return_variants_only=FALSE){
+                    protein=TRUE){
   
   
   if(is.null(variant_set)){
-    print("No variants provided, running in discovery mode.
-          If you want to take a look at variants only use the 'variant_ID' function, or set 'return_variants_only==TRUE'")
-    total_variants <- scDNA::variant_ID(file=file,GT_cutoff=GT_cutoff,VAF_cutoff = VAF_cutoff)
-    VAF_cut_variants<- total_variants%>%
-      dplyr::pull(id)
-    annotated_variants<- scDNA::annotate_variants(file,select_variants = NULL)
-    total_variants[[1]]<-annotated_variants%>% 
-      dplyr::inner_join(total_variants[[1]],by="id")%>%
-      dplyr::filter(!is.na(SYMBOL))%>%
-      dplyr::filter(!is.na(CONSEQUENCE)&CONSEQUENCE!="synonymous")%>%
-      dplyr::arrange(desc(VAF))
-    if(return_variants_only==TRUE){
-      return(total_variants)
-    } 
-  } 
+    print("No variants provided, run 'variant_ID' first")
+  }
   
   if(!is.null(variant_set)){
     # variant_set has all info, so we need to pull out the id for the h5 file
-    VAF_cut_variants<- variant_set%>%
-      dplyr::filter(genotyping_rate>=GT_cutoff)%>%
-      dplyr::filter(VAF>=VAF_cutoff)%>%
-      dplyr::arrange(desc(VAF))%>%
-      pull(id)
+    VAF_cut_variants<- variant_set%>%pull(id)
     
     print(paste("Loading n=",length(VAF_cut_variants),"variants")) 
-    print(paste("VAF Range:", variants_of_interest%>%reframe(range=range(VAF))%>%pull(range)%>%round(digits = 2)))
-    
+
     print(paste("Input file:",file))
     sample_set<-rhdf5::h5read(file=file,name="/assays/dna_variants/metadata/sample_name")[1,]
     
@@ -126,7 +106,6 @@ tapestri_h5_to_sce<-function(file,
   final_barcodes_index<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")%in%final_barcodes)
   
   print("Formating Single Cell Experiment")
-  
   sce<-SingleCellExperiment::SingleCellExperiment(list(
     NGT=as.data.frame(tidyr::pivot_wider(out,
                            id_cols=id,
@@ -185,9 +164,10 @@ tapestri_h5_to_sce<-function(file,
                                     names_from=barcode,
                                     values_fill=NA,
                                     values_from = NGT)%>%
-    dplyr::pull(id)
+                        dplyr::pull(id)
   
-  SummarizedExperiment::rowData(sce)<-S4Vectors::DataFrame(variant_set%>%
+
+ SummarizedExperiment::rowData(sce)<-S4Vectors::DataFrame(variant_set%>%
                                                              dplyr::rename(Widht=width,Strand=strand,Seqnames=seqnames,Start=start,End=end)%>%
                                                              dplyr::arrange(factor(id,levels=rownames(sce))))
   
@@ -198,41 +178,78 @@ tapestri_h5_to_sce<-function(file,
                                     values_from = NGT)%>%
     dplyr::select(-id)%>%
     colnames()
-  rownames(sce)<-rowData(sce)$final_annot
+  rownames(sce)<-SummarizedExperiment::rowData(sce)$final_annot
 
+  print("Tabulating Variant QC")
+  logical_operation <- function(...) Reduce(`&`, ...)
+  variant_genotype_QC <- sce %>% {
+                            list(.@assays@data$NGT_mask, 
+                                 .@assays@data$AF_mask, 
+                                 .@assays@data$DP_mask, 
+                                 .@assays@data$GQ_mask)
+                                }%>% 
+                            logical_operation %>% 
+                            {rowSums(.)/ncol(.)*100}
+  existing_rowData <- SummarizedExperiment::rowData(sce)
+  existing_rowData$variant_QC<-variant_genotype_QC
+  SummarizedExperiment::rowData(sce)<-existing_rowData
+  
   print("Reordering sce rows (variants) based on bulk VAF")
   # this is newly added so we can get correct order for annotation later.
   sce<- sce[match(SummarizedExperiment::rowData(sce)%>%
                     data.frame()%>%
-                    dplyr::arrange(desc(VAF))%>%
+                    dplyr::arrange(desc(pick(starts_with("VAF"))))%>%
                     dplyr::pull(final_annot),
                   rownames(sce)),]
 
-  print("Adding on protein Data")
+ 
+  #### protein starts here
   if(protein==TRUE){
-    protein_mat <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/layers/read_counts",index=list(NULL,viable_barcodes))
-    rownames(protein_mat) <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/ca/id")
-    colnames(protein_mat) <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/ra/barcode",index=list(viable_barcodes))
-    SingleCellExperiment::altExp(sce, "Protein") <- SingleCellExperiment::SingleCellExperiment(list(Protein=protein_mat))
+          skip <- TRUE
+          skip <- tryCatch( rhdf5::h5read(file = file, 
+                                                    name = "/assays/protein_read_counts/layers/read_counts",
+                                                    index=list(NULL,viable_barcodes))%>%
+                              nrow()%>%{.>0}, 
+                      error = function(e) { 
+                        print(paste("'Protein' dataset not found"))
+                        return(FALSE)
+                        })
+          if(skip){
+            print("Adding Protein data")
+            protein_mat <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/layers/read_counts",index=list(NULL,viable_barcodes))
+            rownames(protein_mat) <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/ca/id")
+            colnames(protein_mat) <- gsub("-","\\.",colnames(protein_mat))
+            colnames(protein_mat) <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/ra/barcode",index=list(viable_barcodes))
+            SingleCellExperiment::altExp(sce, "Protein") <- SingleCellExperiment::SingleCellExperiment(list(Protein=protein_mat))
+          } 
   }
   
-  print("Tabulating cell QC")
-  logical_operation <- function(...) Reduce(`&`, ...)
+  print("Adding Copy Number data")
+    amplicon_data<-rhdf5::h5read(file=file,name="/assays/dna_read_counts/layers/read_counts",index=list(NULL,viable_barcodes))%>% data.frame()
+    colnames(amplicon_data) <- rhdf5::h5read(file=file,name="/assays/dna_read_counts/ra/barcode",index=list(viable_barcodes))
+    colnames(amplicon_data) <- gsub("-","\\.",colnames(amplicon_data))
+    rownames(amplicon_data) <- rhdf5::h5read(file=file,name="/assays/dna_read_counts/ca/id",index=list(NULL))
+    SingleCellExperiment::altExp(sce, "CNV") <- SingleCellExperiment::SingleCellExperiment(list(CNV=amplicon_data))
   
-  complete_cells<-sce%>%
-    {list(.@assays@data$NGT_mask,
-          .@assays@data$AF_mask,
-          .@assays@data$DP_mask,
-          .@assays@data$GQ_mask)}%>%
-    logical_operation%>%
-    data.frame%>%
-    dplyr::select_if(~all(. == TRUE))%>%
-    {ifelse(colnames(sce@assays@data$NGT)%in%colnames(.), "Complete", "Other")}
-  print(table(complete_cells))
-  existing_metadata <- SummarizedExperiment::colData(sce)
-  existing_metadata$Required<-complete_cells
-  SummarizedExperiment::colData(sce)<-existing_metadata
- 
+  # Moved this to enumerate_clones  
+  # print("Tabulating cell QC")
+  #   logical_operation <- function(...) Reduce(`&`, ...)
+  #   complete_cells<-sce%>%
+  #     {list(.@assays@data$NGT_mask,
+  #           .@assays@data$AF_mask,
+  #           .@assays@data$DP_mask,
+  #           .@assays@data$GQ_mask)}%>%
+  #     logical_operation%>%
+  #     data.frame%>%
+  #     dplyr::select_if(~all(. == TRUE))%>%
+  #     {ifelse(colnames(sce@assays@data$NGT)%in%colnames(.), "Complete", "Other")}
+  #   print(table(complete_cells))
+  #   existing_metadata <- SummarizedExperiment::colData(sce)
+  #   existing_metadata$Required<-complete_cells
+  #   SummarizedExperiment::colData(sce)<-existing_metadata
+  #  
   sce@metadata$file<-file
+  #sce <-readDNA_CN_H5(sce,reference_cells = NULL) # need to move this to after enumerate clones so we can use NGT
+  
   return(sce)
 }

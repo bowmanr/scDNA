@@ -52,7 +52,7 @@ gg_clonal_barplot <- ggplot(data=consolidated_clonal_abundance, aes(x=Clone, y=C
   ylab("Cell Count")+
   geom_errorbar(aes(ymin = LCI, ymax = UCI), width = 0.2)+
   scale_fill_manual(values=c("Other"="Grey70",
-                              "Complete"=RColorBrewer::brewer.pal(5,tidyselect::all_of(color_pal))[5])) +
+                              "Complete"=RColorBrewer::brewer.pal(n = 5,name = color_pal)[5])) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
@@ -64,13 +64,13 @@ gg_clonal_barplot <- ggplot(data=consolidated_clonal_abundance, aes(x=Clone, y=C
 gg_heatmap <- ggplot(data=clonal_architecture,
                      aes(x=Clone,y=final_annot,fill=Genotype))+
   geom_tile() +
-  scale_fill_manual(values=c("WT"=RColorBrewer::brewer.pal(7,tidyselect::all_of(color_pal))[1],
-                             "Heterozygous"=RColorBrewer::brewer.pal(7,tidyselect::all_of(color_pal))[3],
-                             "Homozygous"=RColorBrewer::brewer.pal(7,tidyselect::all_of(color_pal))[6],
+  scale_fill_manual(values=c("WT"=RColorBrewer::brewer.pal(7,color_pal)[1],
+                             "Heterozygous"=RColorBrewer::brewer.pal(7,color_pal)[3],
+                             "Homozygous"=RColorBrewer::brewer.pal(7,color_pal)[6],
                              "Unknown"="grey50"),name="Genotype")+
   theme_classic(base_size=7) +
   ylab("Mutation")+
-  scale_y_discrete(limits = rev(levels(clonal_architecture$final_annot)))+
+  scale_y_discrete(limits = rev(mutant_order))+#rev(levels((clonal_architecture$final_annot))))
   theme(legend.position = "right", legend.direction = "vertical",
         axis.text.x = element_blank(),
         axis.line=element_blank(),
@@ -78,18 +78,18 @@ gg_heatmap <- ggplot(data=clonal_architecture,
         axis.ticks.x = element_blank(),
         plot.margin=unit(c(0,0,0,0),"cm"))
 
-gg_QC_heatmap <- ggplot(data=consolidated_clonal_abundance,
-                     aes(x=Clone, y=Group, fill=ADO_med))+
-  geom_tile() +
-  colorspace::scale_fill_continuous_divergingx(palette = 'RdBu', mid = 0.1,
-                                                    rev=FALSE,na.value = "grey80")+#,limits=c(0,0.25))+
-  theme_classic(base_size=7) +
-  theme(legend.position = "right", legend.direction = "horizontal",
-        axis.text.x = element_blank(),
-        axis.line=element_blank(),
-        axis.title.x=element_blank(),
-        axis.ticks.x = element_blank(),
-        plot.margin=unit(c(0,0,0,0),"cm"))
+# gg_QC_heatmap <- ggplot(data=consolidated_clonal_abundance,
+#                      aes(x=Clone, y=Group, fill=ADO_med))+
+#   geom_tile() +
+#   colorspace::scale_fill_continuous_divergingx(palette = 'RdBu', mid = 0.1,
+#                                                     rev=FALSE,na.value = "grey80")+#,limits=c(0,0.25))+
+#   theme_classic(base_size=7) +
+#   theme(legend.position = "right", legend.direction = "horizontal",
+#         axis.text.x = element_blank(),
+#         axis.line=element_blank(),
+#         axis.title.x=element_blank(),
+#         axis.ticks.x = element_blank(),
+#         plot.margin=unit(c(0,0,0,0),"cm"))
 
 
 gg_QC_heatmap_GQ <- ggplot(data=consolidated_clonal_abundance,
@@ -119,5 +119,6 @@ gg_QC_heatmap_DP <- ggplot(data=consolidated_clonal_abundance,
         plot.margin=unit(c(0,0,0,0),"cm"))
 
 # Put it all together
-return(cowplot::plot_grid(gg_clonal_barplot,gg_heatmap,gg_QC_heatmap,gg_QC_heatmap_GQ,gg_QC_heatmap_DP,ncol=1,align="v",axis="lr",rel_heights = c(1,0.5,0.25,0.25,0.25)))
+return(cowplot::plot_grid(gg_clonal_barplot,gg_heatmap,#gg_QC_heatmap,
+                                    gg_QC_heatmap_GQ,gg_QC_heatmap_DP,ncol=1,align="v",axis="lr",rel_heights = c(1,0.5,0.25,0.25,0.25)))
 }

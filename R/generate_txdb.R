@@ -7,7 +7,6 @@
 #'
 #' @examples
 gemerate_txdb<-function(panel_bed_path,
-                        panel_name=NULL,
                         save_path=NULL){
     
     print("Extracting all genes from BED file")

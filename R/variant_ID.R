@@ -1,9 +1,8 @@
-
 #' Variant identification and frequency tallies
 #'
 #' @param file path to the h5 file
+#' @param panel name of prebuilt panel/txdb
 #' @param GT_cutoff Fraction of cells that are successfully genotyped for initial filtering (default 0.2, meaning 20%)
-#' @param custom_txDB_object 
 #' @param VAF_cutoff Fraction of cells that are mutated for initial filtering of variants (default 0.005, meaning 0.05%)
 #'
 #' @return A dataframe with each variant on a row, and tally of the number of cells that are WT, Het, Hom or missing for a mutation. Calculated VAF and gentoyping freuqency is also provided. If multiple samples are present in the h5 file, a list object will be returned with each sample as an entry in the list
@@ -11,10 +10,32 @@
 #'
 #' @examples
 variant_ID<-function(file,
-                    txdb="MSK_RL",
-                    GT_cutoff=35,
-                    VAF_cutoff=5){
-  
+                     panel=NULL,
+                      GT_cutoff=0,
+                      VAF_cutoff=0){
+
+  if(is.null(panel)){
+    panel_extract<-rhdf5::h5read(file = file,name = "/assays/dna_read_counts/metadata/panel_name")[1]
+    print(paste(panel_extract,"panel detected in H5 file"))
+    if(panel_extract%in%c("Myeloid","MSK_RL")){
+      print("Using prebuilt TxDB")
+      panel<-panel_extract
+    } else {
+      print("TxDB not detected. To make a panel specific TxDB object use the 'generate_txdb' function")
+      print("Defaulting to genome wide UCSC TxDB")
+      panel<- "UCSC"
+    }
+  } else {
+    if(panel%in%c("Myeloid","MSK_RL")){
+      print("Using prebuilt TxDB")
+      panel<-panel
+    } else {
+      print("TxDB not detected, check spelling. To make a panel specific TxDB object use the 'generate_txdb' function")
+      print("Defaulting to genome wide UCSC TxDB")
+      panel<- "UCSC"
+    }
+  }
+
   if(grepl("loom",file)){
   print(paste("Input file is loom :",file))
     sample_set<- "placeholder"
@@ -83,25 +104,40 @@ variant_ID<-function(file,
     # The following if else are the changes made to this file to pull in all the variants.
     # I think the else needs to be changed to handle multiple samples correctly?
     # Plus another input needs to be selected that might be missing.
-    if(length(sample_set)==1){
-        annotated_variants<- annotate_variants(file,txdb=txdb,select_variants=total_variants$id)
+    if(length(sample_set)==1){ 
+        annotated_variants<- annotate_variants(file,panel=panel,select_variants=total_variants$id)
         out<-annotated_variants%>% 
-                    dplyr::inner_join(total_variants[[1]],by="id")%>%
-                    data.frame()%>%
-                    dplyr::arrange(desc(VAF))
-        out
-        return(out)
+          dplyr::full_join(total_variants[[1]] ,by="id")%>%
+          dplyr::filter(!is.na(id))%>%
+          dplyr::mutate(final_annot=dplyr::case_when(
+            is.na(final_annot)~id,
+            TRUE~final_annot))%>%
+          data.frame()
+        if(nrow(out)==nrow(total_variants[[1]] )){
+          print("All variants accounted for")
+        } else {
+          print(paste("Lost",nrow(total_variants[[1]])-nrow(out),"variants out of",nrow(total_variants[[1]]), "total variants due to poor annotation."))
+        }
+        return(out)             
     } else if(length(sample_set)==2) {
       total_variants_new<-dplyr::full_join(total_variants[[1]],
                                            total_variants[[2]],
                                           by="id",
                                           suffix=c(paste0("_",sample_set[1]),
                                                     paste0("_",sample_set[2])))
-      annotated_variants<- annotate_variants(file,txdb=txdb,select_variants=total_variants_new$id)
+      annotated_variants<- annotate_variants(file,panel=panel,select_variants=total_variants_new$id)
       out<-annotated_variants%>% 
-        dplyr::inner_join(total_variants_new,by="id")%>%
-        data.frame()%>%
-        dplyr::arrange(desc(VAF))
+        dplyr::full_join(total_variants_new,by="id")%>%
+        dplyr::filter(!is.na(id))%>%
+        dplyr::mutate(final_annot=dplyr::case_when(
+          is.na(final_annot)~id,
+          TRUE~final_annot))%>%
+        data.frame()
+      if(nrow(out)==nrow(total_variants_new)){
+        print("All variants accounted for")
+      } else {
+        print(paste("Lost",nrow(total_variants_new)-nrow(out),"variants out of",nrow(total_variants[[1]]), "total variants due to poor annotation."))
+              }
       return(out)             
   } else if(length(sample_set)>2) {
       print("Not currently functionining for multiple samples")
@@ -110,3 +146,4 @@ variant_ID<-function(file,
     }
  
 }
+

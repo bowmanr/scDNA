@@ -6,16 +6,19 @@
 #' 2) a function that finds the difference in states that are < 1 mutation away
 #' 3) a function that does bit logic subtraction for the ternary variables
 #' @export
+#' @importFrom foreach %dopar% foreach
 #' @param num_mutations The number of variants we are using (automatically obtained from the Architecture)
 
-BuildMDP <-function(num_mutations){
-
+BuildMDP <-function(num_mutations,use_ADO=FALSE){
   getidx <-function(n) {ifelse( (n==0|n==1),TRUE,FALSE)}
   dsum <- function(n) {ifelse(n < 10, n, n %% 10 + dsum(floor(n / 10)))}
   getTernaryFromState<-function(x,base=3){
     ifelse(x<base,x,getTernaryFromState(x%/% base)*10+x%%base)
   }
+  backwardCheck<-function(x){(ifelse(dsum((-1)*x)==1,TRUE,FALSE))
+  }
 
+  
   if(num_mutations>=9){
     load(system.file(paste0('data/AdjacencyList_',num_mutations,'mutations.rDa'), package = 'scDNA'))
     return(adj_list)
@@ -30,6 +33,57 @@ BuildMDP <-function(num_mutations){
   # subtract = 111 , 100
   # now sum digits 1+1+1 = 3, so reject, vs. 1+0+0 = 1 so accept!
   temp_vals <-(data.frame(x=(0:(num_states-1)))%>%apply(.,1,getTernaryFromState))
+  
+  j<-NULL
+  i<-NULL
+  state_tern = temp_vals
+  
+  f.compfun3<-function(state_tern,num_muts){
+    f<-compiler::cmpfun(function(state_tern=temp_vals,num_muts=num_mutations){
+      j<-NULL
+      i<-NULL
+      state_tern = temp_vals
+      print(length(state_tern))
+      r<-foreach::foreach(state_to_check=1:length(state_tern), .combine='cbind', .multicombine=TRUE,.export=c("dsum","getidx")) %dopar%{
+        temp<-matrix(NA_real_,nrow=2)
+        state_val <-(dsum(state_tern-state_tern[state_to_check]))
+        vec<-which(getidx(state_val))
+        ADO <-which(ifelse(dsum((-1)*state_val)==1,TRUE,FALSE))
+        check1 <- unlist(lapply(ADO,
+                                function(x) ifelse((intToUtf8(
+                                  utf8ToInt(
+                                    stringr::str_pad(state_tern[state_to_check], 
+                                                     num_muts, 
+                                                     pad = "0"))[(which((utf8ToInt(stringr::str_pad(state_tern[x], 
+                                                                                                    num_muts, 
+                                                                                                    pad = "0"))-utf8ToInt(stringr::str_pad(state_tern[state_to_check], 
+                                                                                                                                           num_muts, 
+                                                                                                                                           pad = "0"))) !=0))]))=="1",x,NA)))
+        forwardADO <- unlist(lapply(vec,
+                                    function(x) ifelse((intToUtf8(
+                                      utf8ToInt(
+                                        stringr::str_pad(state_tern[state_to_check], 
+                                                         num_muts, 
+                                                         pad = "0"))[(which((utf8ToInt(stringr::str_pad(state_tern[x], 
+                                                                                                        num_muts, 
+                                                                                                        pad = "0"))-utf8ToInt(stringr::str_pad(state_tern[state_to_check], 
+                                                                                                                                               num_muts, 
+                                                                                                                                               pad = "0"))) !=0))]))=="1",x,NA)))
+        
+        
+        vec<-append(vec,check1[!is.na(check1)])
+        vec<-append(vec,forwardADO[!is.na(forwardADO)])
+        print(state_to_check)
+        j<-t(vec)
+        i<-t(rep(state_to_check,length(vec)))
+        temp <-rbind(i,j)
+        return(temp)
+      }
+      r
+    })
+    f(f(0))
+  }
+  
   f.compfun2<-function(state_tern){
     f<-compiler::cmpfun(function(state_tern=temp_vals){
       j<-NULL
@@ -51,21 +105,49 @@ BuildMDP <-function(num_mutations){
   }
  
   # some parallelization clusters, and records time.
-  cl <- parallel::makeCluster(7)
-  doParallel::registerDoParallel(cl)
-  #start<-Sys.time()
-  output_mat <-f.compfun2(temp_vals)
-  #print( Sys.time() - start )
-  parallel::stopCluster(cl)
+  if(use_ADO){
+    cl <- parallel::makeCluster(7)
+    doParallel::registerDoParallel(cl)
+    #start<-Sys.time()
+    output_mat <-f.compfun3(temp_vals,num_mutations)
+    #print( Sys.time() - start )
+    parallel::stopCluster(cl)
+  }else{
+    cl <- parallel::makeCluster(7)
+    doParallel::registerDoParallel(cl)
+    #start<-Sys.time()
+    output_mat <-f.compfun2(temp_vals)
+    #print( Sys.time() - start )
+    parallel::stopCluster(cl)
+  }
+
   # Now we have a 2 row matrix we want to make a sparse representation
   reward_mat<-Matrix::sparseMatrix(output_mat[1,],output_mat[2,],,1)
+  
   reward_mat
   rownames(reward_mat) <-temp_vals
   colnames(reward_mat) <-temp_vals
   # this next line is basically a pivot longer but ditches all 0s
   adj_list<-mefa4::Melt(reward_mat)
   colnames(adj_list) <-c("current_state","next_state","legal_action")
+  # this unsets the duplicate rows so we can set forward ADO and mutation
+  adj_list<-adj_list%>%
+    tidyr::uncount(legal_action)%>%
+    dplyr::mutate(legal_action=1)
   
+  # labeling forward ADO, backward ADO, mutation, or none
+  adj_list$action_type <-"mutation"
+  adj_list$action_type <-ifelse(dsum(as.numeric(adj_list$next_state)-as.numeric(adj_list$current_state))<0,"ADO","mutation")
+  adj_list$action_type <-ifelse(dsum(as.numeric(adj_list$next_state)-as.numeric(adj_list$current_state))==0,"none",adj_list$action_type)
+  adj_list<-adj_list %>%
+    dplyr::group_by(current_state,next_state,legal_action,action_type)%>%
+    dplyr::mutate(rank = rank(action_type,ties.method="first"))%>%
+    dplyr::mutate(action_type=ifelse(rank==2,"forward_ADO",action_type))#%>%
+    #dplyr::ungroup()%>%
+    #dplyr::select(-rank)
+    
+    
+    
   # For now we will say equal transition probability
   adj_list%>%
     dplyr::group_by(current_state)%>%
