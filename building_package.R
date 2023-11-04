@@ -6,7 +6,7 @@ library(fs)
 use_git()
 use_mit_license("Bobby Bowman")
 
-setwd("~/Projects/scDNA")
+setwd("~/Projects/R_packages/scDNA/")
 
 use_r("read_tapestri_h5_NGT")
 use_r("quality_filter_NGT")
@@ -46,7 +46,7 @@ document()
 check()
 build()
 
-usethis::use_version("patch")
+usethis::use_version("dev")
 
 use_package("AnnotationDbi")
 use_package("Homo.sapiens")

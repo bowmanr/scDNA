@@ -1,4 +1,8 @@
-#' Annotate variants of interest
+
+
+
+
+c#' Annotate variants of interest
 #' This function takes in h5 files to extract DNA information through given TXDB files (primarily hg19)
 #' The gene names are mapped for their specific nucleotide positions. The starting and ending positions
 #' for the chromosome are listed. The consequence of the mutation such as synonymous, nonsynonymous,
@@ -22,21 +26,34 @@ annotate_variants<- function(file,
   
   if(panel=="MSK_RL"){
     print("Loading TxDB for Myeloid Clonal Evolution (Levine, MSK)/MSK_RL")
-    custom_txdb<- AnnotationDbi::loadDb(system.file('data/MSK_RL_txdb', package = 'scDNA')) # loads in as variable annotation_file?
+    custom_txdb<- AnnotationDbi::loadDb(system.file('data/MSK_RL_txdb', package = 'scDNA')) 
   } else if(panel=="Myeloid"){
     print("Loading TxDB for Myeloid Panel")
-    custom_txdb<- AnnotationDbi::loadDb(system.file('data/myeloid_txdb', package = 'scDNA')) # loads in as variable annotation_file?
+    custom_txdb<- AnnotationDbi::loadDb(system.file('data/myeloid_txdb', package = 'scDNA')) 
   } else if(panel=="UCSC"){
     print("Loading TxDB derived from TxDb.Hsapiens.UCSC.hg19.knownGene")
-    custom_txdb<- AnnotationDbi::loadDb(system.file('data/hg19_ensembl_txdb', package = 'scDNA')) # loads in as variable annotation_file?
-  } 
-  
+    custom_txdb<- AnnotationDbi::loadDb(system.file('data/hg19_ensembl_txdb', package = 'scDNA'))
+  } else if(panel=="mm10"){
+    print("Loading TxDB derived Mus_musculus.GRCm38.102.gtf")
+    custom_txdb<- AnnotationDbi::loadDb(system.file('data/mm10_ensembl_txdb', package = 'scDNA')) 
+    }
+  if(panel=="mm10"){
+    load(system.file(paste0('data/mm10_annotation.Rda'), package = 'scDNA'))
+    genes_found<-genes(custom_txdb)$gene_id
+    complete_gene_annotation<-mm10_annotation%>%
+      dplyr::filter(ensemble_geneID%in%genes_found)%>%
+      dplyr::select(hgnc_symbol=Symbol,ensembl_canonical_gene=ensemble_geneID,ensemble_txID)%>%
+      dplyr::mutate(final_transcript_id=ensemble_txID)
+      seq_source<-BSgenome.Mmusculus.UCSC.mm10::Mmusculus
+
+  } else {
   genes_found<-genes(custom_txdb)$gene_id
   complete_gene_annotation<-cBioPortal_annotation%>%
     dplyr::filter(ensembl_canonical_gene%in%genes_found)%>%
     dplyr::select(hgnc_symbol,ensembl_canonical_gene,ensembl_canonical_transcript,mskcc_canonical_transcript,ccds_id)%>%
     dplyr::mutate(final_transcript_id=ifelse(mskcc_canonical_transcript=="",ensembl_canonical_transcript,mskcc_canonical_transcript))
-  
+ seq_source<-BSgenome.Hsapiens.UCSC.hg19::Hsapiens
+   }
   print("Load annotation data")
   
   print("Extracting Variant Matrix")
@@ -139,15 +156,15 @@ annotate_variants<- function(file,
     
     exonic_variants <- suppressWarnings(suppressMessages(VariantAnnotation::predictCoding(query = exonic_region_variant_gRanges, 
                                                                                           subject = custom_txdb, 
-                                                                                          seqSource = BSgenome.Hsapiens.UCSC.hg19::Hsapiens, 
+                                                                                          seqSource = seq_source, 
                                                                                           varAllele = exonic_region_variant_gRanges$ALT)))
     non_exonic_variants <- suppressWarnings(suppressMessages(VariantAnnotation::predictCoding(query = non_exonic_region_variant_gRanges, 
                                                                                               subject = custom_txdb, 
-                                                                                              seqSource = BSgenome.Hsapiens.UCSC.hg19::Hsapiens, 
+                                                                                              seqSource = seq_source, 
                                                                                               varAllele = non_exonic_region_variant_gRanges$ALT)))
     border_variants <- suppressWarnings(suppressMessages(VariantAnnotation::predictCoding(query = border_region_gRange, 
                                                                                           subject = custom_txdb, 
-                                                                                          seqSource = BSgenome.Hsapiens.UCSC.hg19::Hsapiens, 
+                                                                                          seqSource = seq_source, 
                                                                                           varAllele = border_region_gRange$ALT)))
     
     list("Exonic"=exonic_variants,
