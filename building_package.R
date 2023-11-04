@@ -7,6 +7,9 @@ use_git()
 use_mit_license("Bobby Bowman")
 
 setwd("~/Projects/R_packages/scDNA/")
+usethis::use_pkgdown()
+pkgdown::build_site()
+usethis::use_pkgdown_github_pages()
 
 use_r("read_tapestri_h5_NGT")
 use_r("quality_filter_NGT")
