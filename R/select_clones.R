@@ -18,7 +18,7 @@ select_clones<- function(sce,
 # Only change made was converting the old dataframe to the sce.
   if(select_exact==FALSE){
   select_clones<- sce@metadata$Clones%>%
-                            dplyr::filter(ADO_med<ADO_cut)%>%
+                            #dplyr::filter(ADO_med<ADO_cut)%>%
                             dplyr::filter(GQ_med>GQ_cut)%>%
                             dplyr::filter(DP_med>DP_cut)%>%
                             dplyr::group_by(Clone)%>%
