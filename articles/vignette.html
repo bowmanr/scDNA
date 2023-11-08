@@ -83,7 +83,7 @@ h5 of interest. For speed purposes, I strongly suggest you have the file
 local as opposed to on the server. Change the folder path below to the
 match where you have placed the Sample1962.dna+protein.h5 file.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">file</span><span class="op">&lt;-</span> <span class="st">"~/CodingCamp/Projects/scDNA_demo/Sample1962.dna+protein.h5"</span></span>
+<code class="sourceCode R"><span><span class="va">sample_file</span><span class="op">&lt;-</span> <span class="st">"~/CodingCamp/Projects/scDNA_demo/Sample1962.dna+protein.h5"</span></span>
 <span><span class="co">#sample_file&lt;-c("/Users/bowmanrl/Desktop/Review/MSK24.cells.loom")</span></span></code></pre></div>
 <p>First, we read in the h5 file to generate the variant outputs we
 seek. This function has 2 forms: 1) an exploratory phase, and a 2)
@@ -115,7 +115,7 @@ phase to the refinement phase.</p>
 <code class="sourceCode R"><span><span class="co">#need to install SpareMatrixStats</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bioconductor.org/packages/AnnotationDbi" class="external-link">AnnotationDbi</a></span><span class="op">)</span></span>
 <span><span class="va">variant_output</span><span class="op">&lt;-</span><span class="fu"><a href="../reference/variant_ID.html">variant_ID</a></span><span class="op">(</span>file<span class="op">=</span><span class="va">sample_file</span>,</span>
-<span>                           txdb<span class="op">=</span><span class="st">"MSK_RL"</span>,</span>
+<span>                           panel<span class="op">=</span><span class="st">"MSK_RL"</span>,</span>
 <span>                            GT_cutoff<span class="op">=</span><span class="fl">0</span>,</span>
 <span>                             VAF_cutoff<span class="op">=</span><span class="fl">0</span><span class="op">)</span></span>
 <span></span>
