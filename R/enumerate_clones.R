@@ -165,7 +165,7 @@ clonal_architecture<-NGT_to_clone%>%
       "something went wrong"
   }
 #Newly added sce metadata needs to be added line by line to avoid overwriting previous metadata
-sce@metadata$Clones<-clonal_abundance_boot_CI
+sce@metadata$Clonal_Abundance<-clonal_abundance_boot_CI
 sce@metadata$NGT<-NGT_to_clone
 sce@metadata$NGT_with_missing<-NGT
 sce@metadata$Architecture<-clonal_architecture
