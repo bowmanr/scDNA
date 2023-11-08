@@ -27,7 +27,7 @@ compute_clone_statistics<-function(sce,
                                    names_to="Cell",
                                    values_to="DP")%>%
                dplyr::pull(DP))%>%
-     mutate(GQ=sce@assays@data$DP%>%data.frame()%>%
+     mutate(GQ=sce@assays@data$GQ%>%data.frame()%>%
                  tidyr::pivot_longer(cols=tidyselect::everything(),
                                      names_to="Cell",
                                      values_to="GQ")%>%
@@ -43,7 +43,7 @@ compute_clone_statistics<-function(sce,
     dplyr::reframe(AF_med=median(AF),
                      DP_med=median(DP),
                      GQ_med=median(GQ))%>%
-    dplyr::inner_join(sce@metadata$Clones,by="Clone")
+    dplyr::inner_join(sce@metadata$Clonal_Abundance,by="Clone")
   
   if(sum(sce@metadata$Clones$Group=="Complete")==0){
   print("No cells with complete genotyping, skipping statistcal enumeration")
