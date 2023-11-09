@@ -8,7 +8,7 @@
 #' Title
 #'
 #' @param sce 
-#'
+#' @importFrom igraph V
 #' @return
 #' @export
 #'
