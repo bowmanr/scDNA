@@ -93,7 +93,7 @@ print("Done with 3")
   # set goal
   given_state="0"
   observed_states <-as.character(unique(RL_output$next_state[which(RL_output$observed_states==1)]))
-  clone_to_observed_clone <-igraph::shortest_paths(net,from=V(net)[given_state],to=V(net)[observed_states])$vpath
+  clone_to_observed_clone <-igraph::shortest_paths(net,from=igraph::V(net)[given_state],to=igraph::V(net)[observed_states])$vpath
 
   WT_to_all_observed_policy =NULL
   for(big_list_iter in 1:length(clone_to_observed_clone)){
