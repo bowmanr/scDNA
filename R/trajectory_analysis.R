@@ -1,7 +1,7 @@
 #' Run Trajectory Analysis after extraction from SingleCellExperiment object
 #'
 #' @param sce is the SingleCellExperiment Object
-#'
+#' @importFrom igraph V
 #' @return RL_analysis this returns a paths with metadata about the mutation order
 #' @export
 #' @examples
