@@ -105,7 +105,7 @@ clonal_abundance_boot_CI <- setNames(data.frame(
                                   data.frame(clonal_abundance),
                                    z,
                                     by="Clone")),
-                c("Clone","n_Other","n_Complete","Count","LCI","UCI"))
+                c("Clone","n_Complete","n_Other","Count","LCI","UCI"))
 
 
 print("Computing confidence intervals for cells with complete genotypes")
