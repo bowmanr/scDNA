@@ -72,9 +72,11 @@ remotes::install_github("bowmanr/scDNA")
 Identify all variants within a sample.
 
 ``` r
+library(scDNA)
+library(dplyr)
 sample_file<- "test_file.h5"
 variant_output<-variant_ID(file=sample_file,
-                           txdb="MSK_RL", # "UCSC" can be used for other panels
+                           panel="MSK_RL", # "UCSC" can be used for other panels
                            GT_cutoff=0,  # mimimum percent of cells where a successful genotyping call was made
                            VAF_cutoff=0) # mimimum variant allele frequency 
 ```
