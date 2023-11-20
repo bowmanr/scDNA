@@ -53,7 +53,7 @@ normalize_protein_data<-function(sce,
       use.isotype.control = detect_IgG, # (default = TRUE): use isotype controls to define technical components.
       isotype.control.name.vec = isotype#,# vector of isotype control names
     )
-    SingleCellExperiment::assay(protein_sce, "DSB_norm")<-adt_norm
+    SummarizedExperiment::assay(protein_sce, "DSB_norm")<-adt_norm
     
   } 
   if("CLR"%in%method|"clr"%in%method){
@@ -61,7 +61,7 @@ normalize_protein_data<-function(sce,
     s <- Seurat::CreateSeuratObject(counts=protein_mat%>%Seurat::as.sparse(), 
                             assay="Protein")
     s <- Seurat::NormalizeData(s,normalization.method = "CLR")
-    SingleCellExperiment::assay(protein_sce, "CLR_norm")<-s@assays$Protein@data
+    SummarizedExperiment::assay(protein_sce, "CLR_norm")<-s@assays$Protein@data
     
   }
   
