@@ -44,7 +44,7 @@ normalize_protein_data<-function(sce,
         isotype <- FALSE
     }
 
-    adt_norm <- DSBNormalizeProtein(
+    adt_norm <- dsb::DSBNormalizeProtein(
       # remove ambient protien noise reflected in counts from empty droplets
       cell_protein_matrix = protein_mat, # cell-containing droplet raw protein count matrix
       empty_drop_matrix = empty_drops_matrix_input, # empty/background droplet raw protein counts
@@ -53,7 +53,7 @@ normalize_protein_data<-function(sce,
       use.isotype.control = detect_IgG, # (default = TRUE): use isotype controls to define technical components.
       isotype.control.name.vec = isotype#,# vector of isotype control names
     )
-    assay(protein_sce, "DSB_norm")<-adt_norm
+    SingleCellExperiment::assay(protein_sce, "DSB_norm")<-adt_norm
     
   } 
   if("CLR"%in%method|"clr"%in%method){
@@ -61,7 +61,7 @@ normalize_protein_data<-function(sce,
     s <- Seurat::CreateSeuratObject(counts=protein_mat%>%Seurat::as.sparse(), 
                             assay="Protein")
     s <- Seurat::NormalizeData(s,normalization.method = "CLR")
-    assay(protein_sce, "CLR_norm")<-s@assays$Protein@data
+    SingleCellExperiment::assay(protein_sce, "CLR_norm")<-s@assays$Protein@data
     
   }
   
