@@ -121,7 +121,7 @@ right_ecdf_func <- function(data) {
 measures<-cbind(xte,cell_heading,reduced_df$score,reduced_df$Pro_tot)
 
 outlier_score<-matrix(NA,nrow=dim(measures)[1],ncol = dim(measures)[2])
-skew_meas <- apply(measures,2,skewness)
+skew_meas <- apply(measures,2,e1071::skewness)
 skew_meas[is.nan(skew_meas)]<-0
 for(pro_iter in 1:dim(measures)[2]){
   right_ecdf<-right_ecdf_func(measures[,pro_iter])
