@@ -20,7 +20,7 @@ Install scDNA package.
 library(remotes)
 remotes::install_github("bowmanr/scDNA")
 ```
-loading in necessary libraries
+loading in necessary libraries. If packages do not load, you may need to restart your R session after installation. 
 
 ```{r,message=FALSE,echo=FALSE,eval=FALSE}
 library(scDNA)
