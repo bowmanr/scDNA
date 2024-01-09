@@ -87,7 +87,8 @@ readDNA_CN_H5<-function(sce,reference_cells=NULL){
     dplyr::mutate(count=ifelse(ploidy<lower_lim95,1,0))%>%
     dplyr::mutate(false_positiveHom = sum(count)/n())%>%ungroup()%>%dplyr::select(final_annot,false_positiveHom)%>%distinct
 
-  sce@metadata$FalsePositive <- dplyr::inner_join(fp_cost0,fp_cost2,by="final_annot")
+  sce@metadata$FalsePositive <- dplyr::full_join(fp_cost0,fp_cost2,by="final_annot")
+  sce@metadata$FalsePositive[is.na(sce@metadata$FalsePositive)]<- 0
   SingleCellExperiment::altExp(sce, "CNV") <- CNV_sce
 
   return(sce)
