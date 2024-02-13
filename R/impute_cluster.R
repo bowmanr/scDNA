@@ -58,12 +58,10 @@ impute_cluster<-function(sce,by="AF"){
                       by="Cell")%>%
     dplyr::mutate(cluster_group=dplyr::case_when(
       is.na(imputed_cluster)~"Observed",
-      TRUE~"Imputed"
-    ))%>%
-    dplyr::mutate(final_cluster=case_when(
-      is.na(imputed_cluster)~Cluster,
-      TRUE~imputed_cluster
-    ))%>%
+      TRUE~"Imputed"),
+    final_cluster=ifelse(
+      is.na(imputed_cluster),Cluster,
+      imputed_cluster))%>%
     dplyr::select(!imputed_cluster)
   return(add_cell_annotation(sce,new_metadata))
   } else if(by=="NGT"){

@@ -65,7 +65,9 @@ enumerate_clones<-function(sce,
                               dplyr::mutate(Other=ifelse(is.na(Other),0,Other))%>%
                               dplyr::group_by(Clone)%>%
                               dplyr::mutate(Count=sum(Other,Complete))%>%
-                              dplyr::ungroup()
+                              dplyr::ungroup()%>%
+                              dplyr::select(Clone,Clone,Complete,Other,Count)
+
 
   } else {
      clonal_abundance <- NGT_to_clone%>%

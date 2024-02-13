@@ -4,7 +4,7 @@
 \alias{clonograph}
 \title{Plotting clonographs}
 \usage{
-clonograph(sce, complete_only = FALSE, color_pal = "Reds")
+clonograph(sce, complete_only = FALSE, color_pal = "Reds", QC_stats = FALSE)
 }
 \arguments{
 \item{sce}{the singleCellExperiment Object with the clones, NGT, and architecture.}
@@ -12,6 +12,8 @@ clonograph(sce, complete_only = FALSE, color_pal = "Reds")
 \item{complete_only}{logical to decide whether to plot only complete cells or also low quality cells, default=FALSE}
 
 \item{color_pal}{brewer.pal pallete selection.}
+
+\item{QC_stats}{A true/false call to see other diagnostic plots under the clonograph (default=FALSE)}
 }
 \value{
 A clonograph figure

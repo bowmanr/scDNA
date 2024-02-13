@@ -16,6 +16,7 @@ normalize_protein_data<-function(sce,
                                  metadata,
                                  method="dsb",
                                  detect_IgG=TRUE,
+                                 num_components_to_keep=NULL,
                                  background_droplets){
   file<-sce@metadata$file
   protein_sce <- SingleCellExperiment::altExp(sce,"Protein")
@@ -64,11 +65,40 @@ normalize_protein_data<-function(sce,
     SummarizedExperiment::assay(protein_sce, "CLR_norm")<-s@assays$Protein@data
     
   }
-  
-  if(!all(method%in%c("dsb","CLR")) ){
+  if("SVD"%in%method|"svd"%in%method){
+    
+    temp_mat <- as.matrix(log10(t(protein_mat)+1))
+    
+    # calculates aspect Ratio
+    aspect_ratio_beta_val <- (dim(temp_mat)[2])/(dim(temp_mat)[1])
+    
+    # Run SVD
+    svd_protein <-svd(temp_mat)
+    
+    # Pull out the diagonal singularity terms
+    truncated_singularity_values <- svd_protein$d
+
+    # truncates the singularity terms based on the median marcenko-pastur formula 
+    if(is.null(num_components_to_keep)){
+      truncated_singularity_values[truncated_singularity_values<havok::optimal_SVHT_coef(aspect_ratio_beta_val,sigma_known = FALSE)*quantile(truncated_singularity_values)[3]]<-0
+    }
+    else if(num_components_to_keep<length(truncated_singularity_values)){
+      truncated_singularity_values[num_components_to_keep:length(truncated_singularity_values)]=0
+    }
+    
+    print(plot(truncated_singularity_values))
+    # Reconstruction of the protein_matrix.
+    protein_reconstructed <- svd_protein$u%*%diag(truncated_singularity_values)%*%t(svd_protein$v)
+    rownames(protein_reconstructed)<- colnames(protein_mat)
+    colnames(protein_reconstructed)<- rownames(protein_mat)
+    SummarizedExperiment::assay(protein_sce, "SVD_norm")<-t(protein_reconstructed)
+    
+  }
+  if(!all(method%in%c("dsb","CLR","SVD"))){
     print("method not available")
     break
   }
+  
   protein_sce@metadata<-metadata
   protein_sce@colData<-S4Vectors::DataFrame(metadata%>%
                                             dplyr::filter(Cell%in%colnames(protein_mat)))

@@ -9,6 +9,7 @@ normalize_protein_data(
   metadata,
   method = "dsb",
   detect_IgG = TRUE,
+  num_components_to_keep = NULL,
   background_droplets
 )
 }

@@ -8,7 +8,8 @@
 #'
 #' @examples
 compute_clone_statistics<-function(sce,
-                                   clone_size_cutoff=10){
+                                   clone_size_cutoff=10,
+                                  skip_ploidy=TRUE){
   
   if(("Group"%in%colnames(sce@metadata$Clones))) {
     stop(message("Clone QC already assessed"))
@@ -90,9 +91,10 @@ compute_clone_statistics<-function(sce,
   
       
   }                                             
+  if(!skip_ploidy){  
     print("Computing Ploidy")   
     sce<-readDNA_CN_H5(sce)
-
+  }
   
   return(sce)
 }
