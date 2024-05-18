@@ -18,11 +18,11 @@ normalize_protein_data<-function(sce,
                                  detect_IgG=TRUE,
                                  num_components_to_keep=NULL,
                                  background_droplets){
-  file<-sce@metadata$file
   protein_sce <- SingleCellExperiment::altExp(sce,"Protein")
   protein_mat <- protein_sce@assays@data$Protein
   if("DSB"%in%method|"dsb"%in%method){
     print("DSB normalization")
+    file<-sce@metadata$file
     cells_of_interest<-colnames(protein_mat)
     
     all_protein_droplets <- rhdf5::h5read(file=file,
@@ -57,13 +57,12 @@ normalize_protein_data<-function(sce,
     SummarizedExperiment::assay(protein_sce, "DSB_norm")<-adt_norm
     
   } 
-  if("CLR"%in%method|"clr"%in%method){
+  if ("CLR" %in% method | "clr" %in% method) {
     print("CLR normalization")
-    s <- Seurat::CreateSeuratObject(counts=protein_mat%>%Seurat::as.sparse(), 
-                            assay="Protein")
-    s <- Seurat::NormalizeData(s,normalization.method = "CLR")
-    SummarizedExperiment::assay(protein_sce, "CLR_norm")<-s@assays$Protein@data
-    
+    s <- Seurat::CreateAssayObject(protein_mat,assay="Protein")
+    s <- Seurat::CreateSeuratObject(s,assay="Protein")
+    s <- Seurat::NormalizeData(s, normalization.method = "CLR")
+    SummarizedExperiment::assay(protein_sce, "CLR_norm") <- s@assays$Protein@data
   }
   if("SVD"%in%method|"svd"%in%method){
     
