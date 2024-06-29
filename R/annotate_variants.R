@@ -36,7 +36,10 @@ annotate_variants<- function(file,
   } else if(panel=="mm10"){
     print("Loading TxDB derived Mus_musculus.GRCm38.102.gtf")
     custom_txdb<- AnnotationDbi::loadDb(system.file('data/mm10_ensembl_txdb', package = 'scDNA')) 
-    }
+  } else if(panel=="hg38"){
+  print("Loading TxDB derived from TxDb.Hsapiens.UCSC.hg19.knownGene")
+  custom_txdb<- AnnotationDbi::loadDb(system.file('data/hg19_ensembl_txdb', package = 'scDNA')) # loads in as variable annotation_file?
+  } 
   if(panel=="mm10"){
     load(system.file(paste0('data/mm10_annotation.Rda'), package = 'scDNA'))
     genes_found<-genes(custom_txdb)$gene_id
@@ -88,6 +91,12 @@ annotate_variants<- function(file,
                                                           start.field="POS",
                                                           end.field="POS",
                                                           keep.extra.columns=TRUE)
+  if(panel=="hg38"){
+    
+    path = system.file(package="scDNA", "data", "hg38ToHg19.over.chain")
+    ch = import.chain(path)
+    variant_gRange = unlist(rtracklayer::liftOver(variant_gRange, ch))
+  }
   
   print("Annotating Variants based on location")
   gene_subset<-GenomicFeatures::genes(custom_txdb)
