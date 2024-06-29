@@ -2,13 +2,18 @@
 % Please edit documentation in R/VisualizeMDPs.R
 \name{visualize_full_network}
 \alias{visualize_full_network}
-\title{Title}
+\title{Visualize Full Network}
 \usage{
-visualize_full_network(sce)
+visualize_full_network(sce, save_filename = NULL)
 }
 \arguments{
-\item{sce}{}
+\item{sce}{SingleCellExperiment object containing NGT matrix for clone identification.}
+
+\item{save_filename}{file location to save file. Currently, must end it with .html extension.}
+}
+\value{
+interactive for the Reinforcement Learning Trajectory
 }
 \description{
-Title
+Visualize Full Network
 }
