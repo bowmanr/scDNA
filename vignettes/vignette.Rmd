@@ -108,7 +108,7 @@ This produces SingleCellExperiment object. Updates clones in the metadata for th
 
 ```{r,eval=FALSE}
 sce<-enumerate_clones(sce, replicates = 500)
-sce<-compute_clone_statistics(sce)
+sce<-compute_clone_statistics(sce,skip_ploidy=FALSE)
 ```
 
 We can now look at a clonograph of the data, select a subset of clones and plot another clonograph
@@ -139,7 +139,7 @@ library(doParallel)
 library(visNetwork)
 library(igraph)
 #enableJIT(3) #uncomment this line to speed up the trajectory analysis.
-sce_subset<-trajectory_analysis(sce_subset)
+sce_subset<-trajectory_analysis(sce_subset,use_ADO=TRUE)
 start_state ="0_0_0" # Change based on problem and number of variants we are using
 goal_state = "1_1_1" # Change based on problem and number of varianrs we are using``
 ```
