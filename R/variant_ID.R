@@ -26,7 +26,7 @@ variant_ID<-function(file,
       panel<- "UCSC"
     }
   } else {
-    if(panel%in%c("Myeloid","MSK_RL")){
+    if(panel%in%c("Myeloid","MSK_RL","mm10")){
       print("Using prebuilt TxDB")
       panel<-panel
     } else {
