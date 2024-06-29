@@ -41,6 +41,7 @@ use_r("optimize_AF_mat")
 use_r("add_cell_annotation")
 use_r("impute_cluster")
 use_r("compare_VAFs")
+use_r("cell_confidence_labeling")
 use_readme_rmd()
 use_devtools()
 
