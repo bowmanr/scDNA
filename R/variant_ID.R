@@ -29,6 +29,9 @@ variant_ID<-function(file,
     if(panel%in%c("Myeloid","MSK_RL","mm10")){
       print("Using prebuilt TxDB")
       panel<-panel
+    } else if(panel%in%c("hg38")){
+        print("hg38 denoted, will LiftOver coordinated to hg19 and use prebuilt TxDB")
+        panel<-panel
     } else {
       print("TxDB not detected, check spelling. To make a panel specific TxDB object use the 'generate_txdb' function")
       print("Defaulting to genome wide UCSC TxDB")
