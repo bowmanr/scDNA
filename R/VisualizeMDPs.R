@@ -1,9 +1,3 @@
-# some things that need to be fixed a bit more I think!
-# 1) I think people will flip start and goal state, so we will need to check which 
-# one is the lower state and swap them (since we can only move forward). 
-# 2) how should people input this? 000 vs 1000 vs 221 will not be intuitive for 
-# the biologists I think. Is there a way you prefer where they give us strings 
-# instead then we convert it to our 100 representation?
 
 #' Visualize Full Network 
 #'
