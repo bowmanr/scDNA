@@ -15,6 +15,9 @@ get_own_path<-function(sce,start_name,goal_name){
   for (iter in 1:(length(clone_to_goal_clone)-1)){
     check_sub_var<-data.frame(current_state=gsub('^.|.$', '',gsub("", "_",stringr::str_pad(levels(RL_output$next_state)[clone_to_goal_clone[iter]], length(unique(sce@metadata$Architecture$final_annot)), pad = "0"))),
                               next_state=gsub('^.|.$', '',gsub("", "_",stringr::str_pad(levels(RL_output$next_state)[clone_to_goal_clone[iter+1]], length(unique(sce@metadata$Architecture$final_annot)), pad = "0"))))
+    check_sub_var$reward<-as.data.frame(RL_output)%>%
+      dplyr::filter((current_state==(clone_to_goal_clone)[iter][[1]]$name) &(next_state==(clone_to_goal_clone)[iter+1][[1]]$name))%>%
+      dplyr::pull(reward)
     check_sub_var$mutation_taken<-as.data.frame(RL_output)%>%
       dplyr::filter((current_state==(clone_to_goal_clone)[iter][[1]]$name) &(next_state==(clone_to_goal_clone)[iter+1][[1]]$name))%>%
       dplyr::pull(action_type)
