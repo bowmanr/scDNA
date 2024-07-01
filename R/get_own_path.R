@@ -17,7 +17,7 @@ get_own_path<-function(sce,start_name,goal_name){
                               next_state=gsub('^.|.$', '',gsub("", "_",stringr::str_pad(levels(RL_output$next_state)[clone_to_goal_clone[iter+1]], length(unique(sce@metadata$Architecture$final_annot)), pad = "0"))))
     check_sub_var$mutation_order<-as.data.frame(RL_output)%>%
       dplyr::filter((current_state==levels(RL_output$next_state)[clone_to_goal_clone[iter]]) &(next_state==levels(RL_output$next_state)[clone_to_goal_clone[iter+1]]))%>%
-      dplyr::pull(mutation_taken)
+      dplyr::pull(action_type)
     WT_to_state_policy<-rbind(WT_to_state_policy,check_sub_var)
   }
 
