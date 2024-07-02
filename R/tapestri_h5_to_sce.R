@@ -7,6 +7,7 @@
 #' @param GQ_cutoff minimum genotype quality necessary for a reliable genotype call in a single cell (default: 30)
 #' @param AF_cutoff Deviation from 0, 50, or 100% for a reliable call of WT, Het or Hom respectively (default: 25)
 #' @param variant_set character vector of variants to be included in the format output by mission bio.
+#' @param demultiplex_cells is the cell names which we want to pull, often left NULL for majority of analysis
 #' @param protein logical, whether protein data should be included. default=TRUE
 #' @param return_variants_only logical,
 #'
