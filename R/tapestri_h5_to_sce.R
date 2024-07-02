@@ -48,7 +48,7 @@ tapestri_h5_to_sce<-function(file,
     print(paste(length(all_barcodes)-length(viable_barcodes), "duplicated barcodes detected and removed"))
 
     if(is.null(demultiplex_cells)){
-      sample_of_interest<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ra/sample_name")%in%sample)
+      sample_of_interest<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ra/sample_name")%in%sample_set)
     }else{
       sample_of_interest<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")%in%demultiplex_cells)
     }
