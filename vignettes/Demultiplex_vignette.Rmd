@@ -1,0 +1,121 @@
+---
+title: 'scDNA: Example for demultiplexing samples'
+author: "Michael Bowman and Bobby Bowman"
+date: "2024-07-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+install our package if you have not done so already.
+```{r,message=FALSE,eval=FALSE}
+library(remotes)
+remotes::install_github("bowmanr/scDNA@dev",force=TRUE)
+```
+
+Load in libraries
+```{r,message=FALSE,eval=FALSE}
+library(scDNA)
+library(ggplot2)
+library(dplyr)
+library(umap)
+library(pals)
+library(RColorBrewer)
+library(superheat)
+```
+
+We assume you have already familiarized yourself with our single sample vignette, here we should the demultiplexing sample possibilities.
+```{r,message=FALSE,eval=FALSE}
+file_bbmix="~/Lab/Core/scDNA_paper_figures/H5/BB_Mix1.dna+protein.h5"
+
+```
+
+run variant ID like normal, with no additional inputs, 
+BUT we choose extremely high VAF and Genotyping Cut offs to detect SNPs.
+```{r,message=FALSE,eval=FALSE}
+variant_output<-variant_ID(file_bbmix,
+                            GT_cutoff=50,
+                             VAF_cutoff=1)
+```
+
+Filter variants of interest to reduce the SNPs we need.
+```{r,message=FALSE,eval=FALSE}
+variant_set<-variant_output%>%
+ # filter(Het<Hom|Het<WT)%>%
+ # filter(WT>0&Hom>0)%>%
+  filter(genotyping_rate>90)%>%
+  filter(VAF>1&VAF<99)%>%
+  dplyr::group_by(final_annot)%>%
+                          dplyr::mutate(final_annot = if(n( ) > 1) {paste0(final_annot,"_",LETTERS[row_number()]) } 
+                             else {paste0(final_annot)})
+
+```
+
+run the tapestri thing like normal
+```{r,message=FALSE,eval=FALSE}
+sce<-scDNA::tapestri_h5_to_sce(file=file_bbmix,
+                    variant_set = variant_set)
+```
+
+Preform demultiplex to get cluster assignment for each cell. 
+We use an iterative learning strategy to reduce our variants by cells matrix to
+full rank (as dense as possible!). The sensitivity_threshold determines how dense 
+we are looking for our sample. The first value impacts variants to keep and ditch,
+while the second values kicks out poorly genotyped cells. Generally, the cells 
+threshold should be lower than the varaints one. Lastly, expected_samples is how
+many samples we are expected to demultiplex.
+```{r,message=FALSE,eval=FALSE}
+set.seed(1)
+cell_clust_df<-demultiplex_samples(sce,sensitivity_threshold=c(0.01,0.0001),expected_samples =5)
+
+```
+
+Now perform we perform variant_ID but pump in the cell-cluster assignment dataframe.
+This splits each sample, as if it is a cohort. Afterwards we can loop our variants of
+interest for each specific sample. We then supply the cells of interest along with the
+variants of interest into tapestri_h5_to_sce to obtain a list of sce objects.
+The example below uses the same filtering for each sample for brevity.
+```{r,message=FALSE, eval=FALSE}
+source("~/Lab/Core/scDNA-dev/R/variant_ID.R")
+variant_output_true<-variant_ID(file_bbmix,panel="MSK_RL",demultiplexed = cell_clust_df)
+genes_of_interest <- c("IDH2","NRAS","NPM1","TET2","FLT3","IDH1")
+
+sce_list=list()
+for(sample_iter in 1:length(variant_output_true)){
+  variant_output_specific<-variant_output_true[[sample_iter]]%>%
+                        distinct()%>%
+                          dplyr::filter(Class=="Exon")%>%
+                          dplyr::filter(!is.na(CONSEQUENCE)&CONSEQUENCE!="synonymous")%>%
+                          dplyr::filter(VAF>1)%>%
+                          dplyr::filter(genotyping_rate>85)%>%
+                          dplyr::filter(SYMBOL%in%genes_of_interest)%>%   
+                          dplyr::arrange(desc(VAF))#%>%
+
+  sce_list[sample_iter]<-tapestri_h5_to_sce(file=file_bbmix,
+                      variant_set = variant_output_specific,
+                      GT_cutoff=90, 
+                      VAF_cutoff=0.01,
+                      DP_cutoff=10,
+                      GQ_cutoff=20,
+                      AF_cutoff=20,
+                      demultiplex_cells=cell_clust_df%>%
+                        dplyr::filter(final_cluster==as.character(unique(final_cluster)[sample_iter]))%>%
+                        pull(cell_names))
+}
+
+```
+
+Running a cohort analysis on a demultiplexed sample follows our base vignette, but perform it inside a loop!
+OR you can save the sce_list as independent RDS files and run the base_line vignette independently.
+```{r,message=FALSE,eval=FALSE}
+
+for(sce_iter in 1:length(sce_list)){
+  current_sce<-sce_list[[sce_iter]]
+  current_sce<-enumerate_clones(current_sce, replicates = 500)
+  current_sce<-compute_clone_statistics(current_sce,skip_ploidy=FALSE)
+  print(clonograph(current_sce))
+}
+
+
+```
