@@ -175,9 +175,17 @@ tapestri_h5_to_sce<-function(file,
                                     values_fill=NA,
                                     values_from = NGT)%>%
                         dplyr::pull(id)
-  
+   # error when VAF_cut_variants is not equal to VAF_cut_index. Somehow more variants annotated than actually exist? It appears we got some straight duplicates execept final_annot is slightly different
+  # gave quick fix by finding duplicated ID and just pulling one of the rows. Mostly an issue with demultiplexing?
+  VAF_cut_names <- rhdf5::h5read(file = file, name = "/assays/dna_variants/ca/id")[which(rhdf5::h5read(file = file, name = "/assays/dna_variants/ca/id") %in% 
+                           VAF_cut_variants)]
 
- SummarizedExperiment::rowData(sce)<-S4Vectors::DataFrame(variant_set%>%
+  SummarizedExperiment::rowData(sce) <- S4Vectors::DataFrame(variant_set %>%
+                                                               dplyr::filter(id%in%VAF_cut_names)%>% 
+                                                               dplyr::group_by(id) %>%
+                                                               dplyr::mutate(dup_detector=row_number())%>%
+                                                               dplyr::filter(dup_detector<2)%>%
+                                                               dplyr::ungroup()%>%
                                                              dplyr::rename(Widht=width,Strand=strand,Seqnames=seqnames,Start=start,End=end)%>%
                                                              dplyr::arrange(factor(id,levels=rownames(sce))))
   
