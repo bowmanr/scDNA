@@ -4,7 +4,7 @@
 #' @param panel name of prebuilt panel/txdb
 #' @param GT_cutoff Fraction of cells that are successfully genotyped for initial filtering (default 0.2, meaning 20%)
 #' @param VAF_cutoff Fraction of cells that are mutated for initial filtering of variants (default 0.005, meaning 0.05%)
-#'
+#' @param demultiplex this is a dataframe for cell assignments for clusters, should often be left NULL
 #' @return A dataframe with each variant on a row, and tally of the number of cells that are WT, Het, Hom or missing for a mutation. Calculated VAF and gentoyping frequency is also provided. If multiple samples are present in the h5 file, a list object will be returned with each sample as an entry in the list
 #' @export
 #'
