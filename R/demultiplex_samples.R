@@ -10,7 +10,7 @@
 #' @examples
 demultiplex_samples<-function(sce,sensitivity_threshold=c(0.01,0.0001),expected_samples=5){
   
-  AF_out<-scDNA::optimize_matrix(sce,sensitivity_threshold = c(0.01,0.0001))
+  AF_out<-scDNA::optimize_matrix(sce,sensitivity_threshold)
   AF_complete<-t(sce[colnames(AF_out),rownames(AF_out)]@assays@data$AF)
   kmeans_AF <- kmeans(AF_complete, centers = expected_samples, nstart = 30) #centers set based on number of samples in the multiplex
   umap_SNPs <-umap::umap(AF_complete, n_neighbors = sqrt(nrow(AF_complete))) 
