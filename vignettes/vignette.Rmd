@@ -1,7 +1,7 @@
 ---
 title: "scDNA: R package for DNA+protein single cell DNA sequencing analysis"
 author: "Michael Bowman and Bobby Bowman"
-date: "9/12/2023"
+date: "7/2/2024"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{vignette}
@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 Install scDNA package.
 ```{r,message=FALSE,warning=FALSE,eval=FALSE}
 library(remotes)
-remotes::install_github("bowmanr/scDNA")
+remotes::install_github("bowmanr/scDNA@dev",force=T)
 ```
 loading in necessary libraries. If packages do not load, you may need to restart your R session after installation. 
 
@@ -40,7 +40,6 @@ Start off by loading the scDNA package, and pointing the system to a h5 of inter
 
 ```{r load in file,eval=FALSE}
 sample_file<- "~/CodingCamp/Projects/scDNA_demo/Sample1962.dna+protein.h5"
-#sample_file<-c("/Users/bowmanrl/Desktop/Review/MSK24.cells.loom")
 ```
 
 
@@ -116,6 +115,7 @@ We can now look at a clonograph of the data, select a subset of clones and plot 
 clonograph(sce)
 ```
 
+Let's get clones and for complete cells by subsetting
 ```{r subset clonograph,fig.align='center',fig.height=5,fig.width=5,eval=FALSE}
 sce_subset<-select_clones(sce,
                           ADO_cut=0.10,
@@ -138,46 +138,44 @@ library(foreach)
 library(doParallel)
 library(visNetwork)
 library(igraph)
-#enableJIT(3) #uncomment this line to speed up the trajectory analysis.
+enableJIT(3) #uncomment this line to speed up the trajectory analysis.
 sce_subset<-trajectory_analysis(sce_subset,use_ADO=TRUE)
+```
+
+This provides trajectories in sce@metadata$Trajectories. We build 4 common trajectories already:
+1. shortest route for Wildtype (WT) to the most dominant clone
+2. shortest route for Wildtype (WT) to a fully homozygous clone
+3. All possible routes from Wildtype to the most dominant clone
+4. shortest routes from Wildtype to all clones observed in the Clonograph
+
+To visualize these simply change the trajectory you are interested in sce@metadata$Trajectories, and then drag around the nodes
+```{r,eval=FALSE}
+trajectory_of_interest_figure(sce = sce_subset,trajectory = sce_subset@metadata$Trajectories[[2]],save_filename = NULL)
+
+```
+If you prefer to see mutations styled like BSCITE,we provide a function for that as well.
+```{r,eval=FALSE}
+trajectory_of_interest_BSCITE_format(sce = sce_subset,trajectory = sce_subset@metadata$Trajectories[[2]],save_filename = NULL)
+
+```
+
+We can also visualize the entire network although it is usually quite messy.
+```{r,eval=FALSE}
+visualize_full_network(sce = sce_subset,save_filename = NULL)
+
+
+```
+
+We can also give user defined state, find where it can go with the clonograph
+this is done by setting observed states variable equal to the ones that are observed in our dataframe. Which we then plot as normal.
+
+```{r make own trajectory,eval=FALSE}
 start_state ="0_0_0" # Change based on problem and number of variants we are using
 goal_state = "1_1_1" # Change based on problem and number of varianrs we are using``
-```
 
-```{r,eval=FALSE}
 sce_subset<-get_own_path(sce_subset,start_state,goal_state)
-visualize_any_optimal_path(sce_subset,start_state,goal_state)
 
-print(sce_subset@metadata$Trajectories$WT_to_last_possible_clone)
-
-```
-
-
-```{r Visualize Whole Network,eval=FALSE}
-vis_full_net<-visualize_full_network(sce_subset)
-vis_full_net
-```
-
-```{r visualize most likely order,fig.align='center',fig.height=5,fig.width=5,eval=FALSE}
-vis_best_WT_to_dominant_clone<-visualize_WT_dominant_clone(sce_subset)
-vis_best_WT_to_dominant_clone
-print(sce_subset@metadata$Trajectories$WT_to_dominant_clone)
-```
-All paths from WT to dominant clone:
-```{r visual all possible orders,fig.align='center',fig.height=5,fig.width=5,eval=FALSE}
-vis_all_WT_to_dominant_clone<-visualize_all_WT_dominant_clone(sce_subset)
-vis_all_WT_to_dominant_clone
-print(sce_subset@metadata$Trajectories$All_WT_to_dominant_clone)
-
-```
-
-given user defined state, find where it can go with the clonograph
-this is done by setting observed states variable equal to the ones that are observed in our dataframe.
-
-```{r match clonal graph from WT,fig.align='center',fig.height=5,fig.width=5,eval=FALSE}
-given_state <-"0"
-match_clonal_graph(sce_subset,given_state)
-print(sce_subset@metadata$Trajectories$WT_to_Observed_paths)
+trajectory_of_interest_figure(sce = sce_subset,trajectory = sce_subset@metadata$Trajectories[[5]],save_filename = NULL)
 
 ```
 
@@ -214,6 +212,51 @@ sce_subset<-normalize_protein_data(sce=sce,
 altExp(sce_subset)
 ```
 
+We also incorporate advanced protein analysis involves getting some outlier scores, and stain index metrics to determine the effectiveness of your assay.
+```{r,message=FALSE,eval=FALSE}
+sce<-cell_confidence_labeling(sce)
+
+droplet_metadata<- extract_droplet_size(sce)
+droplet_metadata<-GetMembership(droplet_metadata)
+droplet_metadata<-GetStainIndex(droplet_metadata)
+
+reduced_cell_metadata<-droplet_metadata%>%
+  dplyr::filter(Cell%in%rownames(colData(sce)))%>%
+  dplyr::select(Cell,dna_size,amplicons,protein_size,proteins)
+alt_QC_df<-dplyr::inner_join(colData(sce)%>%
+                               as.data.frame%>%
+                               tibble::rownames_to_column(var="Cell")%>%
+                               as.data.frame,
+           reduced_cell_metadata,
+           by="Cell")
+
+ggplot(droplet_metadata,aes(x=dna_size, y=protein_size,color=Droplet_type))+
+  geom_density2d(bins=100)+
+  theme_minimal(base_size = 14)#+
+ggplot(alt_QC_df,aes(x=dna_size, y=protein_size,color=cell_label_confidence))+
+  geom_density2d(bins=100)+
+  theme_minimal(base_size = 14)#+
+ggplot(alt_QC_df,aes(x=outlier_score, y=protein_size,color=cell_label_confidence))+
+ geom_point(alpha=0.2)+theme_bw(base_size=14)
+ggplot(droplet_metadata,aes(x=dna_size,y=protein_size,color=Stain_index_protein_size))+
+  geom_point(alpha=0.2)+theme_bw(base_size=14)+ggtitle("Protein stain index")
+ggplot(droplet_metadata,aes(x=dna_size, y=protein_size, color=Stain_index_DNA_size))+
+  geom_point(alpha=0.2)+theme_bw(base_size=14)+ggtitle("DNA stain index")
+ggplot(droplet_metadata,aes(x=dna_size, y=protein_size, color=comp1.post))+
+  geom_point(alpha=0.2)+theme_bw(base_size=14)+ggtitle("cell likelihood")
+ggplot(droplet_metadata,aes(x=dna_size,y=amplicons,color=comp1.post))+
+  geom_point(alpha=0.2)+theme_bw(base_size=14)+ggtitle("DNA size vs amplicon hits")
+ggplot(droplet_metadata,aes(x=protein_size,y=proteins,color=comp1.post))+
+  geom_point(alpha=0.2)+theme_bw(base_size=14)+ggtitle("Protein size vs protein hits")
+ggplot(droplet_metadata,aes(x=dna_size,y=amplicons,color=Stain_index_DNA_size))+
+  geom_point(alpha=0.2)+theme_bw(base_size=14)+ggtitle("DNA size vs amplicon hits")
+ggplot(droplet_metadata,aes(x=protein_size,y=proteins,color=Stain_index_protein_size))+
+  geom_point(alpha=0.2)+theme_bw(base_size=14)+ggtitle("Protein size vs protein hits")
+
+```
+
+
+We can export our data to FCS files for viewing in FlowJo
 ```{r,eval=FALSE}
 library(Biobase)
 library(flowCore)
