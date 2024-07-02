@@ -21,6 +21,7 @@ tapestri_h5_to_sce<-function(file,
                     GQ_cutoff=30,
                     AF_cutoff=25,
                     variant_set=NULL,
+                    demultiplex_cells=NULL,
                     protein=TRUE){
   
   
@@ -44,7 +45,15 @@ tapestri_h5_to_sce<-function(file,
     dedup_barcodes<-all_barcodes[!(duplicated(all_barcodes) | duplicated(all_barcodes, fromLast = TRUE))]
     viable_barcodes<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")%in%dedup_barcodes)
     print(paste(length(all_barcodes)-length(viable_barcodes), "duplicated barcodes detected and removed"))
+
+    if(is.null(demultiplex_cells)){
+      sample_of_interest<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ra/sample_name")%in%sample)
+    }else{
+      sample_of_interest<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")%in%demultiplex_cells)
+    }
+    viable_barcodes<-intersect(sample_of_interest,viable_barcodes)
   }
+  
   
   VAF_cut_index<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ca/id")%in%VAF_cut_variants)
 
