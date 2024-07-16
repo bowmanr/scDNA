@@ -36,10 +36,10 @@ library(SingleCellExperiment)
 ```
 
 
-Start off by loading the scDNA package, and pointing the system to a h5 of interest. For speed purposes, I strongly suggest you have the file local as opposed to on the server. Change the folder path below to the match where you have placed the Sample1962.dna+protein.h5 file.
+Start off by loading the scDNA package, and pointing the system to a h5 of interest. For speed purposes, I strongly suggest you have the file local as opposed to on the server. Change the folder path below to the match where you have placed the LAMA.dna+protein.h5 file.
 
 ```{r load in file,eval=FALSE}
-sample_file<- "~/CodingCamp/Projects/scDNA_demo/Sample1962.dna+protein.h5"
+sample_file<- "~/CodingCamp/Projects/scDNA_demo/LAMA.dna+protein.h5"
 #sample_file<-c("/Users/bowmanrl/Desktop/Review/MSK24.cells.loom")
 ```
 
