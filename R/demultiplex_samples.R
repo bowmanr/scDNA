@@ -39,7 +39,7 @@ demultiplex_samples<-function(sce,sensitivity_threshold=c(0.01,0.0001),expected_
           plot.title = element_text(hjust = 0.5, size = 14))+
     labs(x = "UMAP1",y = "UMAP2")+
     facet_grid(~sample)
-  superheat(AF_complete, 
+  superheat::superheat(AF_complete, 
             heat.pal = kovesi.rainbow_bgyrm_35_85_c71(n=100),
             scale = FALSE,
             heat.pal.values = seq(from=0,to=1,by=0.01),
