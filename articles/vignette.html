@@ -156,7 +156,7 @@ others such as Suerat or dsb.</p>
 metadata for the quality check.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sce</span><span class="op">&lt;-</span><span class="fu"><a href="../reference/enumerate_clones.html">enumerate_clones</a></span><span class="op">(</span><span class="va">sce</span>, replicates <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span>
-<span><span class="va">sce</span><span class="op">&lt;-</span><span class="fu"><a href="../reference/compute_clone_statistics.html">compute_clone_statistics</a></span><span class="op">(</span><span class="va">sce</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">sce</span><span class="op">&lt;-</span><span class="fu"><a href="../reference/compute_clone_statistics.html">compute_clone_statistics</a></span><span class="op">(</span><span class="va">sce</span>,skip_ploidy<span class="op">=</span><span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 <p>We can now look at a clonograph of the data, select a subset of
 clones and plot another clonograph</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
