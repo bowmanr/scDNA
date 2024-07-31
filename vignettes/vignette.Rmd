@@ -108,7 +108,7 @@ This produces SingleCellExperiment object. Updates clones in the metadata for th
 
 ```{r,eval=FALSE}
 sce<-enumerate_clones(sce, replicates = 500)
-sce<-compute_clone_statistics(sce)
+sce<-compute_clone_statistics(sce,skip_ploidy=FALSE)
 ```
 
 We can now look at a clonograph of the data, select a subset of clones and plot another clonograph
