@@ -25,7 +25,7 @@ select_clones<- function(sce,
                             dplyr::filter(Group%in%c("Complete"))%>%
                             dplyr::pull(Clone)%>%unique()
   } else{
-    select_clones<-select_clones
+    select_clones<-select_exact
   }
   sce@metadata$NGT<-sce@metadata$NGT%>%dplyr::filter(Clone%in%select_clones)
   sce@metadata$Clones<-sce@metadata$Clones%>%dplyr::filter(Clone%in%select_clones)
