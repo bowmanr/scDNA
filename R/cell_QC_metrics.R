@@ -7,7 +7,7 @@
 #'
 #' @examples
 GetStainIndex<-function(droplet_metadata){
-  print("In stain function")
+  #print("In stain function")
   empty_med_vec<-droplet_metadata%>%
     dplyr::filter(Droplet_type=="Empty")%>%
     dplyr::select(dna_size,protein_size)%>%
@@ -45,7 +45,7 @@ GetStainIndex<-function(droplet_metadata){
 #'
 #' @examples
 GetMembership<-function(droplet_metadata){
-  print("in membership")
+  #print("in membership")
   Cell_cov_mat<-droplet_metadata%>%
     dplyr::filter(Droplet_type=="Cell")%>%
     dplyr::select(dna_size,protein_size)%>%
