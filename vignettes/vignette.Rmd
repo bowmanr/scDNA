@@ -110,7 +110,8 @@ sce<-enumerate_clones(sce, replicates = 500)
 sce<-compute_clone_statistics(sce,skip_ploidy=FALSE)
 ```
 
-We can now look at a clonograph of the data, select a subset of clones and plot another clonograph
+We can now look at a clonograph of the data, select a subset of clones and plot another clonograph: 
+The "Complete" vs "Other" is our caller for if cells are completely genotyped or not. This is based on if the cells have "passed" the genotyping quality (GQ) and read Depth (DP), and Allele Frequency (AF) cutoffs selected earlier on in the workflow. If a cell is labeled as "Other" it means the Genotype Analysis Toolkit (GATK) made a genotype call, but that it failed at least one of these cutoffs.
 ```{r clonograph,fig.align='center',fig.height=5,fig.width=5,eval=FALSE}
 clonograph(sce)
 ```
@@ -121,7 +122,7 @@ sce_subset<-select_clones(sce,
                           ADO_cut=0.10,
                           GQ_cut=30,
                           DP_cut=10,
-                          select_exact=FALSE)
+                          select_exact=NULL)
 clonograph(sce_subset,complete_only=TRUE)
 ```
 ##Reinforcement Learning Trajectory Analysis
