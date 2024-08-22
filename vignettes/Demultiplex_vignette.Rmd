@@ -107,7 +107,8 @@ for(sample_iter in 1:length(variant_output_true)){
 ```
 
 Running a cohort analysis on a demultiplexed sample follows our base vignette, but perform it inside a loop!
-OR you can save the sce_list as independent RDS files and run the base_line vignette independently.
+OR you can save the sce_list as independent RDS files and run the base_line vignette independently. 
+When integrating multiple samples together with Seurat we have found the Harmony integration layer has worked well and recommend it
 ```{r,message=FALSE,eval=FALSE}
 
 for(sce_iter in 1:length(sce_list)){
