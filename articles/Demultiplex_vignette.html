@@ -151,7 +151,9 @@ example below uses the same filtering for each sample for brevity.</p>
 <span><span class="op">}</span></span></code></pre></div>
 <p>Running a cohort analysis on a demultiplexed sample follows our base
 vignette, but perform it inside a loop! OR you can save the sce_list as
-independent RDS files and run the base_line vignette independently.</p>
+independent RDS files and run the base_line vignette independently. When
+integrating multiple samples together with Seurat we have found the
+Harmony integration layer has worked well and recommend it</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">for</span><span class="op">(</span><span class="va">sce_iter</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">sce_list</span><span class="op">)</span><span class="op">)</span><span class="op">{</span></span>
 <span>  <span class="va">current_sce</span><span class="op">&lt;-</span><span class="va">sce_list</span><span class="op">[[</span><span class="va">sce_iter</span><span class="op">]</span><span class="op">]</span></span>
