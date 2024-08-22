@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">scDNA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -18,7 +18,8 @@
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/vignette.html">scDNA: R package for DNA+protein single cell DNA sequencing analysis</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/Demultiplex_vignette.html">scDNA: Example for demultiplexing samples</a></li>
+    <li><a class="dropdown-item" href="../articles/vignette.html">scDNA: R package for DNA+protein single cell DNA sequencing analysis</a></li>
   </ul></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -50,6 +51,18 @@
 
         </dt>
         <dd>The main function builds an adjacency list of the theoretical order of mutations. The same MDP mask can be reused different mutations</dd>
+      </dl><dl><dt>
+
+          <code><a href="GetMembership.html">GetMembership()</a></code>
+
+        </dt>
+        <dd>Get membership quality of cells vs empty</dd>
+      </dl><dl><dt>
+
+          <code><a href="GetStainIndex.html">GetStainIndex()</a></code>
+
+        </dt>
+        <dd>Get Stain Index for cells</dd>
       </dl><dl><dt>
 
           <code><a href="add_cell_annotation.html">add_cell_annotation()</a></code>
@@ -92,6 +105,12 @@
 
         </dt>
         <dd>Title</dd>
+      </dl><dl><dt>
+
+          <code><a href="demultiplex_samples.html">demultiplex_samples()</a></code>
+
+        </dt>
+        <dd>Demultiplex wrapper function to handle splitting samples</dd>
       </dl><dl><dt>
 
           <code><a href="enumerate_clones.html">enumerate_clones()</a></code>
@@ -196,6 +215,18 @@
         <dd>Run Trajectory Analysis after extraction from SingleCellExperiment object</dd>
       </dl><dl><dt>
 
+          <code><a href="trajectory_of_interest_BSCITE_format.html">trajectory_of_interest_BSCITE_format()</a></code>
+
+        </dt>
+        <dd>BSCITE Style single trajectory Plot</dd>
+      </dl><dl><dt>
+
+          <code><a href="trajectory_of_interest_figure.html">trajectory_of_interest_figure()</a></code>
+
+        </dt>
+        <dd>Individual trajectory of interest Plots</dd>
+      </dl><dl><dt>
+
           <code><a href="variant_ID.html">variant_ID()</a></code>
 
         </dt>
@@ -223,7 +254,7 @@
           <code><a href="visualize_full_network.html">visualize_full_network()</a></code>
 
         </dt>
-        <dd>Title</dd>
+        <dd>Visualize Full Network</dd>
       </dl></div>
   </main></div>
 

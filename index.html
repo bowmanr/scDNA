@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">scDNA</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,7 +35,8 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="articles/vignette.html">scDNA: R package for DNA+protein single cell DNA sequencing analysis</a></li>
+<li><a class="dropdown-item" href="articles/Demultiplex_vignette.html">scDNA: Example for demultiplexing samples</a></li>
+    <li><a class="dropdown-item" href="articles/vignette.html">scDNA: R package for DNA+protein single cell DNA sequencing analysis</a></li>
   </ul>
 </li>
       </ul>
@@ -51,7 +52,7 @@
 </nav><div class="container template-home">
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level1">
-<div class="page-header"><h1 id="scdna-v101">scDNA v1.0.1<a class="anchor" aria-label="anchor" href="#scdna-v101"></a>
+<div class="page-header"><h1 id="scdna-v11">scDNA v1.1<a class="anchor" aria-label="anchor" href="#scdna-v11"></a>
 </h1></div>
 <!-- badges: start -->
 <!-- badges: end -->
@@ -59,13 +60,20 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>You can install the current version (1.0.1) of scDNA below</p>
+<p>You can install (re-install) the current version (1.1) of scDNA below</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"bowmanr/scDNA"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"bowmanr/scDNA"</span>,force<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="version-updates">Version Updates<a class="anchor" aria-label="anchor" href="#version-updates"></a>
 </h2>
+<div class="section level3">
+<h3 id="v11">
+<strong>v1.1</strong><a class="anchor" aria-label="anchor" href="#v11"></a>
+</h3>
+<p>Version 1.1 is finally here with exciting new developments: - New sequencing panels for variant annotation introduced: - hg38 - mm10<br>
+- New plotting functions for RL trajectories. - new interactive plots, - BSCITE-style implementation. - Demultiplexing samples is introduced - (integrated and adapted from <a href="https://www.biorxiv.org/content/10.1101/2022.09.20.508786v1.full" class="external-link">Robinson et al</a>, <a href="https://github.com/RobinsonTroy/scMRD" class="external-link">github</a>) - vignette included to demonstrate how to perform it. - Cell confidence labeling based on DNA and Protein data. - Outlier scores introduced for cell confidence. - Stain index introduced for cell confidence. - Copy number variation (CNV) and Ploidy analysis introduced. - Allele dropout assessment introduced.</p>
+</div>
 <div class="section level3">
 <h3 id="v101">
 <strong>v1.0.1</strong><a class="anchor" aria-label="anchor" href="#v101"></a>
@@ -124,14 +132,14 @@
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sce</span><span class="op">&lt;-</span><span class="fu"><a href="reference/tapestri_h5_to_sce.html">tapestri_h5_to_sce</a></span><span class="op">(</span>file<span class="op">=</span><span class="va">sample_file</span>,variant_set <span class="op">=</span> <span class="va">variants_of_interest</span><span class="op">)</span></span>
 <span><span class="va">sce</span><span class="op">&lt;-</span><span class="fu"><a href="reference/enumerate_clones.html">enumerate_clones</a></span><span class="op">(</span><span class="va">sce</span><span class="op">)</span></span>
-<span><span class="va">sce</span><span class="op">&lt;-</span><span class="fu"><a href="reference/compute_clone_statistics.html">compute_clone_statistics</a></span><span class="op">(</span><span class="va">sce</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">sce</span><span class="op">&lt;-</span><span class="fu"><a href="reference/compute_clone_statistics.html">compute_clone_statistics</a></span><span class="op">(</span><span class="va">sce</span>,skip_ploidy<span class="op">=</span><span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 <p>Simple function for producing a graph in the style of Figure 1D from <a href="https://www.nature.com/articles/s41586-020-2864-x" class="external-link">here</a>,</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/clonograph.html">clonograph</a></span><span class="op">(</span><span class="va">sce</span><span class="op">)</span></span></code></pre></div>
 <p><img src="images/Screen%20Shot%202023-09-19%20at%2010.07.16%20PM.png" width="373"></p>
 <p>Function to perform Reinforcment Learning / MDP approach for clonal trajectory as in Figure 3 <a href="https://www.nature.com/articles/s41586-020-2864-x" class="external-link">here</a>,</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sce</span><span class="op">&lt;-</span><span class="fu"><a href="reference/trajectory_analysis.html">trajectory_analysis</a></span><span class="op">(</span><span class="va">sce</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">sce</span><span class="op">&lt;-</span><span class="fu"><a href="reference/trajectory_analysis.html">trajectory_analysis</a></span><span class="op">(</span><span class="va">sce</span>,use_ADO<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p>Methods for protein normalization. Both dsb and CLR normalization can be performed and stored in separate slots. We tend to have favor dsb so far.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">droplet_metadata</span><span class="op">&lt;-</span> <span class="fu"><a href="reference/extract_droplet_size.html">extract_droplet_size</a></span><span class="op">(</span><span class="va">sce</span><span class="op">)</span></span>
@@ -151,10 +159,6 @@
 <ol style="list-style-type: decimal">
 <li>Cohort summarization</li>
 <li>Creating custom TxDB objects</li>
-<li>Improve trajectory plotting</li>
-<li>Sample demultiplexing (integration from <a href="https://www.biorxiv.org/content/10.1101/2022.09.20.508786v1.full" class="external-link">Robinson et al</a>, <a href="https://github.com/RobinsonTroy/scMRD" class="external-link">github</a>)</li>
-<li>Evaluation of allele dropout and clonal confidence</li>
-<li>Integration for copy number variation</li>
 </ol>
 </div>
 <div class="section level3">
