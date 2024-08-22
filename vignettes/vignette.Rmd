@@ -40,6 +40,7 @@ Start off by loading the scDNA package, and pointing the system to a h5 of inter
 
 ```{r load in file,eval=FALSE}
 sample_file<- "~/CodingCamp/Projects/scDNA_demo/LAMA.dna+protein.h5"
+#sample_file<-c("/Users/bowmanrl/Desktop/Review/MSK24.cells.loom")
 ```
 
 
