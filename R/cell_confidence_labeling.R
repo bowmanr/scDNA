@@ -42,9 +42,11 @@ cut_x=order(head(tab,-round(0.1*(length(tab)))),decreasing = FALSE)[1]
 #print(paste("this is total cell count: ",dim(raw_data_to_check)[1]))
 #print(paste("this is minimum amplicons needed: ",cut_x))
 rownames(df2)<-df2$Cell
+df2<-df2%>%
+  dplyr::filter(Cell%in%sce@colData@rownames)
 # Make cut to minimum point. DO I include 0s in left_cut? hard to say right now.
 right_cut=raw_data_to_check[raw_data_to_check[,2]>=cut_x,]
-right_cut_cells = df2[raw_data_to_check[,2]>=cut_x,]
+right_cut_cells = df2
 
 test_point = rep(1,dim(all_dna)[2]-1) 
 test_prob = test_point/sum(test_point)
@@ -56,7 +58,7 @@ Entropy_max = -sum(test_prob*log2(test_prob),na.rm=TRUE)
 Efficiency = Entropy_amplicons/Entropy_max
 new_hueristic2 = rowSums(right_cut_amplicon_counts)*Efficiency
 right_cut_cells$score <-new_hueristic2
-dim(right_cut_cells)
+#dim(right_cut_cells)
 
 reduced_df <-right_cut_cells%>%
   dplyr::filter(Cell%in%sce@colData@rownames)
@@ -67,9 +69,9 @@ protein_mat <- reduced_df[,(dim(all_dna)[2]+1):(dim(all_dna)[2]+dim(all_protein)
 protein_prob <- log10(protein_mat+1)/rowSums(log10(protein_mat+1))
 
 protein_entropy <- (-1)*rowSums(protein_prob*log2(protein_prob),na.rm=TRUE)
-protein_prob
+#protein_prob
 prob_sorted = t(apply(protein_prob,1,sort))
-prob_sorted
+#prob_sorted
 mySum_sorted = t(apply(prob_sorted, 1, cumsum))
 
 uniform_list <- cumsum(rep(1/(dim(mySum_sorted)[2]),(dim(mySum_sorted)[2])))
