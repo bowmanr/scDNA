@@ -7,6 +7,7 @@
 #' @param GQ_cutoff minimum genotype quality necessary for a reliable genotype call in a single cell (default: 30)
 #' @param AF_cutoff Deviation from 0, 50, or 100% for a reliable call of WT, Het or Hom respectively (default: 25)
 #' @param variant_set character vector of variants to be included in the format output by mission bio.
+#' @param demultiplex_cells is the cell names which we want to pull, often left NULL for majority of analysis
 #' @param protein logical, whether protein data should be included. default=TRUE
 #' @param return_variants_only logical,
 #'
@@ -21,6 +22,7 @@ tapestri_h5_to_sce<-function(file,
                     GQ_cutoff=30,
                     AF_cutoff=25,
                     variant_set=NULL,
+                    demultiplex_cells=NULL,
                     protein=TRUE){
   
   
@@ -44,7 +46,15 @@ tapestri_h5_to_sce<-function(file,
     dedup_barcodes<-all_barcodes[!(duplicated(all_barcodes) | duplicated(all_barcodes, fromLast = TRUE))]
     viable_barcodes<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")%in%dedup_barcodes)
     print(paste(length(all_barcodes)-length(viable_barcodes), "duplicated barcodes detected and removed"))
+
+    if(is.null(demultiplex_cells)){
+      sample_of_interest<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ra/sample_name")%in%sample_set)
+    }else{
+      sample_of_interest<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")%in%demultiplex_cells)
+    }
+    viable_barcodes<-intersect(sample_of_interest,viable_barcodes)
   }
+  
   
   VAF_cut_index<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ca/id")%in%VAF_cut_variants)
 
@@ -165,9 +175,17 @@ tapestri_h5_to_sce<-function(file,
                                     values_fill=NA,
                                     values_from = NGT)%>%
                         dplyr::pull(id)
-  
+   # error when VAF_cut_variants is not equal to VAF_cut_index. Somehow more variants annotated than actually exist? It appears we got some straight duplicates execept final_annot is slightly different
+  # gave quick fix by finding duplicated ID and just pulling one of the rows. Mostly an issue with demultiplexing?
+  VAF_cut_names <- rhdf5::h5read(file = file, name = "/assays/dna_variants/ca/id")[which(rhdf5::h5read(file = file, name = "/assays/dna_variants/ca/id") %in% 
+                           VAF_cut_variants)]
 
- SummarizedExperiment::rowData(sce)<-S4Vectors::DataFrame(variant_set%>%
+  SummarizedExperiment::rowData(sce) <- S4Vectors::DataFrame(variant_set %>%
+                                                               dplyr::filter(id%in%VAF_cut_names)%>% 
+                                                               dplyr::group_by(id) %>%
+                                                               dplyr::mutate(dup_detector=row_number())%>%
+                                                               dplyr::filter(dup_detector<2)%>%
+                                                               dplyr::ungroup()%>%
                                                              dplyr::rename(Widht=width,Strand=strand,Seqnames=seqnames,Start=start,End=end)%>%
                                                              dplyr::arrange(factor(id,levels=rownames(sce))))
   

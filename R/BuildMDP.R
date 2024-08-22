@@ -43,7 +43,7 @@ BuildMDP <-function(num_mutations,use_ADO=FALSE){
       j<-NULL
       i<-NULL
       state_tern = temp_vals
-      print(length(state_tern))
+      #print(length(state_tern))
       r<-foreach::foreach(state_to_check=1:length(state_tern), .combine='cbind', .multicombine=TRUE,.export=c("dsum","getidx")) %dopar%{
         temp<-matrix(NA_real_,nrow=2)
         state_val <-(dsum(state_tern-state_tern[state_to_check]))
@@ -73,7 +73,7 @@ BuildMDP <-function(num_mutations,use_ADO=FALSE){
         
         vec<-append(vec,check1[!is.na(check1)])
         vec<-append(vec,forwardADO[!is.na(forwardADO)])
-        print(state_to_check)
+        #print(state_to_check)
         j<-t(vec)
         i<-t(rep(state_to_check,length(vec)))
         temp <-rbind(i,j)
@@ -89,11 +89,11 @@ BuildMDP <-function(num_mutations,use_ADO=FALSE){
       j<-NULL
       i<-NULL
       state_tern = temp_vals
-      print(length(state_tern))
+      #print(length(state_tern))
       r<-foreach::foreach(state_to_check=1:length(state_tern), .combine='cbind', .multicombine=TRUE,.export=c("dsum","getidx")) %dopar%{
         temp<-matrix(NA_real_,nrow=2)
         vec<-which(getidx(dsum(state_tern-state_tern[state_to_check])))
-        print(state_to_check)
+        #print(state_to_check)
         j<-t(vec)
         i<-t(rep(state_to_check,length(vec)))
         temp <-rbind(i,j)

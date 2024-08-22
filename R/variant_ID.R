@@ -4,7 +4,7 @@
 #' @param panel name of prebuilt panel/txdb
 #' @param GT_cutoff Fraction of cells that are successfully genotyped for initial filtering (default 0.2, meaning 20%)
 #' @param VAF_cutoff Fraction of cells that are mutated for initial filtering of variants (default 0.005, meaning 0.05%)
-#'
+#' @param demultiplex this is a dataframe for cell assignments for clusters, should often be left NULL
 #' @return A dataframe with each variant on a row, and tally of the number of cells that are WT, Het, Hom or missing for a mutation. Calculated VAF and gentoyping frequency is also provided. If multiple samples are present in the h5 file, a list object will be returned with each sample as an entry in the list
 #' @export
 #'
@@ -12,7 +12,8 @@
 variant_ID<-function(file,
                      panel=NULL,
                       GT_cutoff=0,
-                      VAF_cutoff=0){
+                      VAF_cutoff=0,
+                      demultiplexed=NULL){
 
   if(is.null(panel)){
     panel_extract<-rhdf5::h5read(file = file,name = "/assays/dna_read_counts/metadata/panel_name")[1]
@@ -26,9 +27,12 @@ variant_ID<-function(file,
       panel<- "UCSC"
     }
   } else {
-    if(panel%in%c("Myeloid","MSK_RL")){
+    if(panel%in%c("Myeloid","MSK_RL","mm10")){
       print("Using prebuilt TxDB")
       panel<-panel
+    } else if(panel%in%c("hg38")){
+        print("hg38 denoted, will LiftOver coordinated to hg19 and use prebuilt TxDB")
+        panel<-panel
     } else {
       print("TxDB not detected, check spelling. To make a panel specific TxDB object use the 'generate_txdb' function")
       print("Defaulting to genome wide UCSC TxDB")
@@ -64,7 +68,9 @@ variant_ID<-function(file,
 
   print(paste("Input file is h5 :",file))
   sample_set<-rhdf5::h5read(file=file,name="/assays/dna_variants/metadata/sample_name")[1,]
-  
+  if(!is.null(demultiplexed)){
+    sample_set <- as.character(unique(demultiplexed$final_cluster))
+  }
   
   print(paste("Detected n =",length(sample_set),"sample(s):", paste(sample_set,sep=" ",collapse = " ")))
   
@@ -80,7 +86,14 @@ variant_ID<-function(file,
     
     total_variants<-lapply(sample_set,function(sample){
       print(paste("Loading Genotype Data for:",sample))
-      sample_of_interest<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ra/sample_name")%in%sample)
+       if(is.null(demultiplexed)){
+          sample_of_interest<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ra/sample_name")%in%sample)
+        }else{
+          sample_of_interest_names<-demultiplexed%>%
+                    dplyr::filter(final_cluster==as.character(sample))%>%
+                    dplyr::pull(cell_names)
+          sample_of_interest<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")%in%sample_of_interest_names)
+      }
       sample_index<-intersect(sample_of_interest,viable_barcodes)
       
       NGT_data<-rhdf5::h5read(file=file,name="/assays/dna_variants/layers/NGT",index=list(NULL,sample_index))%>%
@@ -140,9 +153,21 @@ variant_ID<-function(file,
               }
       return(out)             
   } else if(length(sample_set)>2) {
-      print("Not currently functionining for multiple samples")
-      print("Returning list of variants without annotation")
-      return(total_variants)
+      # annotate individually and then pump back out in list?
+    
+      out<-lapply(total_variants,function(x){
+        annotated_variants<- annotate_variants(file,panel=panel,select_variants=x$id)
+        out_ind<-annotated_variants%>% 
+          dplyr::full_join(x,by="id")%>%
+          dplyr::filter(!is.na(id))%>%
+          dplyr::mutate(final_annot=dplyr::case_when(
+            is.na(final_annot)~id,
+            TRUE~final_annot))%>%
+          data.frame()
+        return(out_ind)
+      })
+    
+      return(out)
     }
  
 }

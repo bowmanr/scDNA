@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# scDNA v1.0.1
+# scDNA v1.1
 
 <!-- badges: start -->
 <!-- badges: end -->
@@ -17,13 +17,31 @@ downstream analysis.
 
 ## Installation
 
-You can install the current version (1.0.1) of scDNA below
+You can install (re-install) the current version (1.1) of scDNA below
 
 ``` r
-remotes::install_github("bowmanr/scDNA")
+remotes::install_github("bowmanr/scDNA",force=TRUE)
 ```
 
 ## Version Updates
+### **v1.1**
+Version 1.1 is finally here with exciting new developments:
+- New sequencing panels for variant annotation introduced:
+  - hg38
+  - mm10   
+- New plotting functions for RL trajectories.
+  - new interactive plots,
+  - BSCITE-style implementation. 
+- Demultiplexing samples is introduced
+  - (integrated and adapted from [Robinson et
+    al](https://www.biorxiv.org/content/10.1101/2022.09.20.508786v1.full),
+    [github](https://github.com/RobinsonTroy/scMRD))
+  - vignette included to demonstrate how to perform it.
+- Cell confidence labeling based on DNA and Protein data.
+  - Outlier scores introduced for cell confidence.
+  - Stain index introduced for cell confidence. 
+- Copy number variation (CNV) and Ploidy analysis introduced.
+- Allele dropout assessment introduced.
 
 ### **v1.0.1**
 
@@ -103,7 +121,7 @@ stored in the metadata.
 ``` r
 sce<-tapestri_h5_to_sce(file=sample_file,variant_set = variants_of_interest)
 sce<-enumerate_clones(sce)
-sce<-compute_clone_statistics(sce)
+sce<-compute_clone_statistics(sce,skip_ploidy=FALSE)
 ```
 
 Simple function for producing a graph in the style of Figure 1D from
@@ -121,7 +139,7 @@ trajectory as in Figure 3
 [here](https://www.nature.com/articles/s41586-020-2864-x),
 
 ``` r
-sce<-trajectory_analysis(sce)
+sce<-trajectory_analysis(sce,use_ADO=TRUE)
 ```
 
 Methods for protein normalization. Both dsb and CLR normalization can be
@@ -146,12 +164,6 @@ sce<-normalize_protein_data(sce=sce,
 
 1.  Cohort summarization
 2.  Creating custom TxDB objects
-3.  Improve trajectory plotting
-4.  Sample demultiplexing (integration from [Robinson et
-    al](https://www.biorxiv.org/content/10.1101/2022.09.20.508786v1.full),
-    [github](https://github.com/RobinsonTroy/scMRD))
-5.  Evaluation of allele dropout and clonal confidence
-6.  Integration for copy number variation
 
 ### Ongoing investigation:
 

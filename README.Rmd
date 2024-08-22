@@ -14,23 +14,47 @@ knitr::opts_chunk$set(
 )
 ```
 
-# scDNA v1.0.1
+# scDNA v1.1
 
 <!-- badges: start -->
-
 <!-- badges: end -->
 
-The goal of scDNA R package is to provide a simple framework for analyzing single cell DNA sequencing data. The current version primarily focuses processing variant information on the Mission Bio Tapestri platform. Functionality includes import of h5 files from Tapestri pipeline, basic variant annotation, genotype extraction, clone identification, and clonal trajectory inference. This package provides wrappers for normalizing protein data for scDNA+Protein libraries for downstream analysis. We are in the process of finalizing all documentation and expanding the vignette.
+The goal of scDNA R package is to provide a simple framework for
+analyzing single cell DNA sequencing data. The current version primarily
+focuses processing variant information on the Mission Bio Tapestri
+platform. Functionality includes import of h5 files from Tapestri
+pipeline, basic variant annotation, genotype extraction, clone
+identification, and clonal trajectory inference. This package provides
+wrappers for normalizing protein data for scDNA+Protein libraries for
+downstream analysis.
 
 ## Installation
 
-You can install the current version (1.0.1) of scDNA below
+You can install (re-install) the current version (1.1) of scDNA below
 
-```{r,message=F,warning=F,eval=F}
-remotes::install_github("bowmanr/scDNA")
+``` r
+remotes::install_github("bowmanr/scDNA",force=TRUE)
 ```
 
 ## Version Updates
+### **v1.1**
+Version 1.1 is finally here with exciting new developments:
+- New sequencing panels for variant annotation introduced:
+  - hg38
+  - mm10   
+- New plotting functions for RL trajectories.
+  - new interactive plots,
+  - BSCITE-style implementation. 
+- Demultiplexing samples is introduced
+  - (integrated and adapted from [Robinson et
+    al](https://www.biorxiv.org/content/10.1101/2022.09.20.508786v1.full),
+    [github](https://github.com/RobinsonTroy/scMRD))
+  - vignette included to demonstrate how to perform it.
+- Cell confidence labeling based on DNA and Protein data.
+  - Outlier scores introduced for cell confidence.
+  - Stain index introduced for cell confidence. 
+- Copy number variation (CNV) and Ploidy analysis introduced.
+- Allele dropout assessment introduced.
 
 ### **v1.0.1**
 

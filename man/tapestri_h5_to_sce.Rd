@@ -12,6 +12,7 @@ tapestri_h5_to_sce(
   GQ_cutoff = 30,
   AF_cutoff = 25,
   variant_set = NULL,
+  demultiplex_cells = NULL,
   protein = TRUE
 )
 }
@@ -29,6 +30,8 @@ tapestri_h5_to_sce(
 \item{AF_cutoff}{Deviation from 0, 50, or 100\% for a reliable call of WT, Het or Hom respectively (default: 25)}
 
 \item{variant_set}{character vector of variants to be included in the format output by mission bio.}
+
+\item{demultiplex_cells}{This parameter is for demultiplexing cell names to use, often set to NULL}
 
 \item{protein}{logical, whether protein data should be included. default=TRUE}
 

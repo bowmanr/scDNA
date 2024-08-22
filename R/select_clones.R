@@ -14,9 +14,9 @@ select_clones<- function(sce,
                          ADO_cut=0.10,
                          GQ_cut=30,
                          DP_cut=10,
-                         select_exact=FALSE){
+                         select_exact=NULL){
 # Only change made was converting the old dataframe to the sce.
-  if(select_exact==FALSE){
+  if(is.null(select_exact)){
   select_clones<- sce@metadata$Clones%>%
                             #dplyr::filter(ADO_med<ADO_cut)%>%
                             dplyr::filter(GQ_med>GQ_cut)%>%
@@ -25,7 +25,7 @@ select_clones<- function(sce,
                             dplyr::filter(Group%in%c("Complete"))%>%
                             dplyr::pull(Clone)%>%unique()
   } else{
-    select_clones<-select_clones
+    select_clones<-select_exact
   }
   sce@metadata$NGT<-sce@metadata$NGT%>%dplyr::filter(Clone%in%select_clones)
   sce@metadata$Clones<-sce@metadata$Clones%>%dplyr::filter(Clone%in%select_clones)
