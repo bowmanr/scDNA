@@ -17,9 +17,13 @@ get_own_path<-function(sce,start_name,goal_name){
                               next_state=gsub('^.|.$', '',gsub("", "_",stringr::str_pad(levels(RL_output$next_state)[clone_to_goal_clone[iter+1]], length(unique(sce@metadata$Architecture$final_annot)), pad = "0"))))
     check_sub_var$reward<-as.data.frame(RL_output)%>%
       dplyr::filter((current_state==(clone_to_goal_clone)[iter][[1]]$name) &(next_state==(clone_to_goal_clone)[iter+1][[1]]$name))%>%
+    dplyr::(arrange(desc(Q_values_normalized)%>%
+    dplyr::(slice(c(1))%>%
       dplyr::pull(reward)
     check_sub_var$mutation_taken<-as.data.frame(RL_output)%>%
       dplyr::filter((current_state==(clone_to_goal_clone)[iter][[1]]$name) &(next_state==(clone_to_goal_clone)[iter+1][[1]]$name))%>%
+       dplyr::(arrange(desc(Q_values_normalized)%>%
+    dplyr::(slice(c(1))%>%   
       dplyr::pull(action_type)
     WT_to_state_policy<-rbind(WT_to_state_policy,check_sub_var)
   }
