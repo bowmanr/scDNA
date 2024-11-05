@@ -1,6 +1,6 @@
 Package: scDNA
 Title: Analyzing single cell DNA sequencing data
-Version: 1.0.1.9000
+Version: 1.1
 Authors@R: 
     person(given = "Bobby",
            family = "Bowman",
