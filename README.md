@@ -18,7 +18,7 @@ downstream analysis.
 ## Installation
 
 You can install (re-install) the current version (1.1) of scDNA below
-
+This package is best suited for R >=V4.3.1 and will function on standard workstations. Typical install time should be less than 5 minutes. Average run time from beginning to end of analysis will vary by sample size but should not exceed 30 minutes.
 ``` r
 remotes::install_github("bowmanr/scDNA",force=TRUE)
 ```
