@@ -259,7 +259,7 @@ trajectory_of_interest_BSCITE_format<-function(sce,trajectory=sce@metadata$Traje
 #' @export
 #'
 #' @examples
-trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories[[1]],save_filename=NULL){
+trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories[[1]],save_filename=NULL,tree_flag=FALSE){
   temp_traj<-trajectory
   if(class(temp_traj)=="list"){
     new_net<-as.data.frame(do.call(rbind, temp_traj))%>%distinct
