@@ -175,10 +175,10 @@ trajectory_of_interest_BSCITE_format<-function(sce,trajectory=sce@metadata$Traje
   
   
   
-  bscite_figure_df<-bscite_figure_df%>%rename(current_state="from",
-                                              next_state="to",
-                                              reward="value",
-                                              node_name="type")
+  bscite_figure_df<-bscite_figure_df%>%rename(from="current_state",
+                                              to="next_state",
+                                              value="reward",
+                                              type="node_name")
   
   data_bscite<-toVisNetworkData(igraph::graph_from_data_frame(bscite_figure_df))
   
@@ -186,8 +186,8 @@ trajectory_of_interest_BSCITE_format<-function(sce,trajectory=sce@metadata$Traje
     dplyr::inner_join(RL%>%                              
                  dplyr::select(next_state,observed_states)%>%
                  distinct%>%                                      
-                 rename(next_state="label")%>%
-                 rename(observed_states="group"),
+                 rename(label="next_state")%>%
+                 rename(group="observed_states"),
                by="label")
   data_bscite$nodes <-data_bscite$nodes%>%
     dplyr::left_join(weights_unique_list,by="label")%>%
@@ -254,12 +254,12 @@ trajectory_of_interest_BSCITE_format<-function(sce,trajectory=sce@metadata$Traje
 #' @param sce SingleCellExperiment object containing NGT matrix for clone identification.
 #' @param trajectory Put in entire Trajectory you are interested in such as 'sce at metadata$Trajectories[[1]]'
 #' @param save_filename file location to save file. Currently, must end it with .html extension.
-#'
+#' @param tree_flag layout structure as a tree
 #' @return
 #' @export
 #'
 #' @examples
-trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories[[1]],save_filename=NULL){
+trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories[[1]],save_filename=NULL,tree_flag=FALSE){
   temp_traj<-trajectory
   if(class(temp_traj)=="list"){
     new_net<-as.data.frame(do.call(rbind, temp_traj))%>%distinct
@@ -282,16 +282,18 @@ trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories
   new_net$current_state<- as.character(as.numeric(gsub("_", "",new_net$current_state)))
   new_net$next_state<- as.character(as.numeric(gsub("_", "",new_net$next_state)))
   #colnames(new_net)<-c("from","to","value","type")
-  new_net<-new_net%>%rename(current_state="from",
-                            next_state="to",
-                            reward="value",
-                            mutation_taken="type")
+  new_net<-new_net%>%rename(from="current_state",
+                            to="next_state",
+                            value="reward",
+                            type="mutation_taken")
   data2<-visNetwork::toVisNetworkData(igraph::graph_from_data_frame(new_net))
   
   
   data2$nodes<-data2$nodes%>%dplyr::inner_join(RL%>%
-                                          dplyr::select(next_state,observed_states)%>%distinct%>%
-                                          rename(next_state="label")%>%rename(observed_states="group"),
+                                          dplyr::select(next_state,observed_states)%>%
+                                               distinct%>%
+                                          rename(label="next_state")%>%
+                                               rename(group="observed_states"),
                                         by="label")
   data2$nodes<-data2$nodes%>%dplyr::mutate(group=ifelse(group==1,
                                                  "observed",
@@ -325,7 +327,30 @@ trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories
            font.vadjust=(-30))
   
   if(is.null(save_filename)){
+    if(tree_flag){
     visNetwork::visNetwork(nodes = data2$nodes, edges = data2$edges)%>%#,width = "100%",height = "100%")%>% 
+    visNetwork::visEdges(arrows = "to")%>%
+    visNetwork::visLegend(useGroups = F,
+              zoom = F,
+              addNodes = data.frame(label=c("observed","unobserved"),
+                                    shape=c("circle","circle"),
+                                    color=c("darkred","grey")),
+              addEdges = data.frame(label=c("ADO",
+                                            "forward_ADO",
+                                            "mutation",
+                                            "no action"),
+                                    color=c("green","magenta","black","blue"),
+                                    dashes=c(TRUE,TRUE,FALSE,FALSE),
+                                    font.align="top",
+                                    font.size=20,
+                                    font.vadjust=(-10)))%>%
+    #visHierarchicalLayout(direction="UD",levelSeparation = 500)%>%
+    visNetwork::visLayout(randomSeed = 44)%>%  
+    visIgraphLayout(layout = "layout_with_sugiyama")%>%
+    visNetwork::visInteraction(dragNodes = TRUE, dragView = FALSE, zoomView = FALSE)#%>%visSave(file = "WT_to_match_clonograph.html",)
+    }
+    else{
+      visNetwork::visNetwork(nodes = data2$nodes, edges = data2$edges)%>%#,width = "100%",height = "100%")%>% 
     visNetwork::visEdges(arrows = "to")%>%
     visNetwork::visLegend(useGroups = F,
               zoom = F,
@@ -345,8 +370,33 @@ trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories
     visNetwork::visLayout(randomSeed = 44)%>%  
     #visIgraphLayout(layout = "layout_with_sugiyama")%>%
     visNetwork::visInteraction(dragNodes = TRUE, dragView = FALSE, zoomView = FALSE)#%>%visSave(file = "WT_to_match_clonograph.html",)
+    }
   }else{
+    if(tree_flag){
     visNetwork::visNetwork(nodes = data2$nodes, edges = data2$edges)%>%#,width = "100%",height = "100%")%>% 
+      visNetwork::visEdges(arrows = "to")%>%
+      visNetwork::visLegend(useGroups = F,
+                            zoom = F,
+                            addNodes = data.frame(label=c("observed","unobserved"),
+                                                  shape=c("circle","circle"),
+                                                  color=c("darkred","grey")),
+                            addEdges = data.frame(label=c("ADO",
+                                                          "forward_ADO",
+                                                          "mutation",
+                                                          "no action"),
+                                                  color=c("green","magenta","black","blue"),
+                                                  dashes=c(TRUE,TRUE,FALSE,FALSE),
+                                                  font.align="top",
+                                                  font.size=20,
+                                                  font.vadjust=(-10)))%>%
+      #visHierarchicalLayout(direction="UD",levelSeparation = 500)%>%
+      visNetwork::visLayout(randomSeed = 44)%>%  
+      visIgraphLayout(layout = "layout_with_sugiyama")%>%
+      visNetwork::visInteraction(dragNodes = TRUE, dragView = FALSE, zoomView = FALSE)%>%
+      visNetwork::visSave(file = save_filename)
+    }
+    else{
+      visNetwork::visNetwork(nodes = data2$nodes, edges = data2$edges)%>%#,width = "100%",height = "100%")%>% 
       visNetwork::visEdges(arrows = "to")%>%
       visNetwork::visLegend(useGroups = F,
                             zoom = F,
@@ -367,7 +417,7 @@ trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories
       #visIgraphLayout(layout = "layout_with_sugiyama")%>%
       visNetwork::visInteraction(dragNodes = TRUE, dragView = FALSE, zoomView = FALSE)%>%
       visNetwork::visSave(file = save_filename)
-    
+      }
     
   } 
 }
