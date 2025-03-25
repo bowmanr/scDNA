@@ -13,16 +13,16 @@ visualize_full_network<-function(sce,save_filename=NULL){
   RL<-sce@metadata$RL_info
   temp_traj<-RL%>%as.data.frame%>%
     dplyr::select(current_state,next_state,reward,action_type)%>%
-    rename(action_type="mutation_taken")
+    dplyr::rename(mutation_taken="action_type")
   new_net<-temp_traj
 
   new_net$current_state<- as.character(as.numeric(gsub("_", "",new_net$current_state)))
   new_net$next_state<- as.character(as.numeric(gsub("_", "",new_net$next_state)))
   #colnames(new_net)<-c("from","to","value","type")
-  new_net<-new_net%>%rename(current_state="from",
-                            next_state="to",
-                            reward="value",
-                            mutation_taken="type")
+  new_net<-new_net%>%dplyr::rename(from="current_state",
+                            to="next_state",
+                            value="reward",
+                            type="mutation_taken")
 
   data_frame_clarity <- dplyr::inner_join(sce@metadata$Architecture, 
                                           as.data.frame(sce@metadata$Clones) %>% 
@@ -41,8 +41,8 @@ visualize_full_network<-function(sce,save_filename=NULL){
   data2$nodes<-data2$nodes%>%dplyr::inner_join(RL%>%as.data.frame%>%
                                           dplyr::select(next_state,observed_states)%>%
                                             distinct%>%
-                                            rename(next_state="label")%>%
-                                            rename(observed_states="group"),
+                                            dplyr::rename(label="next_state")%>%
+                                            dplyr::rename(group="observed_states"),
                                         by="label")
   data2$nodes<-data2$nodes%>%dplyr::mutate(group=ifelse(group==1,
                                                  "observed",
@@ -175,7 +175,7 @@ trajectory_of_interest_BSCITE_format<-function(sce,trajectory=sce@metadata$Traje
   
   
   
-  bscite_figure_df<-bscite_figure_df%>%rename(from="current_state",
+  bscite_figure_df<-bscite_figure_df%>%dplyr::dplyr::rename(from="current_state",
                                               to="next_state",
                                               value="reward",
                                               type="node_name")
@@ -186,8 +186,8 @@ trajectory_of_interest_BSCITE_format<-function(sce,trajectory=sce@metadata$Traje
     dplyr::inner_join(RL%>%                              
                  dplyr::select(next_state,observed_states)%>%
                  distinct%>%                                      
-                 rename(label="next_state")%>%
-                 rename(group="observed_states"),
+                 dplyr::rename(label="next_state")%>%
+                 dplyr::rename(group="observed_states"),
                by="label")
   data_bscite$nodes <-data_bscite$nodes%>%
     dplyr::left_join(weights_unique_list,by="label")%>%
@@ -196,9 +196,9 @@ trajectory_of_interest_BSCITE_format<-function(sce,trajectory=sce@metadata$Traje
   data_bscite$nodes<-data_bscite$nodes%>%
     dplyr::inner_join(data_bscite$edges%>%
                  dplyr::select(to,type)%>%
-                 rename(to="id"),by="id")%>%
+                 dplyr::rename(to="id"),by="id")%>%
     dplyr::select(-label)%>%
-    rename(type="label")
+    dplyr::rename(type="label")
   
   data_bscite$nodes<-data_bscite$nodes%>%
     dplyr::mutate(font.vadjust=(0),
@@ -228,7 +228,7 @@ trajectory_of_interest_BSCITE_format<-function(sce,trajectory=sce@metadata$Traje
            font.hadjust=(-50))%>%
     #font.vadjust=(-30),
     #font.align="top")%>%
-    rename(value="weight")
+    dplyr::rename(value="weight")
     
   if(is.null(save_filename)){
     visNetwork::visNetwork(nodes = data_bscite$nodes, edges = data_bscite$edges)%>%#,width = "100%",height = "100%")%>% 
@@ -282,7 +282,7 @@ trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories
   new_net$current_state<- as.character(as.numeric(gsub("_", "",new_net$current_state)))
   new_net$next_state<- as.character(as.numeric(gsub("_", "",new_net$next_state)))
   #colnames(new_net)<-c("from","to","value","type")
-  new_net<-new_net%>%rename(from="current_state",
+  new_net<-new_net%>%dplyr::rename(from="current_state",
                             to="next_state",
                             value="reward",
                             type="mutation_taken")
@@ -292,8 +292,8 @@ trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories
   data2$nodes<-data2$nodes%>%dplyr::inner_join(RL%>%
                                           dplyr::select(next_state,observed_states)%>%
                                                distinct%>%
-                                          rename(label="next_state")%>%
-                                               rename(group="observed_states"),
+                                          dplyr::rename(label="next_state")%>%
+                                               dplyr::rename(group="observed_states"),
                                         by="label")
   data2$nodes<-data2$nodes%>%dplyr::mutate(group=ifelse(group==1,
                                                  "observed",
