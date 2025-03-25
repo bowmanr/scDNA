@@ -174,7 +174,7 @@ trajectory_of_interest_BSCITE_format<-function(sce,trajectory=sce@metadata$Traje
   
   
   
-  bscite_figure_df<-bscite_figure_df%>%dplyr::dplyr::rename(from="current_state",
+  bscite_figure_df<-bscite_figure_df%>%dplyr::rename(from="current_state",
                                               to="next_state",
                                               value="reward",
                                               type="node_name")
