@@ -3,7 +3,6 @@
 #'
 #' @param save_filename file location to save file. Currently, must end it with .html extension.
 #' @param sce  SingleCellExperiment object containing NGT matrix for clone identification.
-#'
 #' @return interactive for the Reinforcement Learning Trajectory
 #' @export
 #'
@@ -254,7 +253,7 @@ trajectory_of_interest_BSCITE_format<-function(sce,trajectory=sce@metadata$Traje
 #' @param sce SingleCellExperiment object containing NGT matrix for clone identification.
 #' @param trajectory Put in entire Trajectory you are interested in such as 'sce at metadata$Trajectories[[1]]'
 #' @param save_filename file location to save file. Currently, must end it with .html extension.
-#'
+#' @param tree_flag save layout of clones as a tree structure instead of free form
 #' @return
 #' @export
 #'
