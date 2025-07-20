@@ -10,6 +10,7 @@
 visualize_full_network<-function(sce,save_filename=NULL){
   
   RL<-sce@metadata$RL_info
+  
   temp_traj<-RL%>%as.data.frame%>%
     dplyr::select(current_state,next_state,reward,action_type)%>%
     dplyr::rename(mutation_taken="action_type")
