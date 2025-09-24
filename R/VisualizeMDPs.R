@@ -254,13 +254,14 @@ trajectory_of_interest_BSCITE_format<-function(sce,trajectory=sce@metadata$Traje
 #' @param sce SingleCellExperiment object containing NGT matrix for clone identification.
 #' @param trajectory Put in entire Trajectory you are interested in such as 'sce at metadata$Trajectories[[1]]'
 #' @param save_filename file location to save file. Currently, must end it with .html extension.
+#' @param tree_flag If layout should be a tree design
+#'
 #' @return
 #' @export
 #'
 #' @examples
-trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories[[1]],save_filename=NULL){
+trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories[[1]],save_filename=NULL,tree_flag=FALSE){
   temp_traj<-trajectory
-  tree_flag=FALSE
   if(class(temp_traj)=="list"){
     new_net<-as.data.frame(do.call(rbind, temp_traj))%>%distinct
   }else{
