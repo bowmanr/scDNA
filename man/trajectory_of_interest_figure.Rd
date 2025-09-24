@@ -2,21 +2,24 @@
 % Please edit documentation in R/VisualizeMDPs.R
 \name{trajectory_of_interest_figure}
 \alias{trajectory_of_interest_figure}
-\title{Individual trajectory of interest Plots}
+\title{Single Trajectory visualization of interest.}
 \usage{
 trajectory_of_interest_figure(
   sce,
   trajectory = sce@metadata$Trajectories[[1]],
-  save_filename = NULL
+  save_filename = NULL,
+  tree_flag = FALSE
 )
 }
 \arguments{
 \item{sce}{SingleCellExperiment object containing NGT matrix for clone identification.}
 
-\item{trajectory}{Put in entire Trajectory you are interested in such as 'sce at metadata$Trajectories[\link{1}]'}
+\item{trajectory}{This is any trajectory you wanted to create in the metadata$Trajectory}
 
 \item{save_filename}{file location to save file. Currently, must end it with .html extension.}
+
+\item{tree_flag}{set TRUE if you want a tree layout, default is FALSE and freeform to move around}
 }
 \description{
-Individual trajectory of interest Plots
+Single Trajectory visualization of interest.
 }
