@@ -196,9 +196,9 @@ trajectory_of_interest_BSCITE_format<-function(sce,trajectory=sce@metadata$Traje
   data_bscite$nodes<-data_bscite$nodes%>%
     dplyr::inner_join(data_bscite$edges%>%
                  dplyr::select(to,type)%>%
-                 dplyr::rename(to="id"),by="id")%>%
+                 dplyr::rename(id="to"),by="id")%>%
     dplyr::select(-label)%>%
-    dplyr::rename(type="label")
+    dplyr::rename(label="type")
   
   data_bscite$nodes<-data_bscite$nodes%>%
     dplyr::mutate(font.vadjust=(0),
@@ -228,7 +228,7 @@ trajectory_of_interest_BSCITE_format<-function(sce,trajectory=sce@metadata$Traje
            font.hadjust=(-50))%>%
     #font.vadjust=(-30),
     #font.align="top")%>%
-    dplyr::rename(value="weight")
+    dplyr::rename(weight="value")
     
   if(is.null(save_filename)){
     visNetwork::visNetwork(nodes = data_bscite$nodes, edges = data_bscite$edges)%>%#,width = "100%",height = "100%")%>% 
