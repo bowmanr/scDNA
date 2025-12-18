@@ -154,21 +154,44 @@ variant_ID<-function(file,
       return(out)             
   } else if(length(sample_set)>2) {
       # annotate individually and then pump back out in list?
+    print("Merging variant tables across samples with suffixes...")
     
-      out<-lapply(total_variants,function(x){
-        annotated_variants<- annotate_variants(file,panel=panel,select_variants=x$id)
-        out_ind<-annotated_variants%>% 
-          dplyr::full_join(x,by="id")%>%
-          dplyr::filter(!is.na(id))%>%
-          dplyr::mutate(final_annot=dplyr::case_when(
-            is.na(final_annot)~id,
-            TRUE~final_annot))%>%
-          data.frame()
-        return(out_ind)
-      })
+    # Rename columns in each table before merging
+    total_variants_renamed <- purrr::map2(
+      total_variants,
+      sample_set,
+      ~ {
+        df <- .x
+        colnames(df) <- ifelse(
+          colnames(df) == "id",
+          "id",
+          paste0(colnames(df), "_", .y)
+        )
+        df
+      }
+    )
     
-      return(out)
+    # Merge all by "id"
+    total_variants_new <- purrr::reduce(total_variants_renamed, dplyr::full_join, by = "id")
+    
+    annotated_variants <- annotate_variants(file, panel = panel,
+                                            select_variants = total_variants_new$id)
+    
+    out <- annotated_variants %>%
+      dplyr::full_join(total_variants_new, by = "id") %>%
+      dplyr::filter(!is.na(id)) %>%
+      dplyr::mutate(final_annot = dplyr::case_when(is.na(final_annot) ~ id, TRUE ~ final_annot)) %>%
+      data.frame()
+    
+    if (nrow(out) == nrow(total_variants_new)) {
+      print("All variants accounted for")
+    } else {
+      print(paste("Lost", nrow(total_variants_new) - nrow(out),
+                  "variants out of", nrow(total_variants[[1]]),
+                  "total variants due to poor annotation."))
     }
+    return(out)
+  }
  
 }
 
