@@ -42,8 +42,7 @@ cut_x=order(head(tab,-round(0.1*(length(tab)))),decreasing = FALSE)[1]
 #print(paste("this is total cell count: ",dim(raw_data_to_check)[1]))
 #print(paste("this is minimum amplicons needed: ",cut_x))
 rownames(df2)<-df2$Cell
-df2<-df2%>%
-  dplyr::filter(Cell%in%sce@colData@rownames)
+#df2<-df2%>%dplyr::filter(Cell%in%sce@colData@rownames)
 # Make cut to minimum point. DO I include 0s in left_cut? hard to say right now.
 right_cut=raw_data_to_check[raw_data_to_check[,2]>=cut_x,]
 right_cut_cells = df2
@@ -149,8 +148,13 @@ colData(sce)$dna_score <-reduced_df$score
 colData(sce)$protein_entropy<-reduced_df$ent_score
 colData(sce)$outlier_score <-reduced_df$outlier_score
 colData(sce)$cell_label_confidence <- ifelse(reduced_df$outlier_score<=outlier_cutoff_val,"High_confidence","Low_confidence")
-colData(sce)$cell_label_confidence<-ifelse(reduced_df$score>=mean(new_hueristic2),colData(sce)$cell_label_confidence,"Poor_DNA")
 
+Fhat <- stats::ecdf(new_hueristic2)
+reduced_df<-reduced_df%>%
+    dplyr::mutate(ecdf_p_value= 1 - Fhat(score) + 1 / length(new_hueristic2))
+
+  
+colData(sce)$cell_label_confidence <- ifelse(reduced_df$ecdf_p_value<= 0.025, colData(sce)$cell_label_confidence,"Poor_DNA")
 return(sce)
 
 
