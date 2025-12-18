@@ -1,0 +1,349 @@
+# scDNA: R package for DNA+protein single cell DNA sequencing analysis
+
+Install scDNA package.
+
+``` r
+library(remotes)
+remotes::install_github("bowmanr/scDNA@dev",force=T)
+```
+
+loading in necessary libraries. If packages do not load, you may need to
+restart your R session after installation.
+
+Start off by loading the scDNA package, and pointing the system to a h5
+of interest. For speed purposes, I strongly suggest you have the file
+local as opposed to on the server. Change the folder path below to the
+match where you have placed the LAMA.dna+protein.h5 file.
+
+``` r
+sample_file<- "~/CodingCamp/Projects/scDNA_demo/LAMA.dna+protein.h5"
+#sample_file<-c("/Users/bowmanrl/Desktop/Review/MSK24.cells.loom")
+```
+
+First, we read in the h5 file to generate the variant outputs we seek.
+This function has 2 forms: 1) an exploratory phase, and a 2) refinement
+phase. These two phases are determined by 2 cutoff parameters in the
+function. The GT_cutoff is the fraction of cells that are successfully
+genotyped for initial filtering. The VAF_cutoff is the variant allele
+frequency cutoff and is the fraction of cells that are mutated for
+initial filtering of variants (as a percent so a value of 12 means 12%).
+
+To ensure the exploratory phase is used, set the GT_cutoff=0, and
+VAF_cutoff=0. This will produce all possible variants that may be of
+interest, disregarding quality of the cells. The refinement phase is
+used after we have ID-ed variants of interest and allows for quality
+control on the cells of expressing those variants. We recommend that to
+start with an exploratory phase first before jumping right to the
+refinement phase (GT_cutoff=35 and VAF_cutoff=5).
+
+The variant_outputs will tell you the Variant ID, along with the number
+of cells that are called wildtype, heterozygous, homozygous, or we can’t
+tell and it is labeled as Missing. Along with the genotyping_rate for
+the calls.
+
+The variants are annotated from nucleotide positions on the chromosomes
+to their standard gene nomenclature, then these are joined together into
+a single data frame. Afterwards, you can find the genes you are
+interested in. An exmaple of pulling out out 3 genes, and plotting the
+Genotyping rate vs the Variant Allele Frequency (VAF) for all cells.
+This is an essential transition point from the exploratory phase to the
+refinement phase.
+
+``` r
+#need to install SpareMatrixStats
+library(AnnotationDbi)
+variant_output<-variant_ID(file=sample_file,
+                           panel="MSK_RL",
+                            GT_cutoff=0,
+                             VAF_cutoff=0)
+
+
+genes_of_interest <- c("IDH2","NRAS","NPM1","TET2","FLT3","IDH1")
+```
+
+Using the above plot can help in determining which variants we should
+gain further insight into. As an example, we are looking for
+heterozygous mutations (near the 50% VAF), with good quality genotyping
+rate. The following is how to filter the table to reduce the table to
+variants of interest.
+
+``` r
+variants_of_interest<-variant_output%>%
+                        distinct()%>%
+                          dplyr::filter(Class=="Exon")%>%
+                          dplyr::filter(VAF>0.01)%>%
+                          dplyr::filter(genotyping_rate>85)%>%
+                          dplyr::filter(!is.na(CONSEQUENCE)&CONSEQUENCE!="synonymous")%>%
+                          dplyr::filter(SYMBOL%in%genes_of_interest)%>%   
+                          dplyr::arrange(desc(VAF))%>%
+                          dplyr::slice(c(1,2,3))
+```
+
+Now that we have variants of interest we want to explore further, more
+stringent gates are devised to pull out “good” quality cells to explore.
+In this case, we increase the genotyping quality (so there are less
+Missing counts compared to actually good calls). The other gating
+parameters are Depth read (DP_cutoff) which is the minimum number of
+reads necessary for a reliable genotype call in a single cell, the
+Allele Frequency bandpass filter (AF_cutoff) which is the deviation from
+0, 50, or 100% for a reliable call of WT, Het or Hom respectively. The
+last gating is the genotyping quality for indiviudal cells (GQ_cutoff)
+which is the minimum genotype quality necessary for a reliable genotype
+call. Afterwards this is put into a SingleCellExperiment object to
+standardize the data format for the rest of our package or to be used by
+others such as Suerat or dsb.
+
+``` r
+library(SingleCellExperiment)
+sce<-tapestri_h5_to_sce(file=sample_file,
+                      variant_set = variants_of_interest,
+                      GT_cutoff=90, 
+                      VAF_cutoff=0.01,
+                      DP_cutoff=10,
+                      GQ_cutoff=20,
+                      AF_cutoff=20)
+```
+
+This produces SingleCellExperiment object. Updates clones in the
+metadata for the quality check.
+
+``` r
+sce<-enumerate_clones(sce, replicates = 500)
+sce<-compute_clone_statistics(sce,skip_ploidy=FALSE)
+```
+
+We can now look at a clonograph of the data, select a subset of clones
+and plot another clonograph: The “Complete” vs “Other” is our caller for
+if cells are completely genotyped or not. This is based on if the cells
+have “passed” the genotyping quality (GQ) and read Depth (DP), and
+Allele Frequency (AF) cutoffs selected earlier on in the workflow. If a
+cell is labeled as “Other” it means the Genotype Analysis Toolkit (GATK)
+made a genotype call, but that it failed at least one of these cutoffs.
+
+``` r
+clonograph(sce)
+```
+
+Let’s get clones and for complete cells by subsetting
+
+``` r
+sce_subset<-select_clones(sce,
+                          ADO_cut=0.10,
+                          GQ_cut=30,
+                          DP_cut=10,
+                          select_exact=NULL)
+clonograph(sce_subset,complete_only=TRUE)
+```
+
+\##Reinforcement Learning Trajectory Analysis
+
+After developing the clonograph, there are two routes to for further
+analysis: 1) Trajectory Analysis of possible mutation order and cohort
+summarization, 2) Protein analysis for cell type identification.
+
+First we will discuss the trajectory analysis, then we will discuss
+protein analysis. The following function uses the trajectory_analysis
+function which finds a few different trajectories we can explore.
+
+``` r
+library(compiler)
+library(foreach)
+library(doParallel)
+library(visNetwork)
+library(igraph)
+enableJIT(3) #uncomment this line to speed up the trajectory analysis.
+sce_subset<-trajectory_analysis(sce_subset,use_ADO=TRUE)
+```
+
+This provides trajectories in <sce@metadata>\$Trajectories. We build 4
+common trajectories already: 1. shortest route for Wildtype (WT) to the
+most dominant clone 2. shortest route for Wildtype (WT) to a fully
+homozygous clone 3. All possible routes from Wildtype to the most
+dominant clone 4. shortest routes from Wildtype to all clones observed
+in the Clonograph
+
+To visualize these simply change the trajectory you are interested in
+<sce@metadata>\$Trajectories, and then drag around the nodes
+
+``` r
+trajectory_of_interest_figure(sce = sce_subset,trajectory = sce_subset@metadata$Trajectories[[2]],save_filename = NULL)
+```
+
+If you prefer to see mutations styled like BSCITE,we provide a function
+for that as well.
+
+``` r
+trajectory_of_interest_BSCITE_format(sce = sce_subset,trajectory = sce_subset@metadata$Trajectories[[2]],save_filename = NULL)
+```
+
+We can also visualize the entire network although it is usually quite
+messy.
+
+``` r
+visualize_full_network(sce = sce_subset,save_filename = NULL)
+```
+
+We can also give user defined state, find where it can go with the
+clonograph this is done by setting observed states variable equal to the
+ones that are observed in our dataframe. Which we then plot as normal.
+
+``` r
+start_state ="0_0_0" # Change based on problem and number of variants we are using
+goal_state = "1_1_1" # Change based on problem and number of varianrs we are using``
+
+sce_subset<-get_own_path(sce_subset,start_state,goal_state)
+
+trajectory_of_interest_figure(sce = sce_subset,trajectory = sce_subset@metadata$Trajectories[[5]],save_filename = NULL)
+```
+
+\##Protein Now we will demonstrate how to export the protein data to
+Seurat for clustering, and producing a UMAP. We also demonstrate our
+wrapper to normalize protein data with either CLR (base Seurat) or dsb
+if you have IGg controls. Coming soon, our own normalization method for
+protein information! Stay tuned!
+
+``` r
+library(dsb) 
+library(Seurat)
+droplet_metadata<- extract_droplet_size(sce)
+
+# Try changing bins=1000 to see overlap empty droplets and real ones
+ggplot(droplet_metadata, aes(x = dna_size, y = protein_size,color=Droplet_type )) +
+                  theme_bw() + 
+                  geom_density_2d(bins=1000)+
+                  geom_hline(yintercept =c(1.5,5),lty=2)+
+                  geom_vline(xintercept =c(0.1,1.5),lty=2)
+```
+
+After obtaining the protein matrix, we now want to extract background
+cells and normalize the protein. Both strategies to normalize the data
+are shown below.
+
+``` r
+background_droplets<-droplet_metadata%>%
+                          dplyr::filter(Droplet_type=="Empty")%>%
+                          dplyr::filter(dna_size<1.5&dna_size>0.15)%>%
+                          pull(Cell)
+
+sce_subset<-normalize_protein_data(sce=sce,
+                             metadata=droplet_metadata,
+                             method=c("dsb","CLR"),
+                             detect_IgG=TRUE,
+                             background_droplets=background_droplets)
+
+altExp(sce_subset)
+```
+
+We also incorporate advanced protein analysis involves getting some
+outlier scores, and stain index metrics to determine the effectiveness
+of your assay.
+
+``` r
+sce<-cell_confidence_labeling(sce)
+
+droplet_metadata<- extract_droplet_size(sce)
+droplet_metadata<-GetMembership(droplet_metadata)
+droplet_metadata<-GetStainIndex(droplet_metadata)
+
+reduced_cell_metadata<-droplet_metadata%>%
+  dplyr::filter(Cell%in%rownames(colData(sce)))%>%
+  dplyr::select(Cell,dna_size,amplicons,protein_size,proteins)
+alt_QC_df<-dplyr::inner_join(colData(sce)%>%
+                               as.data.frame%>%
+                               tibble::rownames_to_column(var="Cell")%>%
+                               as.data.frame,
+           reduced_cell_metadata,
+           by="Cell")
+
+ggplot(droplet_metadata,aes(x=dna_size, y=protein_size,color=Droplet_type))+
+  geom_density2d(bins=100)+
+  theme_minimal(base_size = 14)#+
+ggplot(alt_QC_df,aes(x=dna_size, y=protein_size,color=cell_label_confidence))+
+  geom_density2d(bins=100)+
+  theme_minimal(base_size = 14)#+
+ggplot(alt_QC_df,aes(x=outlier_score, y=protein_size,color=cell_label_confidence))+
+ geom_point(alpha=0.2)+theme_bw(base_size=14)
+ggplot(droplet_metadata,aes(x=dna_size,y=protein_size,color=Stain_index_protein_size))+
+  geom_point(alpha=0.2)+theme_bw(base_size=14)+ggtitle("Protein stain index")
+ggplot(droplet_metadata,aes(x=dna_size, y=protein_size, color=Stain_index_DNA_size))+
+  geom_point(alpha=0.2)+theme_bw(base_size=14)+ggtitle("DNA stain index")
+ggplot(droplet_metadata,aes(x=dna_size, y=protein_size, color=comp1.post))+
+  geom_point(alpha=0.2)+theme_bw(base_size=14)+ggtitle("cell likelihood")
+ggplot(droplet_metadata,aes(x=dna_size,y=amplicons,color=comp1.post))+
+  geom_point(alpha=0.2)+theme_bw(base_size=14)+ggtitle("DNA size vs amplicon hits")
+ggplot(droplet_metadata,aes(x=protein_size,y=proteins,color=comp1.post))+
+  geom_point(alpha=0.2)+theme_bw(base_size=14)+ggtitle("Protein size vs protein hits")
+ggplot(droplet_metadata,aes(x=dna_size,y=amplicons,color=Stain_index_DNA_size))+
+  geom_point(alpha=0.2)+theme_bw(base_size=14)+ggtitle("DNA size vs amplicon hits")
+ggplot(droplet_metadata,aes(x=protein_size,y=proteins,color=Stain_index_protein_size))+
+  geom_point(alpha=0.2)+theme_bw(base_size=14)+ggtitle("Protein size vs protein hits")
+```
+
+We can export our data to FCS files for viewing in FlowJo
+
+``` r
+library(Biobase)
+library(flowCore)
+library(flowViz)
+names(assays(altExp(sce_subset)))
+fcs_export(sce_subset,
+           slot="CLR_norm",
+           save_path="~/Desktop/sample_CLR.fcs")
+```
+
+Now we want to load in our data into Seurat. Keep in mind which
+normalization method for protein was used above. Comment out the one you
+do not want to use (or let it use CLR as it will currently overwrite the
+dsb one). Below follows the standard Seurat implementation where you
+apply nearest neighbor search, generate clusters, and build a UMAP.
+Afterwards, are some examples of further data exploration and plots to
+analyze your results.
+
+``` r
+library(Seurat)
+s<-Seurat::as.Seurat(x = altExp(sce_subset),counts="Protein",data="CLR_norm")
+s<-SeuratObject::RenameAssays(object = s, originalexp = 'Protein')
+
+colnames(s@meta.data)
+colnames(s@meta.data)[12]<-"TET2"
+colnames(s@meta.data)[13]<-"NPM1"
+colnames(s@meta.data)[14]<-"NRAS"
+colnames(s@meta.data)
+```
+
+``` r
+s <- Seurat::ScaleData(s, assay = "Protein")
+s <- Seurat::FindVariableFeatures(s,assay = "Protein")
+s <- Seurat::RunPCA(s, features = VariableFeatures(object = s))
+s <- Seurat::FindNeighbors(s, dims = 1:10)
+s <- Seurat::FindClusters(s, resolution = 0.5)
+# cluster and run umap (based directly on dsb normalized values without isotype controls)
+
+
+s <- FindNeighbors(object = s,
+                   dims = NULL,  
+                   k.param = 30)
+
+# direct graph clustering 
+s <- FindClusters(object = s, 
+                  assay = "Protein",
+                  resolution = 1, 
+                  algorithm = 3, 
+                  verbose = TRUE)
+
+# umap for visualization only; (this is optional)
+s = RunUMAP(object = s, 
+            seed.use = 1990, 
+            min.dist = 0.2, 
+            n.neighbors = 50, 
+            features=s@assays$Protein@var.features,
+            verbose = TRUE)
+
+DimPlot(s,reduction = "umap",group.by ="Clone" )
+
+FeaturePlot(s,features = c("CD19"))
+Idents(s)<-"Clone"
+Seurat::FindMarkers(s,ident.1 = "0_0_0",ident.2 = "1_1_1")
+
+Seurat::RidgePlot(s,features = "CD3")
+```
