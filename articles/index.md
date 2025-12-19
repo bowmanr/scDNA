@@ -2,6 +2,8 @@
 
 ### All vignettes
 
+- [Cell Type VAF
+  vignette](https://bowmanr.github.io/scDNA/articles/Cell_type_VAFs.md):
 - [CopyNumberVariation_tutorial](https://bowmanr.github.io/scDNA/articles/CNV_example_vignette.md):
 - [scDNA: Example for demultiplexing
   samples](https://bowmanr.github.io/scDNA/articles/Demultiplex_vignette.md):
