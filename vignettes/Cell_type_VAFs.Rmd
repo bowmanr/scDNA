@@ -1,0 +1,220 @@
+---
+title: "Cell Type VAF vignette"
+author: "Bobby Bowman and Michael Bowman"
+date: "2025-12-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+```{r load in libraries, warning=FALSE,eval=FALSE}
+library(scDNA)
+library(dplyr)
+library(Homo.sapiens)
+library(VariantAnnotation)
+library(GenomicRanges)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(BSgenome.Hsapiens.UCSC.hg19)
+library(ggplot2)
+library(SingleCellExperiment)
+library(Seurat)
+library(dsb) 
+library(AnnotationDbi)
+
+
+```
+
+This tutorial will discuss 2 separate ways to conduct cell type VAFs:
+1) The first is a variant approach style where cells will be labeled in bulk to identify clones and cell types will be labeled second
+2) the next is to identify cell types first, and find VAF info mutations seconds.
+
+
+## Variant first and cell types second analysis.
+
+We will first start with the same file we use in the basic starting tutorial, and find the 3 main variants of interest following the standard pipeline.
+
+
+```{r load in file,eval=FALSE}
+sample_file<- "../H5/LAMA.dna+protein.h5"
+```
+
+```{r,eval=FALSE}
+variant_output<-variant_ID(file=sample_file,
+                           panel="MSK_RL",
+                            GT_cutoff=0,
+                             VAF_cutoff=0)
+
+genes_of_interest <- c("IDH2","NRAS","NPM1","TET2","FLT3","IDH1")
+variants_of_interest<-variant_output%>%
+                        distinct()%>%
+                          dplyr::filter(Class=="Exon")%>% 
+                          dplyr::filter(VAF>0.01)%>%
+                          dplyr::filter(genotyping_rate>85)%>%
+                          dplyr::filter(!is.na(CONSEQUENCE)&CONSEQUENCE!="synonymous")%>%
+                          dplyr::filter(SYMBOL%in%genes_of_interest)%>%   
+                          dplyr::arrange(desc(VAF))%>%
+                          dplyr::slice(c(1,2,3))
+```
+
+```{r,eval=FALSE}
+sce<-tapestri_h5_to_sce(file=sample_file,
+                      variant_set = variants_of_interest,
+                      GT_cutoff=90, 
+                      VAF_cutoff=0.01,
+                      DP_cutoff=10,
+                      GQ_cutoff=20,
+                      AF_cutoff=20)
+sce<-enumerate_clones(sce, replicates = 500)
+sce<-compute_clone_statistics(sce,skip_ploidy=FALSE)
+
+```
+
+Now we will convert sce to seurat and follow the standard cell type identification
+
+```{r,eval=FALSE}
+droplet_metadata<- extract_droplet_size(sce)
+background_droplets<-droplet_metadata%>%
+                          dplyr::filter(Droplet_type=="Empty")%>%
+                          dplyr::filter(dna_size<1.5&dna_size>0.15)%>%
+                          pull(Cell)
+
+sce_subset<-normalize_protein_data(sce=sce,
+                             metadata=droplet_metadata,
+                             method=c("dsb","CLR"),
+                             detect_IgG=TRUE,
+                             background_droplets=background_droplets)
+
+s<-Seurat::as.Seurat(x = altExp(sce_subset),counts="Protein",data="CLR_norm")
+s<-SeuratObject::RenameAssays(object = s, originalexp = 'Protein')
+
+colnames(s@meta.data)
+colnames(s@meta.data)[12]<-"TET2"
+colnames(s@meta.data)[13]<-"NPM1"
+colnames(s@meta.data)[14]<-"NRAS"
+
+s <- Seurat::ScaleData(s, assay = "Protein")
+s <- Seurat::FindVariableFeatures(s,assay = "Protein")
+s <- Seurat::RunPCA(s, features = VariableFeatures(object = s))
+
+s <- FindNeighbors(object = s,
+                   dims = NULL,  
+                   k.param = 30, #30 nearest cells
+                   annoy.metric = "cosine")
+
+s <- FindClusters(object = s, 
+                  assay = "Protein",
+                  resolution = 0.4, 
+                  algorithm = 3, 
+                  verbose = TRUE)
+
+s = RunUMAP(object = s, 
+            seed.use = 1990, 
+            min.dist = 0.2, 
+            n.neighbors = 100, 
+            features=s@assays$Protein@var.features,
+            verbose = TRUE)
+
+DimPlot(s)
+marker_differences = FindAllMarkers(s)
+
+```
+
+
+## Variant First Clone identification
+
+After labeling cell types we can compare the overlap to our clone codes. We see a large portion of WT cells at 0_0_0 are Lymphoid.
+
+
+```{r,eval=FALSE}
+
+s<-RenameIdents(s,`0`="HSPC",`1`="Myeloid Blast",`2`="Monocytic Blast",`3`="HSC",`4`="Mature Monocyte",`5`="Lymphoid",`6`="DC",`7`="Other",`8`="HSPC",`9`="Other")
+s@meta.data$cell_type <-s@active.ident
+s@meta.data$cell_type <-factor(s@meta.data$cell_type,levels=c("HSC","HSPC","Myeloid Blast",
+                     "Monocytic Blast", "Mature Monocyte","DC",
+                     "Lymphoid","Other"))
+
+DimPlot(s,reduction = "umap",label = F,group.by = "cell_type",cols = pals::kelly(n=9)[-1] )&
+DimPlot(s,reduction = "umap",label = F,group.by="Clone")
+```
+
+We can further look at a heatmap to highlight the distribution of clones along each cell type. The Lymphoid cells are primarily in WT, while Monocytic cells occupy the 1_0_1 which are TET2 NRAS mutant. The other myeloid cells are primarily 1_1_0 which is TET2 NPM1 mutant.
+
+```{r, eval=FALSE}
+
+pheatmap::pheatmap(table(s@meta.data$cell_type,s@meta.data$Clone),
+                   scale = "row",
+                   color = colorRampPalette(rev(RColorBrewer::brewer.pal(n = 11, name = "RdBu")))(100))
+
+```
+
+
+## Cell type first and then finding specific VAF assessment
+Within our variant_ID function, we can take advantage of the demultiplexing functionality and treat each cell type as its own sample. Just be sure to change the cell_type column name to be "final_cluster." This will produce a variant table for each cell type.
+
+```{r,eval=FALSE}
+meta_data_data_frame_cell_type <- FetchData(s,vars = "cell_type")
+
+df_we_want<-meta_data_data_frame_cell_type%>%
+  dplyr::rename(final_cluster="cell_type")%>%
+  tibble::rownames_to_column(var="cell_names")%>%
+  dplyr::select(cell_names,final_cluster)
+
+
+cell_specific_variant<-variant_ID(file=sample_file,
+                           panel="MSK_RL",
+                            GT_cutoff=0,
+                            VAF_cutoff=0, 
+                           demultiplexed = df_we_want)
+
+
+```
+
+
+Let's build an enrichment plot to compare 2 separate cell populations, monocytic blasts and lymphoid, that should be distinct in mutational profiling. As some variants may not have been found in either population, we will first clean these up and assign them as 0 VAF. Let's also highlight 3 variants we know exist from the bulk population NRAS.G12R, TET2.R1516*, NPM1.287. Variants below the dashed line mean there is an enrichment of lymphoid cells while above it is an enrichment of monocytic blasts.
+
+
+
+```{r,eval=FALSE}
+
+cell_specific_variant<-cell_specific_variant %>%
+  mutate(`VAF_Lymphoid`= ifelse(is.na(`VAF_Lymphoid`), 0, `VAF_Lymphoid`))%>%
+  mutate(`VAF_Monocytic.Blast`=ifelse(is.na(`VAF_Monocytic.Blast`), 0, `VAF_Monocytic.Blast`))%>%
+  mutate(Color_group = case_when(
+    final_annot=="NRAS.G12R"~"NRAS.G12R",
+    final_annot=="TET2.R1516*"~"TET2.R1516*",
+    final_annot=="NPM1.287"~"NPM1.287",
+    TRUE~"Other"
+  ))%>%
+  mutate(Color_group=factor(Color_group,levels=c("TET2.R1516*","NPM1.287","NRAS.G12R","Other")))
+
+
+ggplot(cell_specific_variant,aes(x=`VAF_Lymphoid`, 
+             y=`VAF_Monocytic.Blast`,
+             color=Color_group))+
+  geom_point(size = 4,alpha=0.7)+
+  #scale_size_manual(values=c("VAF"=3L))+
+  #scale_color_manual(values=c("VAF"="#E75B64FF"))+
+  geom_abline(slope=1,intercept = 0, lty=2)+
+  scale_color_manual(values=c("NRAS.G12R" = RColorBrewer::brewer.pal(name="Greens",n=7)[7],
+                              "TET2.R1516*"= RColorBrewer::brewer.pal(name="Blues",n=7)[7],
+                              "NPM1.287" = RColorBrewer::brewer.pal(name="Reds",n=7)[7],
+                     "Other" = "grey70"))+
+  ggpubr::theme_classic2(base_size = 24)+
+  ggtitle("Lymphoid vs. Monocytic Blast")+
+  theme(axis.line.x= element_line(), 
+        axis.line.y= element_line(), 
+        plot.title= element_text(hjust=0.5),
+        legend.title=element_blank())+#,legend.position = "none")+
+  xlab("VAF Lymphoid")+
+  ylab("VAF Monocytic Blast")+
+  xlim(0, 100)+
+  ylim(0, 100)
+
+```
+
+
