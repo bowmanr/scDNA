@@ -13,7 +13,12 @@ platform. Functionality includes import of h5 files from Tapestri
 pipeline, basic variant annotation, genotype extraction, clone
 identification, and clonal trajectory inference. This package provides
 wrappers for normalizing protein data for scDNA+Protein libraries for
-downstream analysis.
+downstream analysis. You can check out utilities of our package in our pre-print below:
+
+[scDNA: Single Cell DNA analysis software toolkit for subclonality discovery and assessment](https://www.biorxiv.org/content/10.64898/2025.12.19.694255v1.abstract)
+Michael Bowman, Shreeya Gounder, Varsha Singh, Olga Shestova, Troy Robinson, Amy Zhang, Anushka Gandhi, Roopsha Bandopadhyay, Sheng F. Cai, Ross L. Levine, Saar I. Gill, Linde A. Miles, Robert L. Bowman
+bioRxiv 2025.12.19.694255; doi: https://doi.org/10.64898/2025.12.19.694255
+
 
 ## Installation
 
