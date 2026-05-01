@@ -16,7 +16,9 @@ assessment](https://www.biorxiv.org/content/10.64898/2025.12.19.694255v1.abstrac
 Michael Bowman, Shreeya Gounder, Varsha Singh, Olga Shestova, Troy
 Robinson, Amy Zhang, Anushka Gandhi, Roopsha Bandopadhyay, Sheng F. Cai,
 Ross L. Levine, Saar I. Gill, Linde A. Miles, Robert L. Bowman bioRxiv
-2025.12.19.694255; doi: <https://doi.org/10.64898/2025.12.19.694255>
+2025.12.19.694255; doi: <https://doi.org/10.64898/2025.12.19.694255> H5
+files to replicate data from this preprint can be found
+[here](https://drive.google.com/drive/folders/1rE3GFlLC0fj0hX6jFdk536iCyh1gB2_j?usp=drive_link).
 
 ## Installation
 
@@ -27,6 +29,7 @@ minutes. Average run time from beginning to end of analysis will vary by
 sample size but should not exceed 30 minutes.
 
 ``` r
+
 remotes::install_github("bowmanr/scDNA",force=TRUE)
 ```
 
@@ -94,6 +97,7 @@ introduced.
 Identify all variants within a sample.
 
 ``` r
+
 library(scDNA)
 library(dplyr)
 sample_file<- "test_file.h5"
@@ -106,6 +110,7 @@ variant_output<-variant_ID(file=sample_file,
 Identify mutations in genes of interest.
 
 ``` r
+
 genes_of_interest <- c("IDH2","NRAS","NPM1","TET2","FLT3","IDH1")
 variants_of_interest<-variant_output%>%
                           dplyr::filter(Class=="Exon")%>%
@@ -123,6 +128,7 @@ statistics mirror that seen in Figure 1
 stored in the metadata.
 
 ``` r
+
 sce<-tapestri_h5_to_sce(file=sample_file,variant_set = variants_of_interest)
 sce<-enumerate_clones(sce)
 sce<-compute_clone_statistics(sce,skip_ploidy=FALSE)
@@ -132,6 +138,7 @@ Simple function for producing a graph in the style of Figure 1D from
 [here](https://www.nature.com/articles/s41586-020-2864-x),
 
 ``` r
+
 clonograph(sce)
 ```
 
@@ -142,6 +149,7 @@ trajectory as in Figure 3
 [here](https://www.nature.com/articles/s41586-020-2864-x),
 
 ``` r
+
 sce<-trajectory_analysis(sce,use_ADO=TRUE)
 ```
 
@@ -150,6 +158,7 @@ performed and stored in separate slots. We tend to have favor dsb so
 far.
 
 ``` r
+
 droplet_metadata<- extract_droplet_size(sce)
 background_droplets<-droplet_metadata%>%
                           dplyr::filter(Droplet_type=="Empty")%>%

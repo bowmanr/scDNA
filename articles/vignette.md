@@ -3,6 +3,7 @@
 Install scDNA package.
 
 ``` r
+
 library(remotes)
 remotes::install_github("bowmanr/scDNA@dev",force=T)
 ```
@@ -16,6 +17,7 @@ local as opposed to on the server. Change the folder path below to the
 match where you have placed the LAMA.dna+protein.h5 file.
 
 ``` r
+
 sample_file<- "~/CodingCamp/Projects/scDNA_demo/LAMA.dna+protein.h5"
 #sample_file<-c("/Users/bowmanrl/Desktop/Review/MSK24.cells.loom")
 ```
@@ -50,6 +52,7 @@ This is an essential transition point from the exploratory phase to the
 refinement phase.
 
 ``` r
+
 #need to install SpareMatrixStats
 library(AnnotationDbi)
 variant_output<-variant_ID(file=sample_file,
@@ -68,6 +71,7 @@ rate. The following is how to filter the table to reduce the table to
 variants of interest.
 
 ``` r
+
 variants_of_interest<-variant_output%>%
                         distinct()%>%
                           dplyr::filter(Class=="Exon")%>%
@@ -94,6 +98,7 @@ standardize the data format for the rest of our package or to be used by
 others such as Suerat or dsb.
 
 ``` r
+
 library(SingleCellExperiment)
 sce<-tapestri_h5_to_sce(file=sample_file,
                       variant_set = variants_of_interest,
@@ -108,6 +113,7 @@ This produces SingleCellExperiment object. Updates clones in the
 metadata for the quality check.
 
 ``` r
+
 sce<-enumerate_clones(sce, replicates = 500)
 sce<-compute_clone_statistics(sce,skip_ploidy=FALSE)
 ```
@@ -121,12 +127,14 @@ cell is labeled as “Other” it means the Genotype Analysis Toolkit (GATK)
 made a genotype call, but that it failed at least one of these cutoffs.
 
 ``` r
+
 clonograph(sce)
 ```
 
 Let’s get clones and for complete cells by subsetting
 
 ``` r
+
 sce_subset<-select_clones(sce,
                           ADO_cut=0.10,
                           GQ_cut=30,
@@ -146,6 +154,7 @@ protein analysis. The following function uses the trajectory_analysis
 function which finds a few different trajectories we can explore.
 
 ``` r
+
 library(compiler)
 library(foreach)
 library(doParallel)
@@ -166,6 +175,7 @@ To visualize these simply change the trajectory you are interested in
 <sce@metadata>\$Trajectories, and then drag around the nodes
 
 ``` r
+
 trajectory_of_interest_figure(sce = sce_subset,trajectory = sce_subset@metadata$Trajectories[[2]],save_filename = NULL)
 ```
 
@@ -173,6 +183,7 @@ If you prefer to see mutations styled like BSCITE,we provide a function
 for that as well.
 
 ``` r
+
 trajectory_of_interest_BSCITE_format(sce = sce_subset,trajectory = sce_subset@metadata$Trajectories[[2]],save_filename = NULL)
 ```
 
@@ -180,6 +191,7 @@ We can also visualize the entire network although it is usually quite
 messy.
 
 ``` r
+
 visualize_full_network(sce = sce_subset,save_filename = NULL)
 ```
 
@@ -188,6 +200,7 @@ clonograph this is done by setting observed states variable equal to the
 ones that are observed in our dataframe. Which we then plot as normal.
 
 ``` r
+
 start_state ="0_0_0" # Change based on problem and number of variants we are using
 goal_state = "1_1_1" # Change based on problem and number of varianrs we are using``
 
@@ -203,6 +216,7 @@ if you have IGg controls. Coming soon, our own normalization method for
 protein information! Stay tuned!
 
 ``` r
+
 library(dsb) 
 library(Seurat)
 droplet_metadata<- extract_droplet_size(sce)
@@ -220,6 +234,7 @@ cells and normalize the protein. Both strategies to normalize the data
 are shown below.
 
 ``` r
+
 background_droplets<-droplet_metadata%>%
                           dplyr::filter(Droplet_type=="Empty")%>%
                           dplyr::filter(dna_size<1.5&dna_size>0.15)%>%
@@ -239,6 +254,7 @@ outlier scores, and stain index metrics to determine the effectiveness
 of your assay.
 
 ``` r
+
 sce<-cell_confidence_labeling(sce)
 
 droplet_metadata<- extract_droplet_size(sce)
@@ -282,6 +298,7 @@ ggplot(droplet_metadata,aes(x=protein_size,y=proteins,color=Stain_index_protein_
 We can export our data to FCS files for viewing in FlowJo
 
 ``` r
+
 library(Biobase)
 library(flowCore)
 library(flowViz)
@@ -300,6 +317,7 @@ Afterwards, are some examples of further data exploration and plots to
 analyze your results.
 
 ``` r
+
 library(Seurat)
 s<-Seurat::as.Seurat(x = altExp(sce_subset),counts="Protein",data="CLR_norm")
 s<-SeuratObject::RenameAssays(object = s, originalexp = 'Protein')
@@ -312,6 +330,7 @@ colnames(s@meta.data)
 ```
 
 ``` r
+
 s <- Seurat::ScaleData(s, assay = "Protein")
 s <- Seurat::FindVariableFeatures(s,assay = "Protein")
 s <- Seurat::RunPCA(s, features = VariableFeatures(object = s))

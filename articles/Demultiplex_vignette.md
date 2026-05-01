@@ -3,6 +3,7 @@
 install our package if you have not done so already.
 
 ``` r
+
 library(remotes)
 remotes::install_github("bowmanr/scDNA@dev",force=TRUE)
 ```
@@ -10,6 +11,7 @@ remotes::install_github("bowmanr/scDNA@dev",force=TRUE)
 Load in libraries
 
 ``` r
+
 library(scDNA)
 library(ggplot2)
 library(dplyr)
@@ -23,6 +25,7 @@ We assume you have already familiarized yourself with our single sample
 vignette, here we should the demultiplexing sample possibilities.
 
 ``` r
+
 file_bbmix="~/Lab/Core/scDNA_paper_figures/H5/BB_Mix1.dna+protein.h5"
 ```
 
@@ -30,6 +33,7 @@ run variant ID like normal, with no additional inputs, BUT we choose
 extremely high VAF and Genotyping Cut offs to detect SNPs.
 
 ``` r
+
 variant_output<-variant_ID(file_bbmix,
                             GT_cutoff=50,
                              VAF_cutoff=1)
@@ -38,6 +42,7 @@ variant_output<-variant_ID(file_bbmix,
 Filter variants of interest to reduce the SNPs we need.
 
 ``` r
+
 variant_set<-variant_output%>%
  # filter(Het<Hom|Het<WT)%>%
  # filter(WT>0&Hom>0)%>%
@@ -51,6 +56,7 @@ variant_set<-variant_output%>%
 run the tapestri thing like normal
 
 ``` r
+
 sce<-scDNA::tapestri_h5_to_sce(file=file_bbmix,
                     variant_set = variant_set)
 ```
@@ -65,6 +71,7 @@ varaints one. Lastly, expected_samples is how many samples we are
 expected to demultiplex.
 
 ``` r
+
 set.seed(1)
 cell_clust_df<-demultiplex_samples(sce,sensitivity_threshold=c(0.01,0.0001),expected_samples =5)
 ```
@@ -77,6 +84,7 @@ interest into tapestri_h5_to_sce to obtain a list of sce objects. The
 example below uses the same filtering for each sample for brevity.
 
 ``` r
+
 source("~/Lab/Core/scDNA-dev/R/variant_ID.R")
 variant_output_true<-variant_ID(file_bbmix,panel="MSK_RL",demultiplexed = cell_clust_df)
 genes_of_interest <- c("IDH2","NRAS","NPM1","TET2","FLT3","IDH1")
@@ -112,6 +120,7 @@ integrating multiple samples together with Seurat we have found the
 Harmony integration layer has worked well and recommend it
 
 ``` r
+
 for(sce_iter in 1:length(sce_list)){
   current_sce<-sce_list[[sce_iter]]
   current_sce<-enumerate_clones(current_sce, replicates = 500)

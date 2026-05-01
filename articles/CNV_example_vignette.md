@@ -6,6 +6,7 @@ In this tutorial we will go through an example of how we identify the
 CNV properties of samples to perform analysis.
 
 ``` r
+
 library(scDNA)
 library(dplyr)
 library(Homo.sapiens)
@@ -24,6 +25,7 @@ and complex karyotyping of del5q and a gain of chr8. First we start with
 our standard scDNA pipeline.
 
 ``` r
+
 sample_file = "../H5/CNV_example.dna+protein.h5"
 
 variant_output<-variant_ID(file=sample_file,
@@ -62,6 +64,7 @@ to a seurat object and follow standard pipelines to identify cell types
 in seurat
 
 ``` r
+
 droplet_metadata<- extract_droplet_size(sce)
 
 background_droplets<-droplet_metadata%>%
@@ -107,6 +110,7 @@ VlnPlot(s,idents = c("0","1","2","3","5","6"),features = c("CD34","CD117","CD123
 Differential marker expression to identify the cell type clusters.
 
 ``` r
+
 marker_check = FindAllMarkers(s)
 
 marker_check%>%group_by(cluster)%>%slice_head(n = 5)
@@ -116,6 +120,7 @@ Cell type labeling from Seurat protein content. This is currently
 determined manually.
 
 ``` r
+
 s<-RenameIdents(s,`0`="HSPC_CDP",`1`="NK",`2`="HSPC_MPP",`3`="Pre-DC",`4`="CD8+ T",`5`="Doublets",`6`="Granulocytes",`7`="CD4+ T")
 
 s@meta.data$cell_type <-s@active.ident
@@ -131,6 +136,7 @@ running the compute_clone_statistics() we call readDNA_CN_H5() with
 default settings inside.
 
 ``` r
+
 meta_data_data_frame_cell_type <- FetchData(s,vars = "cell_type")
 
 sce=readDNA_CN_H5(sce = sce,
@@ -145,6 +151,7 @@ Experiment, altExp() function. We show how to extract the ploidy and
 adapt it into a dataframe for further analysis.
 
 ``` r
+
 CNV_sce = altExp(sce,e="CNV")
 CNV_df<-CNV_sce@metadata$full_ploidy%>%
   dplyr::filter(!is.na(ploidy)&ploidy!=-Inf&ploidy!=Inf)%>%
@@ -163,6 +170,7 @@ mutation status. We will see myeloid cells and TP53-mutation status
 alter the complex karyotyping.
 
 ``` r
+
 #Chromosome and cell type
 gg_chrom_vs_celltype<-ggplot(CNV_df%>%filter(CHROM%in%c(5,8,13,4)),aes(x=CHROM,y=(2^(1+ploidy)),fill=cell_type))+
   geom_boxplot()+geom_hline(yintercept = 2,linetype='dashed')+

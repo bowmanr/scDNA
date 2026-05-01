@@ -1,6 +1,7 @@
 # Cell Type VAF vignette
 
 ``` r
+
 library(scDNA)
 library(dplyr)
 library(Homo.sapiens)
@@ -28,10 +29,12 @@ tutorial, and find the 3 main variants of interest following the
 standard pipeline.
 
 ``` r
+
 sample_file<- "../H5/LAMA.dna+protein.h5"
 ```
 
 ``` r
+
 variant_output<-variant_ID(file=sample_file,
                            panel="MSK_RL",
                             GT_cutoff=0,
@@ -50,6 +53,7 @@ variants_of_interest<-variant_output%>%
 ```
 
 ``` r
+
 sce<-tapestri_h5_to_sce(file=sample_file,
                       variant_set = variants_of_interest,
                       GT_cutoff=90, 
@@ -65,6 +69,7 @@ Now we will convert sce to seurat and follow the standard cell type
 identification
 
 ``` r
+
 droplet_metadata<- extract_droplet_size(sce)
 background_droplets<-droplet_metadata%>%
                           dplyr::filter(Droplet_type=="Empty")%>%
@@ -117,6 +122,7 @@ After labeling cell types we can compare the overlap to our clone codes.
 We see a large portion of WT cells at 0_0_0 are Lymphoid.
 
 ``` r
+
 s<-RenameIdents(s,`0`="HSPC",`1`="Myeloid Blast",`2`="Monocytic Blast",`3`="HSC",`4`="Mature Monocyte",`5`="Lymphoid",`6`="DC",`7`="Other",`8`="HSPC",`9`="Other")
 s@meta.data$cell_type <-s@active.ident
 s@meta.data$cell_type <-factor(s@meta.data$cell_type,levels=c("HSC","HSPC","Myeloid Blast",
@@ -133,6 +139,7 @@ Monocytic cells occupy the 1_0_1 which are TET2 NRAS mutant. The other
 myeloid cells are primarily 1_1_0 which is TET2 NPM1 mutant.
 
 ``` r
+
 pheatmap::pheatmap(table(s@meta.data$cell_type,s@meta.data$Clone),
                    scale = "row",
                    color = colorRampPalette(rev(RColorBrewer::brewer.pal(n = 11, name = "RdBu")))(100))
@@ -146,6 +153,7 @@ Just be sure to change the cell_type column name to be “final_cluster.”
 This will produce a variant table for each cell type.
 
 ``` r
+
 meta_data_data_frame_cell_type <- FetchData(s,vars = "cell_type")
 
 df_we_want<-meta_data_data_frame_cell_type%>%
@@ -171,6 +179,7 @@ there is an enrichment of lymphoid cells while above it is an enrichment
 of monocytic blasts.
 
 ``` r
+
 cell_specific_variant<-cell_specific_variant %>%
   mutate(`VAF_Lymphoid`= ifelse(is.na(`VAF_Lymphoid`), 0, `VAF_Lymphoid`))%>%
   mutate(`VAF_Monocytic.Blast`=ifelse(is.na(`VAF_Monocytic.Blast`), 0, `VAF_Monocytic.Blast`))%>%
