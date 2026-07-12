@@ -20,6 +20,14 @@ trajectory_of_interest_figure(
 
 \item{tree_flag}{set TRUE if you want a tree layout, default is FALSE and freeform to move around}
 }
+\value{
+interactive graph for the Reinforcement Learning Trajectory
+}
 \description{
-Single Trajectory visualization of interest.
+The main trajectory plotting function for a given trajectory. It will show red circles indicating observed clones, grey circles which are unobserved. The size of the circle represents the abundance of the clones. Black lines indicate a mutation is acquired (WT->HET->HOM), green is ADO(HET->WT or HOM->HET), pink and is forward ADO (HET->HOM, or WT->HET).
+}
+\examples{
+\dontrun{
+trajectory_of_interest_figure(sce = sce_subset,trajectory = sce_subset(at)metadata$Trajectories[[2]],save_filename = NULL)
+}
 }

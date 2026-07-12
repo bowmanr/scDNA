@@ -1,13 +1,17 @@
-
-
+#' Extract Droplet Size
+#' @description
 #' Extract protein library size, dna library size, and amplicon size for all droplets.
 #'
-#' @param file path to h5 file
-#' @param sce singleCellExperiment Object
-#' @return metadata matrix
+#' @param sce singleCellExperiment object
+#'
+#' @return metadata dataframe which contains droplet_name, dna_size, amplicon, protein_id, and protein_size as well as the NGT matrix
 #' @export
+#' @importFrom magrittr %>%
 #'
 #' @examples
+#' \dontrun{
+#' droplet_metadata<- extract_droplet_size(sce)
+#' }
 extract_droplet_size<- function(sce){
   file<-sce@metadata$file
   all_protein_droplets <- rhdf5::h5read(file=file,name="/all_barcodes/protein_read_counts/layers/read_counts")
@@ -23,12 +27,16 @@ extract_droplet_size<- function(sce){
                              "proteins"=Matrix::colSums(all_protein_droplets > 0),
                             "protein_size"=log10(Matrix::colSums(all_protein_droplets)))
   md <- dplyr::inner_join(dna_size,protein_size)%>%
-         dplyr::mutate(Cell=gsub("-1","",Cell))
-  md<- md%>%
-          mutate(Droplet_type=case_when(
-                    Cell%in%colnames(sce)~"Cell",
-                    TRUE~"Empty"
-                  ))%>%
-          full_join(sce@metadata$NGT,by="Cell")
+         dplyr::mutate(Cell=gsub("-1","",Cell))%>%
+    dplyr::mutate(Droplet_type=dplyr::case_when(
+           Cell%in%colnames(sce)~"Cell",
+           TRUE~"Empty"
+         ))
+
+  if("NGT"%in%names(sce@metadata)){
+    message("NGT found in sce. Adding to metadata")
+    md<- md%>%dplyr::full_join(sce@metadata$NGT,by="Cell")
+  }
+
   return(md)
 }

@@ -2,15 +2,24 @@
 % Please edit documentation in R/add_cell_annotation.R
 \name{add_cell_annotation}
 \alias{add_cell_annotation}
-\title{Title}
+\title{Add Cell Annotation to Metadata}
 \usage{
 add_cell_annotation(sce, df)
 }
 \arguments{
-\item{sce}{}
+\item{sce}{the existing single cell experiment}
 
-\item{df}{}
+\item{df}{The new metadata dataframe wanted to be added. The df needs to have a column named "Cell" which is the cell names (colnames of the sce)}
+}
+\value{
+it returns an sce object with the new updated metadata integrated.
 }
 \description{
-Title
+A quick helper function that adds additional metadata to the existing sce. This is primarily used for demultiplexing and obtaining the cluster ID.
+}
+\examples{
+\dontrun{
+sce<-add_cell_annotation(sce,umap_df_final)
+}
+
 }

@@ -2,13 +2,23 @@
 % Please edit documentation in R/impute_cluster.R
 \name{impute_cluster}
 \alias{impute_cluster}
-\title{Title}
+\title{Impute cluster assignment from demultiplexing}
 \usage{
 impute_cluster(sce, by = "AF")
 }
 \arguments{
-\item{sce}{}
+\item{sce}{the single cell experiment object we need to}
+
+\item{by}{is which assay layer to use to determine the cluster imputation by. This should be set to "AF" (Allele Frequency) or "NGT".}
+}
+\value{
+the sce object with an updated metadata for cell cluster assignment called final_cluster
 }
 \description{
-Title
+This function will find the nearest distance (euclidean for "AF" and hamming for "NGT") to clusters identified for cells that need imputation. This will be added to
+}
+\examples{
+\dontrun{
+sce<-impute_cluster(sce,by="AF")
+}
 }

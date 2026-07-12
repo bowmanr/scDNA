@@ -2,15 +2,26 @@
 % Please edit documentation in R/compute_clone_statistics.R
 \name{compute_clone_statistics}
 \alias{compute_clone_statistics}
-\title{Title}
+\title{Compute Clone Statistics}
 \usage{
-compute_clone_statistics(sce, clone_size_cutoff = 10)
+compute_clone_statistics(sce, clone_size_cutoff = 10, skip_ploidy = TRUE)
 }
 \arguments{
 \item{sce}{input sce object}
 
-\item{clone_size_cutoff}{lower 95\% confidence interval cutoff for clone inclusion default=10}
+\item{clone_size_cutoff}{lower 95 percent confidence interval cutoff for clone inclusion default=10}
+
+\item{skip_ploidy}{(default is TRUE) to skip ploidy calculation. Ploidy is a less needed measure for a majority of analysis, so skipping provides speed up.}
+}
+\value{
+This returns a dataframe in the metadata of the sce object called sample_stats.
 }
 \description{
-Title
+This function obtains measures for clones including: Shannon Diversity, Number of Clones, number of mutations, Number of mutations in the dominant clone, and Dominant clone size.
+}
+\examples{
+\dontrun{
+sce<-compute_clone_statistics(sce,clone_size_cutoff=10,skip_ploidy=F)
+}
+
 }

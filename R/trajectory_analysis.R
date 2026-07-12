@@ -1,24 +1,35 @@
 #' Run Trajectory Analysis after extraction from SingleCellExperiment object
+#' @description
+#' This the main wrapper function for performing trajectory analysis using Reinforcement Learning. The output is the resulting network policies and common action policies from starting clones to final clones.
+#' This provides trajectories in sce(at)metadata$Trajectories. We build 4 common trajectories already:
+#' 1. shortest route for Wildtype (WT) to the most dominant clone
+#' 2. shortest route for Wildtype (WT) to a fully homozygous clone
+#' 3. All possible routes from Wildtype to the most dominant clone
+#' 4. shortest routes from Wildtype to all clones observed in the Clonograph
 #'
 #' @param sce is the SingleCellExperiment Object
-#' @importFrom igraph V
+#' @param use_ADO A bool that determines whether to consider ADO or not in the analysis. (default is TRUE)
+#'
 #' @return RL_analysis this returns a paths with metadata about the mutation order
 #' @export
+#' @importFrom magrittr %>%
 #' @examples
-#' 
+#' \dontrun{
+#' sce<- trajectory_analysis(sce,use_ADO=TRUE)
+#' }
 trajectory_analysis<-function(sce,use_ADO=TRUE){
-  
+
   mutation_states<-length(unique(sce@metadata$Architecture$final_annot))
   # This builds the theoretical Markov decision process (MDP) of all possible mutation combinations
   print("Building MDP")
-  
+
   adj_list<-BuildMDP(mutation_states,use_ADO)
   # we attach the weights as rewards for our list to design the possible and likely MDP.
   print("Adding Weighted Edges")
 
   adj_list<-attach_weights(sce,adj_list)
 
-  set.seed(281330800) #281-330-8004  
+  set.seed(281330800) #281-330-8004
   print("Starting Optimization")
   RL_output <-mdp_Q_learning_with_linklist(adj_list,discount=0.9,N=10000)
   print("Finished Optimization")
@@ -44,7 +55,7 @@ trajectory_analysis<-function(sce,use_ADO=TRUE){
     check_sub_var$mutation_taken<-(as.data.frame(RL_output)%>%
       dplyr::filter((current_state==WT_to_dom_clone[[iter]]$name) &(next_state==WT_to_dom_clone[[iter+1]]$name))%>%
       dplyr::pull(action_type))[action_idx[1]]
-    
+
     WT_to_dom_clone_policy<-rbind(WT_to_dom_clone_policy,check_sub_var)
   }
   print("Done with 1")
@@ -119,9 +130,9 @@ print("Done with 3")
       WT_to_all_observed_policy[[big_list_iter]]<-"No action taken: Starting clone is equal to ending clone"
     }
   }
-  
+
   print("Saving Data")
-  
+
   # need to reassign those from clone_code to mutation name order like Architecture id.
   sce@metadata$RL_info <-RL_output
   sce@metadata$Trajectories <- list("WT_to_dominant_clone"=WT_to_dom_clone_policy,

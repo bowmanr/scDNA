@@ -2,18 +2,18 @@
 % Please edit documentation in R/select_clones.R
 \name{select_clones}
 \alias{select_clones}
-\title{Select clones of interest on the basis QC metrics}
+\title{Select clones to keep for analysis.}
 \usage{
 select_clones(
   sce,
   ADO_cut = 0.1,
   GQ_cut = 30,
   DP_cut = 10,
-  select_exact = FALSE
+  select_exact = NULL
 )
 }
 \arguments{
-\item{sce}{a SingleCellExperiment object containing the Clones,Architecture, and NGT matrix}
+\item{sce}{a SingleCellExperiment object containing the Clones, Architecture, and NGT matrix}
 
 \item{ADO_cut}{maximum median allele dropout}
 
@@ -27,5 +27,10 @@ select_clones(
 a subset of the sce object
 }
 \description{
-Select clones of interest on the basis QC metrics
+Select clones of interest on the basis QC metrics or exact clone ID. This function subsets only the metadata dataframes not the entire SingleCellExperiment
+}
+\examples{
+\dontrun{
+sce_subset <- select_clones(sce, ADO_cut=0.10, GQ_cut=30, DP_cut=10, select_exact=NULL)
+}
 }

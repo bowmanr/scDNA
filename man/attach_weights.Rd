@@ -12,5 +12,10 @@ attach_weights(sce, adj_linklist)
 \item{adj_linklist}{this is an adjacency list for the theoretical states describing the MDP}
 }
 \description{
-Assigns observed counts as weights to the Markov Decision Process
+This function uses the abundance of observed clones as rewards for the RL. It also can penalize actions toward states based on ADO.
+}
+\examples{
+\dontrun{
+adj_list<-attach_weights(sce,adj_list)
+}
 }

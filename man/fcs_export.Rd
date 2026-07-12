@@ -2,7 +2,7 @@
 % Please edit documentation in R/fcs_export.R
 \name{fcs_export}
 \alias{fcs_export}
-\title{Title}
+\title{FCS Export}
 \usage{
 fcs_export(sce, slot = "DSB_norm", save_path = "~/sample_test.fcs")
 }
@@ -11,8 +11,16 @@ fcs_export(sce, slot = "DSB_norm", save_path = "~/sample_test.fcs")
 
 \item{slot}{which protein dataset to use. Options are DSB_norm (default), CLR_norm or raw}
 
-\item{save_path}{path to where fcs file should be saved}
+\item{save_path}{path to where fcs file should be saved.}
+}
+\value{
+it will save a file at the specified path.
 }
 \description{
-Title
+This function allows for protein data to be exported as an FCS file to be viewed in flow cytometry software.
+}
+\examples{
+\dontrun{
+fcs_export(sce,slot="DSB_norm",save_path ="~/sample_fcs_file.fcs")
+}
 }

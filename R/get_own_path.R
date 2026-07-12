@@ -1,13 +1,21 @@
-#' A way to navigate the MDP for any given starting root node to leaf node.
+#' Get Own Path From MDP
+#' @description
+#'  A way to navigate the MDP for a given starting root node to leaf node.
 #'
-#'@param sce a singleCellExperiment object
-#'@param start_name a clone_code of starting point. make sure it is less than goal_name
-#'@param goal_name a clone_code for the end point to get to. make sure it is larger than goal_name
-#'@export
-#'@return It augments the sce object in the Trajectories list in the meta data by adding another path
+#' @param sce a singleCellExperiment object
+#' @param start_name a clone_code of starting point. Make sure it is less than goal_name
+#' @param goal_name a clone_code for the end point to get to. Make sure it is larger than goal_name
+#'
+#' @export
+#' @importFrom magrittr %>%
+#' @return It augments the sce object in the Trajectories list in the meta data by adding another path
+#' @examples
+#' \dontrun{
+#' sce<-get_own_path(sce,start_name="0_0_0",goal_name="1_1_1")
+#' }
 get_own_path<-function(sce,start_name,goal_name){
   RL_output<-sce@metadata$RL_info
-  # TODO: check if goal state is bigger than start state and swap if needed.
+
   start_name<-as.character(as.numeric(gsub("_", "",start_name)))
   goal_name<-as.character(as.numeric(gsub("_", "",goal_name)))
   clone_to_goal_clone <-igraph::shortest_paths(sce@metadata$RL_net,from=start_name,to=goal_name,algorithm = "dijkstra")$vpath[[1]]
@@ -17,13 +25,13 @@ get_own_path<-function(sce,start_name,goal_name){
                               next_state=gsub('^.|.$', '',gsub("", "_",stringr::str_pad(levels(RL_output$next_state)[clone_to_goal_clone[iter+1]], length(unique(sce@metadata$Architecture$final_annot)), pad = "0"))))
     check_sub_var$reward<-as.data.frame(RL_output)%>%
       dplyr::filter((current_state==(clone_to_goal_clone)[iter][[1]]$name) &(next_state==(clone_to_goal_clone)[iter+1][[1]]$name))%>%
-    dplyr::arrange(desc(Q_values_normalized))%>%
+    dplyr::arrange(dplyr::desc(Q_values_normalized))%>%
     dplyr::slice(c(1))%>%
       dplyr::pull(reward)
     check_sub_var$mutation_taken<-as.data.frame(RL_output)%>%
       dplyr::filter((current_state==(clone_to_goal_clone)[iter][[1]]$name) &(next_state==(clone_to_goal_clone)[iter+1][[1]]$name))%>%
-       dplyr::arrange(desc(Q_values_normalized))%>%
-    dplyr::slice(c(1))%>%   
+       dplyr::arrange(dplyr::desc(Q_values_normalized))%>%
+    dplyr::slice(c(1))%>%
       dplyr::pull(action_type)
     WT_to_state_policy<-rbind(WT_to_state_policy,check_sub_var)
   }

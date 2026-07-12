@@ -7,7 +7,7 @@
 clonograph(sce, complete_only = FALSE, color_pal = "Reds", QC_stats = FALSE)
 }
 \arguments{
-\item{sce}{the singleCellExperiment Object with the clones, NGT, and architecture.}
+\item{sce}{the singleCellExperiment object with the clones, NGT, and architecture.}
 
 \item{complete_only}{logical to decide whether to plot only complete cells or also low quality cells, default=FALSE}
 
@@ -19,5 +19,10 @@ clonograph(sce, complete_only = FALSE, color_pal = "Reds", QC_stats = FALSE)
 A clonograph figure
 }
 \description{
-Plotting clonographs
+This function creates a plot we call a clonograph. This includes an abundance barplot over a the genotype heatmap. This figure is inspired by upset plots.
+}
+\examples{
+\dontrun{
+clonograph(sce,complete_only=TRUE,color_pals="Blues",QC_stats=T)
+}
 }

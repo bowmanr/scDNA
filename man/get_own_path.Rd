@@ -2,20 +2,25 @@
 % Please edit documentation in R/get_own_path.R
 \name{get_own_path}
 \alias{get_own_path}
-\title{A way to navigate the MDP for any given starting root node to leaf node.}
+\title{Get Own Path From MDP}
 \usage{
 get_own_path(sce, start_name, goal_name)
 }
 \arguments{
 \item{sce}{a singleCellExperiment object}
 
-\item{start_name}{a clone_code of starting point. make sure it is less than goal_name}
+\item{start_name}{a clone_code of starting point. Make sure it is less than goal_name}
 
-\item{goal_name}{a clone_code for the end point to get to. make sure it is larger than goal_name}
+\item{goal_name}{a clone_code for the end point to get to. Make sure it is larger than goal_name}
 }
 \value{
 It augments the sce object in the Trajectories list in the meta data by adding another path
 }
 \description{
-A way to navigate the MDP for any given starting root node to leaf node.
+A way to navigate the MDP for a given starting root node to leaf node.
+}
+\examples{
+\dontrun{
+sce<-get_own_path(sce,start_name="0_0_0",goal_name="1_1_1")
+}
 }

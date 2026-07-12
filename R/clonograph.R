@@ -1,36 +1,46 @@
 
 #' Plotting clonographs
+#' @description
+#' This function creates a plot we call a clonograph. This includes an abundance barplot over a the genotype heatmap. This figure is inspired by upset plots.
 #'
-#' @param sce the singleCellExperiment Object with the clones, NGT, and architecture.
+#'
+#' @param sce the singleCellExperiment object with the clones, NGT, and architecture.
 #' @param complete_only logical to decide whether to plot only complete cells or also low quality cells, default=FALSE
 #' @param color_pal brewer.pal pallete selection.
 #' @param QC_stats A true/false call to see other diagnostic plots under the clonograph (default=FALSE)
-#' @importFrom magrittr %<>%
-#' @return A clonograph figure
+#'
 #' @export
+#' @importFrom magrittr %<>%
+#' @importFrom magrittr %>%
+#' @import ggplot2
+#' @importFrom grid unit
+#' @return A clonograph figure
 #'
 #' @examples
+#' \dontrun{
+#' clonograph(sce,complete_only=TRUE,color_pals="Blues",QC_stats=T)
+#' }
 clonograph<-function(sce,
                      complete_only=FALSE,
                      color_pal="Reds",
                      QC_stats=FALSE){
 # Only changes made was converting the old dataframe to the sce@metadata object
-  
+
 # Extract out the sample of interest
-consolidated_clonal_abundance <- sce@metadata$Clones %>% 
-    dplyr::group_by(Clone, Group) %>% 
-  dplyr::mutate(AF_med = mean(AF_med), 
-                DP_med = mean(DP_med), GQ_med = mean(GQ_med)) %>% 
-  dplyr::select(!c(variants, Count)) %>% 
-  dplyr::distinct() %>% 
-  dplyr::rowwise() %>% 
-  dplyr::mutate(Count = ifelse(Group == "Other", n_Other, n_Complete)) %>% 
+consolidated_clonal_abundance <- sce@metadata$Clones %>%
+    dplyr::group_by(Clone, Group) %>%
+  dplyr::mutate(AF_med = mean(AF_med),
+                DP_med = mean(DP_med), GQ_med = mean(GQ_med)) %>%
+  dplyr::select(!c(variants, Count)) %>%
+  dplyr::distinct() %>%
+  dplyr::rowwise() %>%
+  dplyr::mutate(Count = ifelse(Group == "Other", n_Other, n_Complete)) %>%
   dplyr::mutate(Total_count= n_Other+n_Complete)%>%
   dplyr::ungroup() %>% dplyr::arrange(.data$Total_count)
   if (complete_only == TRUE) {
-    consolidated_clonal_abundance <- consolidated_clonal_abundance %>% 
-      dplyr::filter(.data$Group == "Complete") %>% dplyr::arrange(.data$Count) %>% 
-      dplyr::select(-LCI, -UCI) %>% dplyr::rename(LCI = Complete_LCI, 
+    consolidated_clonal_abundance <- consolidated_clonal_abundance %>%
+      dplyr::filter(.data$Group == "Complete") %>% dplyr::arrange(.data$Count) %>%
+      dplyr::select(-LCI, -UCI) %>% dplyr::rename(LCI = Complete_LCI,
       UCI = Complete_UCI)
   }
 clonal_architecture <-sce@metadata$Architecture
@@ -73,13 +83,13 @@ gg_clonal_barplot <- ggplot(data=consolidated_clonal_abundance, aes(x=Clone, y=C
           axis.title.x=element_blank(),
           axis.ticks.x = element_blank(),
           plot.margin=unit(c(0,0,0,0),"cm"))
-  
+
   if(QC_stats==FALSE){
       return(cowplot::plot_grid(gg_clonal_barplot,gg_heatmap,ncol=1,align="v",axis="lr",rel_heights = c(1,0.5)))
     }
   else{
     # Generate mutation heatmap
-    
+
   # gg_QC_heatmap <- ggplot(data=consolidated_clonal_abundance,
   #                      aes(x=Clone, y=Group, fill=ADO_med))+
   #   geom_tile() +
@@ -92,8 +102,8 @@ gg_clonal_barplot <- ggplot(data=consolidated_clonal_abundance, aes(x=Clone, y=C
   #         axis.title.x=element_blank(),
   #         axis.ticks.x = element_blank(),
   #         plot.margin=unit(c(0,0,0,0),"cm"))
-  
-  
+
+
   gg_QC_heatmap_GQ <- ggplot(data=consolidated_clonal_abundance,
                           aes(x=Clone, y=Group, fill=GQ_med))+
     geom_tile() +
@@ -106,7 +116,7 @@ gg_clonal_barplot <- ggplot(data=consolidated_clonal_abundance, aes(x=Clone, y=C
           axis.title.x=element_blank(),
           axis.ticks.x = element_blank(),
           plot.margin=unit(c(0,0,0,0),"cm"))
-  
+
   gg_QC_heatmap_DP <- ggplot(data=consolidated_clonal_abundance,
                              aes(x=Clone, y=Group, fill=DP_med))+
     geom_tile() +
@@ -119,7 +129,7 @@ gg_clonal_barplot <- ggplot(data=consolidated_clonal_abundance, aes(x=Clone, y=C
           axis.title.x=element_blank(),
           axis.ticks.x = element_blank(),
           plot.margin=unit(c(0,0,0,0),"cm"))
-  
+
   # Put it all together
   return(cowplot::plot_grid(gg_clonal_barplot,gg_heatmap,#gg_QC_heatmap,
                                       gg_QC_heatmap_GQ,gg_QC_heatmap_DP,ncol=1,align="v",axis="lr",rel_heights = c(1,0.5,0.25,0.25,0.25)))

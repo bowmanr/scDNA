@@ -8,10 +8,22 @@ trajectory_analysis(sce, use_ADO = TRUE)
 }
 \arguments{
 \item{sce}{is the SingleCellExperiment Object}
+
+\item{use_ADO}{A bool that determines whether to consider ADO or not in the analysis. (default is TRUE)}
 }
 \value{
 RL_analysis this returns a paths with metadata about the mutation order
 }
 \description{
-Run Trajectory Analysis after extraction from SingleCellExperiment object
+This the main wrapper function for performing trajectory analysis using Reinforcement Learning. The output is the resulting network policies and common action policies from starting clones to final clones.
+This provides trajectories in sce(at)metadata$Trajectories. We build 4 common trajectories already:
+1. shortest route for Wildtype (WT) to the most dominant clone
+2. shortest route for Wildtype (WT) to a fully homozygous clone
+3. All possible routes from Wildtype to the most dominant clone
+4. shortest routes from Wildtype to all clones observed in the Clonograph
+}
+\examples{
+\dontrun{
+sce<- trajectory_analysis(sce,use_ADO=TRUE)
+}
 }

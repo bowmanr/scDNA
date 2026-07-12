@@ -15,11 +15,16 @@ demultiplex_samples(
 
 \item{sensitivity_threshold}{vector of sensitivity thresholds for rows (variants) and columns (cells)}
 
-\item{expected_samples}{the number of clusters or samples you expect}
+\item{expected_samples}{the number of clusters or samples you expect. We recommend adding one additional group to account for doublets and noise.}
 }
 \value{
 a dataframe of the cells assigned to a specific cluster.
 }
 \description{
-Demultiplex wrapper function to handle splitting samples
+This function takes a singleCellExperiment and applies an iterative optimization strategy to identify the best full rank matrix of variant allele frequency and cells. Once this is established it is a kmeans clustering is performed to identify the number of expected samples. Cells not used for the kmeans are then imputed for their cluster.
+}
+\examples{
+\dontrun{
+cell_clust_df<-demultiplex_samples(sce,expected_samples=5)
+}
 }

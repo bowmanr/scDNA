@@ -1,14 +1,20 @@
-#' This function generates the Copy Number by determining the ploidy of each mutation
+#' Read DNA Copy Number Variation.
+#' @description
+#' This function generates the Copy Number by determining the ploidy of each mutation. It produces an altExperiment and also creates false positive rates used for ADO.
 #'
 #' @param sce the single cell experiment object
-#' @param reference_cells set cells that will be used to determine allele dropout and false postive rates 
+#' @param reference_cells setof cell names that will be used to determine allele dropout and false positive rates
 #'
-#' @return
+#' @return it returns the single cell experiment object.
 #' @export
+#' @importFrom magrittr %>%
 #'
 #' @examples
+#' \dontrun{
+#' sce<-readDNA_CN_H5(sce,reference_cells=NULL)
+#' }
 readDNA_CN_H5<-function(sce,reference_cells=NULL){
-  
+
   # mark reference cells just take them all for now and set it as a variable above.
   # in the future this could be T cells or whatever
   CNV_sce<-SingleCellExperiment::altExp(sce,"CNV")
@@ -33,7 +39,7 @@ readDNA_CN_H5<-function(sce,reference_cells=NULL){
     #dplyr::ungroup()%>%
     dplyr::mutate(amplicon=factor(amplicon,levels=c(unique(amplicon))))
 
-  
+
   # associated amplicons with variant information
   mutant_subset_amplicon_data<-dplyr::inner_join(dplyr::inner_join(SummarizedExperiment::rowData(sce)%>%
                                                        data.frame%>%
@@ -59,25 +65,28 @@ readDNA_CN_H5<-function(sce,reference_cells=NULL){
     dplyr::select(final_annot,NGT,ploidy)%>%
     dplyr::filter(NGT==1)%>%
     dplyr::mutate(mean=mean(ploidy))%>%
-    dplyr::mutate(n=n())%>%
+    dplyr::mutate(n=dplyr::n())%>%
     dplyr::mutate(std = sd(ploidy))%>%
-    dplyr::mutate(lower_lim95 = mean -qt(0.9998,df=n-1)*std/sqrt(n))%>% # change this rate to give people multiple CI's
+    dplyr::mutate(lower_lim95 = mean - stats::qt(0.9998,df=n-1)*std/sqrt(n))%>% # change this rate to give people multiple CI's
     dplyr::ungroup()%>%
     data.frame%>%
     dplyr::select(final_annot,lower_lim95)%>%
-    distinct
+    dplyr::distinct()
 
- 
+
  fp_cost0<-mutant_subset_amplicon_data%>%
    data.frame%>%
    dplyr::group_by(final_annot,NGT)%>%
    dplyr::select(final_annot,NGT,ploidy)%>%
    dplyr::filter(NGT==0)%>%
    dplyr::inner_join(false_positive_cost,by="final_annot")%>%
-   mutate(count=ifelse(ploidy<lower_lim95,1,0))%>%
-   mutate(summed=sum(count))%>%
-   mutate(false_positiveWT = sum(count)/n())%>%ungroup()%>%dplyr::select(final_annot,false_positiveWT)%>%distinct
- 
+   dplyr::mutate(count=ifelse(ploidy<lower_lim95,1,0))%>%
+   dplyr::mutate(summed=sum(count))%>%
+   dplyr::mutate(false_positiveWT = sum(count)/n())%>%
+   dplyr::ungroup()%>%
+   dplyr::select(final_annot,false_positiveWT)%>%
+   dplyr::distinct()
+
   fp_cost2<-mutant_subset_amplicon_data%>%
     data.frame%>%
     dplyr::group_by(final_annot,NGT)%>%
@@ -85,7 +94,10 @@ readDNA_CN_H5<-function(sce,reference_cells=NULL){
     dplyr::filter(NGT==2)%>%
     dplyr::inner_join(false_positive_cost,by="final_annot")%>%
     dplyr::mutate(count=ifelse(ploidy<lower_lim95,1,0))%>%
-    dplyr::mutate(false_positiveHom = sum(count)/n())%>%ungroup()%>%dplyr::select(final_annot,false_positiveHom)%>%distinct
+    dplyr::mutate(false_positiveHom = sum(count)/n())%>%
+    dplyr::ungroup()%>%
+    dplyr::select(final_annot,false_positiveHom)%>%
+    dplyr::distinct()
 
   sce@metadata$FalsePositive <- dplyr::full_join(fp_cost0,fp_cost2,by="final_annot")
   sce@metadata$FalsePositive[is.na(sce@metadata$FalsePositive)]<- 0

@@ -2,15 +2,23 @@
 % Please edit documentation in R/readDNA_CN_H5.R
 \name{readDNA_CN_H5}
 \alias{readDNA_CN_H5}
-\title{This function generates the Copy Number by determining the ploidy of each mutation}
+\title{Read DNA Copy Number Variation.}
 \usage{
 readDNA_CN_H5(sce, reference_cells = NULL)
 }
 \arguments{
 \item{sce}{the single cell experiment object}
 
-\item{reference_cells}{set cells that will be used to determine allele dropout and false postive rates}
+\item{reference_cells}{setof cell names that will be used to determine allele dropout and false positive rates}
+}
+\value{
+it returns the single cell experiment object.
 }
 \description{
-This function generates the Copy Number by determining the ploidy of each mutation
+This function generates the Copy Number by determining the ploidy of each mutation. It produces an altExperiment and also creates false positive rates used for ADO.
+}
+\examples{
+\dontrun{
+sce<-readDNA_CN_H5(sce,reference_cells=NULL)
+}
 }

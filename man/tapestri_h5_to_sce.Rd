@@ -2,7 +2,7 @@
 % Please edit documentation in R/tapestri_h5_to_sce.R
 \name{tapestri_h5_to_sce}
 \alias{tapestri_h5_to_sce}
-\title{Import Tapestri H5 data and extract genotype matrix}
+\title{Convert Tapestri h5 file to SingleCellExperiment Object}
 \usage{
 tapestri_h5_to_sce(
   file,
@@ -19,27 +19,31 @@ tapestri_h5_to_sce(
 \arguments{
 \item{file}{path to the h5 file}
 
-\item{GT_cutoff}{Fraction of cells that are successfully genotyped for initial filtering (default 0.2, meaning 20\%)}
+\item{GT_cutoff}{Fraction of cells that are successfully genotyped for initial filtering (default 0.2, meaning 20 percent)}
 
-\item{VAF_cutoff}{Fraction of cells that are mutated for initial filtering of variants (default 0.005, meaning 0.05\%)}
+\item{VAF_cutoff}{Fraction of cells that are mutated for initial filtering of variants (default 0.005, meaning 0.05 percent)}
 
 \item{DP_cutoff}{minimum number of reads necessary for a reliable genotype call in a single cell (default: 10)}
 
 \item{GQ_cutoff}{minimum genotype quality necessary for a reliable genotype call in a single cell (default: 30)}
 
-\item{AF_cutoff}{Deviation from 0, 50, or 100\% for a reliable call of WT, Het or Hom respectively (default: 25)}
+\item{AF_cutoff}{Deviation from 0, 50, or 100 percent for a reliable call of WT, Het or Hom respectively (default: 25)}
 
 \item{variant_set}{character vector of variants to be included in the format output by mission bio.}
 
-\item{demultiplex_cells}{This parameter is for demultiplexing cell names to use, often set to NULL}
+\item{demultiplex_cells}{is the cell names which we want to pull, often left NULL for majority of analysis}
 
 \item{protein}{logical, whether protein data should be included. default=TRUE}
-
-\item{return_variants_only}{logical,}
 }
 \value{
 a single cell experiment object containing the genotyping matrix, allele frequency table, annotation table,
 }
 \description{
-Import Tapestri H5 data and extract genotype matrix
+Import Tapestri H5 data and extract genotype matrix, protein data, and CNV data. This data is then put into a SingleCellExperiment object
+}
+\examples{
+\dontrun{
+sce<-tapestri_h5_to_sce(file=sample_file, variant_set = variants_of_interest, GT_cutoff=90, VAF_cutoff=0.01,DP_cutoff=10, GQ_cutoff=20, AF_cutoff=20)
+}
+
 }

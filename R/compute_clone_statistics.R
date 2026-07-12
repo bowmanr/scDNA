@@ -1,20 +1,28 @@
-#' Title
+#' Compute Clone Statistics
+#' @description
+#' This function obtains measures for clones including: Shannon Diversity, Number of Clones, number of mutations, Number of mutations in the dominant clone, and Dominant clone size.
 #'
 #' @param sce input sce object
-#' @param clone_size_cutoff lower 95% confidence interval cutoff for clone inclusion default=10
+#' @param clone_size_cutoff lower 95 percent confidence interval cutoff for clone inclusion default=10
+#' @param skip_ploidy (default is TRUE) to skip ploidy calculation. Ploidy is a less needed measure for a majority of analysis, so skipping provides speed up.
 #'
-#' @return
+#' @return This returns a dataframe in the metadata of the sce object called sample_stats.
 #' @export
+#' @importFrom magrittr %>%
 #'
 #' @examples
+#' \dontrun{
+#' sce<-compute_clone_statistics(sce,clone_size_cutoff=10,skip_ploidy=F)
+#' }
+#'
 compute_clone_statistics<-function(sce,
                                    clone_size_cutoff=10,
                                   skip_ploidy=TRUE){
-  
+
   if(("Group"%in%colnames(sce@metadata$Clones))) {
-    stop(message("Clone QC already assessed"))
+    stop("Clone QC already assessed",call. = FALSE)
   }
-  
+
   # Only changes to making them the sce object not the old dataframe format
   print("Computing clone level statistics")
   sce@metadata$Clones<-data.frame(
@@ -23,17 +31,17 @@ compute_clone_statistics<-function(sce,
       tidyr::pivot_longer(cols=!c(variants),
                             names_to="Cell",
                             values_to="AF")%>%
-      mutate(DP=sce@assays@data$DP%>%data.frame()%>%
+      dplyr::mutate(DP=sce@assays@data$DP%>%data.frame()%>%
                tidyr::pivot_longer(cols=tidyselect::everything(),
                                    names_to="Cell",
                                    values_to="DP")%>%
                dplyr::pull(DP))%>%
-     mutate(GQ=sce@assays@data$GQ%>%data.frame()%>%
+    dplyr::mutate(GQ=sce@assays@data$GQ%>%data.frame()%>%
                  tidyr::pivot_longer(cols=tidyselect::everything(),
                                      names_to="Cell",
                                      values_to="GQ")%>%
                  dplyr::pull(GQ))%>%
-     mutate(NGT=sce@assays@data$DP%>%data.frame()%>%
+    dplyr::mutate(NGT=sce@assays@data$NGT%>%data.frame()%>%
                 tidyr::pivot_longer(cols=tidyselect::everything(),
                                     names_to="Cell",
                                     values_to="NGT")%>%
@@ -45,7 +53,7 @@ compute_clone_statistics<-function(sce,
                      DP_med=median(DP),
                      GQ_med=median(GQ))%>%
     dplyr::inner_join(sce@metadata$Clonal_Abundance,by="Clone")
-  
+
   if(sum(sce@metadata$Clones$Group=="Complete")==0){
   print("No cells with complete genotyping, skipping statistcal enumeration")
   } else{
@@ -77,24 +85,24 @@ compute_clone_statistics<-function(sce,
                                              dplyr::ungroup()%>%
                                              dplyr::filter(Group=="Complete")%>%
                                              dplyr::distinct(Clone,n_Complete)%>%
-                                             dplyr::mutate(WT_clone=case_when(
+                                             dplyr::mutate(WT_clone=dplyr::case_when(
                                                !grepl("1|2",Clone)~"WT",
                                                TRUE~"Mutant"))%>%
                                              dplyr::group_by(WT_clone)%>%
-                                             dplyr::mutate(Dominant_clone=case_when(
+                                             dplyr::mutate(Dominant_clone=dplyr::case_when(
                                                n_Complete==max(n_Complete)~"Dominant",
                                                TRUE~"Other"
                                              ))%>%
                                              dplyr::ungroup()%>%
                                              dplyr::reframe("Dominant_clone_size"=n_Complete[Dominant_clone=="Dominant"&WT_clone!="WT"]/sum(n_Complete))%>%
                                              dplyr::pull("Dominant_clone_size"))
-  
-      
-  }                                             
-  if(!skip_ploidy){  
-    print("Computing Ploidy")   
+
+
+  }
+  if(!skip_ploidy){
+    print("Computing Ploidy")
     sce<-readDNA_CN_H5(sce)
   }
-  
+
   return(sce)
 }
