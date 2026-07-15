@@ -18,6 +18,7 @@ downstream analysis. You can check out utilities of our package in our pre-print
 [scDNA: Single Cell DNA analysis software toolkit for subclonality discovery and assessment](https://www.biorxiv.org/content/10.64898/2025.12.19.694255v1.abstract)
 Michael Bowman, Shreeya Gounder, Varsha Singh, Olga Shestova, Troy Robinson, Amy Zhang, Anushka Gandhi, Roopsha Bandopadhyay, Sheng F. Cai, Ross L. Levine, Saar I. Gill, Linde A. Miles, Robert L. Bowman
 bioRxiv 2025.12.19.694255; doi: https://doi.org/10.64898/2025.12.19.694255
+
 H5 files to replicate data from this preprint can be found [here](https://drive.google.com/drive/folders/1rE3GFlLC0fj0hX6jFdk536iCyh1gB2_j?usp=drive_link).
 
 ## Installation
@@ -25,24 +26,35 @@ H5 files to replicate data from this preprint can be found [here](https://drive.
 You can install (re-install) the current version (1.1) of scDNA below
 This package is best suited for R >=V4.3.1 and will function on standard workstations. Typical install time should be less than 5 minutes. Average run time from beginning to end of analysis will vary by sample size but should not exceed 30 minutes.
 
+Before installing, please ensure you have the genomes from bioconductor installed:
+[BSgenome.Hsapiens.UCSC.hg19](https://bioconductor.org/packages/release/data/annotation/html/BSgenome.Hsapiens.UCSC.hg19.html)
+[BSgenome.Hsapiens.UCSC.hg38](https://bioconductor.org/packages/release/data/annotation/html/BSgenome.Hsapiens.UCSC.hg38.html)
+[BSgenome.Mmusculus.UCSC.mm10](https://bioconductor.org/packages/release/data/annotation/html/BSgenome.Mmusculus.UCSC.mm10.html)
+
+The following command should be run in a terminal.
 ``` bash
 curl -L \
 https://raw.githubusercontent.com/bowmanr/scDNA/dev_cleanup/install.sh \
 | bash
+```
+Afterwards,in RStudio you can load the library:
+
+```r
+library(scDNA)
 ```
 
 ## Version Updates
 ### **v1.1**
 Version 1.1 is finally here with exciting new developments:
 - New sequencing panels for variant annotation introduced:
-  - hg38
+  - hg38 (built from [gencode here](https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_50/) )
   - mm10   
 - New plotting functions for RL trajectories.
   - new interactive plots,
   - BSCITE-style implementation. 
 - Demultiplexing samples is introduced
   - (integrated and adapted from [Robinson et
-    al](https://www.biorxiv.org/content/10.1101/2022.09.20.508786v1.full),
+    al](https://www.science.org/doi/10.1126/sciadv.adg0488),
     [github](https://github.com/RobinsonTroy/scMRD))
   - vignette included to demonstrate how to perform it.
 - Cell confidence labeling based on DNA and Protein data.
@@ -63,7 +75,7 @@ Version 1.1 is finally here with exciting new developments:
   - Variant information is stored in rowData()
 
   - NGT matrix, clonal abundance, and clone architecture [familiar to
-    previous versions](https://bowmanr.github.io/scDNA_myeloid/) can be
+    our previous versions](https://bowmanr.github.io/scDNA_myeloid/) can be
     found in the metadata.
 
 - Variant identification and annotation is performed initially before
@@ -95,6 +107,12 @@ Version 1.1 is finally here with exciting new developments:
 
 ## Simple workflow
 
+For our extensive examples, please check out the [vignettes here](https://github.com/bowmanr/scDNA/tree/master/vignettes).
+If you are looking for the [vignettes to replicate figures from our paper please go here](https://github.com/bowmanr/scDNA/tree/master/vignettes/paper
+_figure_replication) and the datasets needed for [running the examples](https://drive.google.com/drive/folders/1rE3GFlLC0fj0hX6jFdk536iCyh1gB2_j?usp=drive_link)
+
+A minimal crash-course example is as follows:
+
 Identify all variants within a sample.
 
 ``` r
@@ -102,7 +120,7 @@ library(scDNA)
 library(dplyr)
 sample_file<- "test_file.h5"
 variant_output<-variant_ID(file=sample_file,
-                           panel="MSK_RL", # "UCSC" can be used for other panels
+                           panel="MSK_RL", # please check whether your panel is "hg38" or "hg19" or "mm10" 
                            GT_cutoff=0,  # mimimum percent of cells where a successful genotyping call was made
                            VAF_cutoff=0) # mimimum variant allele frequency 
 ```
