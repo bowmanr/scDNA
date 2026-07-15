@@ -108,8 +108,7 @@ Version 1.1 is finally here with exciting new developments:
 ## Simple workflow
 
 For our extensive examples, please check out the [vignettes here](https://github.com/bowmanr/scDNA/tree/master/vignettes).
-If you are looking for the [vignettes to replicate figures from our paper please go here](https://github.com/bowmanr/scDNA/tree/master/vignettes/paper
-_figure_replication) and the datasets needed for [running the examples](https://drive.google.com/drive/folders/1rE3GFlLC0fj0hX6jFdk536iCyh1gB2_j?usp=drive_link)
+If you are looking for the [vignettes to replicate figures from our paper please go here](https://github.com/bowmanr/scDNA/tree/master/vignettes/paper_figure_replication) and the datasets needed for [running the examples](https://drive.google.com/drive/folders/1rE3GFlLC0fj0hX6jFdk536iCyh1gB2_j?usp=drive_link)
 
 A minimal crash-course example is as follows:
 
