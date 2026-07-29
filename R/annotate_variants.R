@@ -50,7 +50,6 @@ annotate_variants<- function(file,
     print("Loading TxDB derived from gencode.v19.annotation.gtf.gz")
     custom_txdb<- AnnotationDbi::loadDb(system.file('data/hg19_custom_txdb', package = 'scDNA'))
     load(system.file(paste0('data/cBioPortal_hg19_annotation.rDa'), package = 'scDNA'))
-    #genes_found<-GenomicFeatures::genes(custom_txdb)$gene_id
     complete_gene_annotation<-cBioPortal_annotation_hg19%>%
       dplyr::select(hgnc_symbol,gene_id_base,mskcc_canonical_transcript,transcript_id_base,suggested)%>%
       dplyr::mutate(final_transcript_id=transcript_id_base )
@@ -62,7 +61,6 @@ annotate_variants<- function(file,
     load(system.file(paste0('data/mm10_annotation.Rda'), package = 'scDNA'))
     genes_found<-GenomicFeatures::genes(custom_txdb)$gene_id
     complete_gene_annotation<-mm10_annotation%>%
-      # dplyr::filter(ensemble_geneID%in%genes_found)%>%
       dplyr::select(hgnc_symbol=Symbol,ensembl_canonical_gene=ensemble_geneID,ensemble_txID)%>%
       dplyr::mutate(final_transcript_id=ensemble_txID)%>%
       dplyr::mutate(transcript_id_base=final_transcript_id)
@@ -104,19 +102,13 @@ annotate_variants<- function(file,
                   END=as.character(END))
 
   SNV_mat <- SNV_mat_prefilter
-  #SNV_mat<-SNV_mat_prefilter#%>%
-  #dplyr::filter(!grepl("N",REF))
-
-  #print(paste("Removed",c(nrow(SNV_mat_prefilter)-nrow(SNV_mat)),"variants confounded by upstream deletion"))
-
+  
   if (!is.null(select_variants)) {
     SNV_mat <- SNV_mat %>% dplyr::filter(id %in% select_variants)
   }
 
-  #necessary for meaningful GRangess
   SNV_mat$REF<-as(SNV_mat$REF, "DNAStringSet")
   SNV_mat$ALT<-as(SNV_mat$ALT, "DNAStringSet")
-
 
   variant_gRange<-GenomicRanges::makeGRangesFromDataFrame(SNV_mat,
                                                           seqnames.field = "CHROM",
@@ -149,11 +141,6 @@ annotate_variants<- function(file,
   exon_subset<-GenomicFeatures::exons(custom_txdb)
   exonic_variant_gRange_subset<-variant_gRange[S4Vectors::queryHits(GenomicRanges::findOverlaps(variant_gRange,exon_subset))]
   non_exonic_variant_gRange_subset<-variant_gRange[-S4Vectors::queryHits(GenomicRanges::findOverlaps(variant_gRange,exon_subset))]
-
-
-  #non_exonic_variant_gRange_subset<-subsetByOverlaps(variant_gRange,exon_subset,invert = T)
-  #exonic_variant_gRange_subset<-subsetByOverlaps(variant_gRange,exon_subset,invert = F)
-
 
   print(paste("The following n =",length(genic_variant_gRange_subset), "variants were found within the following regions of a gene body"))
   all_genic_variant_lists<-list(
@@ -239,9 +226,6 @@ annotate_variants<- function(file,
     exonic_region_variant_gRanges<-region_gRange[unique(S4Vectors::queryHits(GenomicRanges::findOverlaps(region_gRange,exonic_variant_gRange_subset)))]
     non_exonic_region_variant_gRanges<-region_gRange[unique(S4Vectors::queryHits(GenomicRanges::findOverlaps(region_gRange,non_exonic_variant_gRange_subset)))]
 
-    #exonic_region_variant_gRanges<-subsetByOverlaps(region_gRange,exonic_variant_gRange_subset,invert = F)
-    #non_exonic_region_variant_gRanges<-subsetByOverlaps(region_gRange,non_exonic_variant_gRange_subset,invert = F)
-
 
      border_region_ids <- setdiff(region_gRange$id,union(exonic_region_variant_gRanges$id,non_exonic_region_variant_gRanges$id))
     border_region_gRange<-variant_gRange[variant_gRange$id%in%border_region_ids]
@@ -281,7 +265,6 @@ annotate_variants<- function(file,
             dplyr::mutate(Class = variant_list,
                           TXID=as.integer(TXID))}))%>%
       dplyr::left_join(tx_lookup,by = "TXID") %>%
-#      dplyr::left_join(complete_gene_annotation,by = c("GENEID" = "gene_id_base")) %>%
       dplyr::left_join(complete_gene_annotation,by = c("tx_name" = "transcript_id_base")) %>%
       dplyr::mutate(tx_name = dplyr::coalesce(tx_name, final_transcript_id),
                     SYMBOL = hgnc_symbol,
@@ -291,13 +274,9 @@ annotate_variants<- function(file,
 
 
     non_annotated_genic_GRanges <- genic_variant_gRange_subset[!names(genic_variant_gRange_subset) %in% unique(final_protein_annotation$id)]
-
-    # First assign gene IDs from gene body overlap as a fallback.
     gene_hits <- GenomicRanges::findOverlaps(non_annotated_genic_GRanges,gene_subset,select = "first")
-
     non_annotated_genic_GRanges$GENEID <- gene_subset[gene_hits]$gene_id
 
-    # Now assign transcript membership from transcript overlaps.
     tx_hits <- GenomicRanges::findOverlaps(non_annotated_genic_GRanges,transcript_subset)
 
     noncoding_tx_summary <- data.frame(id = non_annotated_genic_GRanges$id[S4Vectors::queryHits(tx_hits)],
@@ -318,7 +297,6 @@ annotate_variants<- function(file,
       dplyr::mutate(Class = "non_coding")%>%
       dplyr::left_join(noncoding_tx_summary,by = "id")%>%
       dplyr::left_join(complete_gene_annotation,by = c("tx_name" = "transcript_id_base")) %>%
-      # dplyr::left_join(complete_gene_annotation,by = c("GENEID" = "gene_id_base"))%>%
       dplyr::mutate(SYMBOL = hgnc_symbol,
                     final_transcript_id = dplyr::coalesce(tx_name, final_transcript_id))
 
@@ -339,12 +317,9 @@ annotate_variants<- function(file,
                         TXID_list = NA_character_,
                         GENEID_txdb_list = NA_character_)) %>%
 
-      # Join prioritized region and transcript summary.
-      # Rename columns before joining to avoid .x/.y suffixes.
       dplyr::left_join(variant_prioritized_grouping %>%
                          dplyr::select(variant_id,QUERYID_prioritized = QUERYID,Region,LOCSTART,LOCEND,tx_name_prioritized = tx_name,TXID_list_prioritized = TXID_list,GENEID_txdb_list_prioritized = GENEID_txdb_list),
                        by = c("id" = "variant_id")) %>%
-      # Merge duplicate conceptual columns.
       dplyr::mutate(QUERYID = dplyr::coalesce(as.integer(QUERYID),as.integer(QUERYID_prioritized)),
                     tx_name = dplyr::coalesce(tx_name,tx_name_prioritized),
                     TXID_list = dplyr::coalesce(as.character(TXID_list),as.character(TXID_list_prioritized)),
@@ -364,7 +339,6 @@ annotate_variants<- function(file,
                       Class == "Intronic.Exonic" ~ "Exon_Boundary",
                       Class == "non_coding" ~ "Intronic",
                       TRUE ~ Class)) %>%
-      # Drop helper columns from the join.
       dplyr::select(-QUERYID_prioritized,-tx_name_prioritized,-TXID_list_prioritized,-GENEID_txdb_list_prioritized,-QUERYID.1,-QUERYID, -TXID, -CDSID, -GENEID_txdb, -gene_id_base, -tx_name,-TXID_list, -GENEID_txdb_list)%>%
       dplyr::distinct()
 

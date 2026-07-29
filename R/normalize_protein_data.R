@@ -5,7 +5,7 @@
 #' @param sce the SingleCellExperiment object after running tapestri_h5_to_sce()
 #' @param metadata this is droplet_metadata from extract_droplet_size() function.
 #' @param method there are 3 methods: 1) a CLR approach, 2) a dsb approach, and 3) an experimental truncated-SVD approach using the marcenko-pastur formula
-#' @param detect_IgG a flag to account for IgG controls in the panel.
+#' @param detect_IgG If this is set as TRUE, it searches for IgG controls (a common staple for isotype controls, if it is set FALSE, then controls are not used, if a character vector is passed, those names are directly used for the isotype control for dsb.
 #' @param num_components_to_keep Only used for the SVD approach on how many latent features to keep.
 #' @param background_droplets a list of of names for the background empty droplets. Only used for dsb to disambiguate signal from noisy samples with background
 #'
@@ -55,18 +55,20 @@ normalize_protein_data<-function(sce,
 
     if(detect_IgG){
         isotype <- grep("IgG",colnames(protein_mat),value=TRUE)
+    }
+    else if(class(detect_IgG)=="character"){
+        isotype <- detect_IgG
+        detect_IgG<- TRUE
     }else{
         isotype <- FALSE
     }
 
     adt_norm <- dsb::DSBNormalizeProtein(
-      # remove ambient protein noise reflected in counts from empty droplets
-      cell_protein_matrix = protein_mat, # cell-containing droplet raw protein count matrix
-      empty_drop_matrix = empty_drops_matrix_input, # empty/background droplet raw protein counts
-      # recommended step II: model and remove the technical component of each cell's protein library
-      denoise.counts = TRUE, # (default = TRUE); run step II
-      use.isotype.control = detect_IgG, # (default = TRUE): use isotype controls to define technical components.
-      isotype.control.name.vec = isotype#,# vector of isotype control names
+      cell_protein_matrix = protein_mat, 
+      empty_drop_matrix = empty_drops_matrix_input, #
+      denoise.counts = detect_IgG, 
+      use.isotype.control = detect_IgG, 
+      isotype.control.name.vec = isotype
     )
     SummarizedExperiment::assay(protein_sce, "DSB_norm")<-adt_norm
 

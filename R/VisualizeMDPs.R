@@ -24,7 +24,6 @@ visualize_full_network<-function(sce,save_filename=NULL){
 
   new_net$current_state<- as.character(as.numeric(gsub("_", "",new_net$current_state)))
   new_net$next_state<- as.character(as.numeric(gsub("_", "",new_net$next_state)))
-  #colnames(new_net)<-c("from","to","value","type")
   new_net<-new_net%>%dplyr::rename(from="current_state",
                             to="next_state",
                             value="reward",
@@ -85,13 +84,16 @@ visualize_full_network<-function(sce,save_filename=NULL){
 
 
   if(is.null(save_filename)){
-    visNetwork::visNetwork(nodes = data2$nodes, edges = data2$edges)%>%#,width = "100%",height = "100%")%>%
+    visNetwork::visNetwork(nodes = data2$nodes, edges = data2$edges)%>%
       visNetwork::visEdges(arrows = "to")%>%
       visNetwork::visLegend(useGroups = F,
                 zoom = F,
                 addNodes = data.frame(label=c("observed","unobserved"),
-                                      shape=c("circle","circle"),
-                                      color=c("darkred","grey")),
+                                      shape=c("dot","dot"),
+                                      color=c("darkred","grey"),
+                                      size= c(10,10),
+                                      font.size = c(20, 20),
+                                      font.vadjust=c(-60,-60)),
                 addEdges = data.frame(label=c("ADO",
                                               "forward_ADO",
                                               "mutation",
@@ -100,21 +102,23 @@ visualize_full_network<-function(sce,save_filename=NULL){
                                       dashes=c(TRUE,TRUE,FALSE,FALSE),
                                       font.align="top",
                                       font.size=20,
-                                      font.vadjust=(-10)))%>%
-      #visHierarchicalLayout(direction="UD",levelSeparation = 500)%>%
+                                      font.vadjust=(-20)))%>%
       visNetwork::visLayout(randomSeed = 44)%>%
       visNetwork::visIgraphLayout(layout = "layout_with_sugiyama")%>%
-      visNetwork::visInteraction(dragNodes = TRUE, dragView = FALSE, zoomView = FALSE)#%>%visSave(file = "WT_to_match_clonograph.html",)
+      visNetwork::visInteraction(dragNodes = TRUE, dragView = FALSE, zoomView = FALSE)
 
 
   }else{
-    visNetwork::visNetwork(nodes = data2$nodes, edges = data2$edges)%>%#,width = "100%",height = "100%")%>%
+    visNetwork::visNetwork(nodes = data2$nodes, edges = data2$edges)%>%
       visNetwork::visEdges(arrows = "to")%>%
       visNetwork::visLegend(useGroups = F,
                 zoom = F,
                 addNodes = data.frame(label=c("observed","unobserved"),
-                                      shape=c("circle","circle"),
-                                      color=c("darkred","grey")),
+                                      shape=c("dot","dot"),
+                                      color=c("darkred","grey"),
+                                      size= c(10,10),
+                                      font.size = c(20, 20),
+                                      font.vadjust=c(-60,-60)),
                 addEdges = data.frame(label=c("ADO",
                                               "forward_ADO",
                                               "mutation",
@@ -123,8 +127,7 @@ visualize_full_network<-function(sce,save_filename=NULL){
                                       dashes=c(TRUE,TRUE,FALSE,FALSE),
                                       font.align="top",
                                       font.size=20,
-                                      font.vadjust=(-10)))%>%
-      #visHierarchicalLayout(direction="UD",levelSeparation = 500)%>%
+                                      font.vadjust=(-20)))%>%
       visNetwork::visLayout(randomSeed = 44)%>%
       visNetwork::visIgraphLayout(layout = "layout_with_sugiyama")%>%
       visNetwork::visInteraction(dragNodes = TRUE, dragView = FALSE, zoomView = FALSE)%>%
@@ -217,8 +220,7 @@ trajectory_of_interest_BSCITE_format<-function(sce,trajectory=sce@metadata$Traje
     dplyr::mutate(font.vadjust=(0),
            shape ="ellipse",
            color.background="white",
-           color.border = "black")#case_when(label== ~"black",
-  #          label== ~""))
+           color.border = "black")
 
 
   data_bscite$edges<-data_bscite$edges %>%
@@ -230,8 +232,6 @@ trajectory_of_interest_BSCITE_format<-function(sce,trajectory=sce@metadata$Traje
                             type=="ADO"~TRUE,
                             type=="forward_ADO"~TRUE,
                             TRUE~FALSE),
-           #label=as.character(round(value,digits=4)),
-           #title=as.character(round(value,digits=4)),
            arrows="to",
            arrowStrikethrough=F,
            scaling.label=F,
@@ -239,21 +239,17 @@ trajectory_of_interest_BSCITE_format<-function(sce,trajectory=sce@metadata$Traje
                                type=="forward_ADO"~0,
                                TRUE~16),
            font.hadjust=(-50))%>%
-    #font.vadjust=(-30),
-    #font.align="top")%>%
     dplyr::rename(weight="value")
 
   if(is.null(save_filename)){
-    visNetwork::visNetwork(nodes = data_bscite$nodes, edges = data_bscite$edges)%>%#,width = "100%",height = "100%")%>%
+    visNetwork::visNetwork(nodes = data_bscite$nodes, edges = data_bscite$edges)%>%
       visNetwork::visEdges(arrows = "to")%>%
-      #visLayout(randomSeed = 44)%>%
       visNetwork::visIgraphLayout(layout = "layout_with_sugiyama")%>%
       visNetwork::visInteraction(dragNodes = TRUE, dragView = FALSE, zoomView = FALSE)
 
     }else{
-      visNetwork::visNetwork(nodes = data_bscite$nodes, edges = data_bscite$edges)%>%#,width = "100%",height = "100%")%>%
+      visNetwork::visNetwork(nodes = data_bscite$nodes, edges = data_bscite$edges)%>%
         visNetwork::visEdges(arrows = "to")%>%
-        #visLayout(randomSeed = 44)%>%
         visNetwork::visIgraphLayout(layout = "layout_with_sugiyama")%>%
         visNetwork::visInteraction(dragNodes = TRUE, dragView = FALSE, zoomView = FALSE)%>%
       visNetwork::visSave(file = save_filename)
@@ -353,8 +349,11 @@ trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories
     visNetwork::visLegend(useGroups = F,
               zoom = F,
               addNodes = data.frame(label=c("observed","unobserved"),
-                                    shape=c("circle","circle"),
-                                    color=c("darkred","grey")),
+                                    shape=c("dot","dot"),
+                                    color=c("darkred","grey"),
+                                    size = c(10, 10),
+                                    font.size= c(20,20),
+                                    font.vadjust=c(-60,-60)),
               addEdges = data.frame(label=c("ADO",
                                             "forward_ADO",
                                             "mutation",
@@ -363,7 +362,7 @@ trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories
                                     dashes=c(TRUE,TRUE,FALSE,FALSE),
                                     font.align="top",
                                     font.size=20,
-                                    font.vadjust=(-10)))%>%
+                                    font.vadjust=c(-20)))%>%
     visNetwork::visLayout(randomSeed = 44)%>%
         visNetwork::visIgraphLayout(layout = "layout_with_sugiyama")%>%
     visNetwork::visInteraction(dragNodes = TRUE, dragView = FALSE, zoomView = FALSE)
@@ -374,8 +373,11 @@ trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories
     visNetwork::visLegend(useGroups = F,
               zoom = F,
               addNodes = data.frame(label=c("observed","unobserved"),
-                                    shape=c("circle","circle"),
-                                    color=c("darkred","grey")),
+                                    shape=c("dot","dot"),
+                                    color=c("darkred","grey"),
+                                    size = c(10, 10),
+                                    font.size= c(20,20),
+                                    font.vadjust=c(-60,-60)),
               addEdges = data.frame(label=c("ADO",
                                             "forward_ADO",
                                             "mutation",
@@ -384,7 +386,7 @@ trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories
                                     dashes=c(TRUE,TRUE,FALSE,FALSE),
                                     font.align="top",
                                     font.size=20,
-                                    font.vadjust=(-10)))%>%
+                                    font.vadjust=(-20)))%>%
     visNetwork::visLayout(randomSeed = 44)%>%
     visNetwork::visInteraction(dragNodes = TRUE, dragView = FALSE, zoomView = FALSE)
     }
@@ -395,8 +397,11 @@ trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories
       visNetwork::visLegend(useGroups = F,
                             zoom = F,
                             addNodes = data.frame(label=c("observed","unobserved"),
-                                                  shape=c("circle","circle"),
-                                                  color=c("darkred","grey")),
+                                                  shape=c("dot","dot"),
+                                                  color=c("darkred","grey"),
+                                                  size = c(10, 10),
+                                                  font.size= c(20,20),
+                                                  font.vadjust=c(-60,-60)),
                             addEdges = data.frame(label=c("ADO",
                                                           "forward_ADO",
                                                           "mutation",
@@ -405,7 +410,7 @@ trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories
                                                   dashes=c(TRUE,TRUE,FALSE,FALSE),
                                                   font.align="top",
                                                   font.size=20,
-                                                  font.vadjust=(-10)))%>%
+                                                  font.vadjust=(-20)))%>%
       visNetwork::visLayout(randomSeed = 44)%>%
         visNetwork::visIgraphLayout(layout = "layout_with_sugiyama")%>%
       visNetwork::visInteraction(dragNodes = TRUE, dragView = FALSE, zoomView = FALSE)%>%
@@ -417,8 +422,11 @@ trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories
       visNetwork::visLegend(useGroups = F,
                             zoom = F,
                             addNodes = data.frame(label=c("observed","unobserved"),
-                                                  shape=c("circle","circle"),
-                                                  color=c("darkred","grey")),
+                                                  shape=c("dot","dot"),
+                                                  color=c("darkred","grey"),
+                                                  size = c(10, 10),
+                                                  font.size= c(20,20),
+                                                  font.vadjust=c(-60,-60))),
                             addEdges = data.frame(label=c("ADO",
                                                           "forward_ADO",
                                                           "mutation",
@@ -427,7 +435,7 @@ trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories
                                                   dashes=c(TRUE,TRUE,FALSE,FALSE),
                                                   font.align="top",
                                                   font.size=20,
-                                                  font.vadjust=(-10)))%>%
+                                                  font.vadjust=(-20)))%>%
       visNetwork::visLayout(randomSeed = 44)%>%
       visNetwork::visInteraction(dragNodes = TRUE, dragView = FALSE, zoomView = FALSE)%>%
       visNetwork::visSave(file = save_filename)

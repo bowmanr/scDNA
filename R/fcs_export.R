@@ -40,8 +40,8 @@ fcs_export<-function(sce,
   dta[,1:nrow(data)]<-exp(1)^dta[,1:nrow(data)]
 
   mode(dta)<-"numeric"
-  # you need to prepare some metadata
-  meta <- data.frame(name=dimnames(dta)[[2]],
+
+    meta <- data.frame(name=dimnames(dta)[[2]],
                      desc=paste(dimnames(dta)[[2]])
   )
 
@@ -53,7 +53,6 @@ fcs_export<-function(sce,
   ff <- methods::new("flowFrame",
             exprs=dta,
             parameters=Biobase::AnnotatedDataFrame(meta))
-  # now you can save it back to the filesystem
   flowCore::write.FCS(ff,save_path)
 
 }

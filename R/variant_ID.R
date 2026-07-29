@@ -127,9 +127,6 @@ variant_ID<-function(file,
       )
     })
   }
-    # The following if else are the changes made to this file to pull in all the variants.
-    # I think the else needs to be changed to handle multiple samples correctly?
-    # Plus another input needs to be selected that might be missing.
     if(length(sample_set)==1){
         annotated_variants<- annotate_variants(file,panel=panel,select_variants=total_variants$id)
         out<-annotated_variants%>%
@@ -166,10 +163,7 @@ variant_ID<-function(file,
               }
       return(out)
   } else if(length(sample_set)>2) {
-      # annotate individually and then pump back out in list?
     print("Merging variant tables across samples with suffixes...")
-
-    # Rename columns in each table before merging
     total_variants_renamed <- purrr::map2(
       total_variants,
       sample_set,
@@ -183,8 +177,6 @@ variant_ID<-function(file,
         df
       }
     )
-
-    # Merge all by "id"
     total_variants_new <- purrr::reduce(total_variants_renamed, dplyr::full_join, by = "id")
 
     annotated_variants <- annotate_variants(file, panel = panel,

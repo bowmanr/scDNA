@@ -50,15 +50,10 @@ cell_confidence_labeling<-function(sce){
                       Pro_hit=rowSums(df2[,(dim(all_dna)[2]+1):(dim(all_dna)[2]+dim(all_protein)[2]-1)]>0))
 
   raw_data_to_check = cbind((df2$AMP_tot),df2$AMP_hits,(df2$Pro_tot),df2$Pro_hit)
-  # use kernel density as our whack guassian mixture model
   tab<-table(df2$AMP_hits)
   cut_x=order(head(tab,-round(0.1*(length(tab)))),decreasing = FALSE)[1]
 
-  #print(paste("this is total cell count: ",dim(raw_data_to_check)[1]))
-  #print(paste("this is minimum amplicons needed: ",cut_x))
   rownames(df2)<-df2$Cell
-  #df2<-df2%>%dplyr::filter(Cell%in%sce@colData@rownames)
-  # Make cut to minimum point. DO I include 0s in left_cut? hard to say right now.
   right_cut=raw_data_to_check[raw_data_to_check[,2]>=cut_x,]
   right_cut_cells = df2
 

@@ -44,7 +44,6 @@ enumerate_clones<-function(sce,
   existing_metadata$clone_code<-clone_code
   SummarizedExperiment::colData(sce)<-existing_metadata
 
-  #alternatively rename rows with sce@assays@data@metadata$SYMBOL[order(match(sce@assays@data@metadata$annotation_table$id,rownames(sce)))]
   NGT<- data.frame(Cell=colnames(reordered_NGT),
                    Group=SummarizedExperiment::colData(sce)$Required,
                    Clone=SummarizedExperiment::colData(sce)$clone_code,
@@ -163,7 +162,7 @@ clonal_architecture<-NGT_to_clone%>%
   if(any(clonal_architecture$Genotype=="error")){
       "something went wrong"
   }
-#Newly added sce metadata needs to be added line by line to avoid overwriting previous metadata
+
 sce@metadata$Clonal_Abundance<-clonal_abundance_boot_CI
 sce@metadata$NGT<-NGT_to_clone
 sce@metadata$NGT_with_missing<-NGT

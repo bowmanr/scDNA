@@ -10,7 +10,7 @@
 #'
 #' @examples
 #' \dontrun{
-#'
+#'     validate_sce(sce)
 #' }
 validate_sce<-function(sce){
 
@@ -86,7 +86,7 @@ validate_sce<-function(sce){
 
   }
 
-  # RL
+  # RL check
   if(c("RL_info")%in%names(sce@metadata)){
     message("RL_info found: trajectory_analysis() completed")
   }else{

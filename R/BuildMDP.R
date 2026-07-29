@@ -51,7 +51,6 @@ BuildMDP <-function(num_mutations,use_ADO=FALSE,cores=1){
       j<-NULL
       i<-NULL
       state_tern = temp_vals
-      #print(length(state_tern))
       r<-foreach::foreach(state_to_check=1:length(state_tern), .combine='cbind', .multicombine=TRUE,.export=c("dsum","getidx")) %dopar%{
         temp<-matrix(NA_real_,nrow=2)
         state_val <-(dsum(state_tern-state_tern[state_to_check]))
@@ -81,7 +80,6 @@ BuildMDP <-function(num_mutations,use_ADO=FALSE,cores=1){
 
         vec<-append(vec,check1[!is.na(check1)])
         vec<-append(vec,forwardADO[!is.na(forwardADO)])
-        #print(state_to_check)
         j<-t(vec)
         i<-t(rep(state_to_check,length(vec)))
         temp <-rbind(i,j)
@@ -97,11 +95,9 @@ BuildMDP <-function(num_mutations,use_ADO=FALSE,cores=1){
       j<-NULL
       i<-NULL
       state_tern = temp_vals
-      #print(length(state_tern))
       r<-foreach::foreach(state_to_check=1:length(state_tern), .combine='cbind', .multicombine=TRUE,.export=c("dsum","getidx")) %dopar%{
         temp<-matrix(NA_real_,nrow=2)
         vec<-which(getidx(dsum(state_tern-state_tern[state_to_check])))
-        #print(state_to_check)
         j<-t(vec)
         i<-t(rep(state_to_check,length(vec)))
         temp <-rbind(i,j)
@@ -116,16 +112,12 @@ BuildMDP <-function(num_mutations,use_ADO=FALSE,cores=1){
   if(use_ADO){
     cl <- parallel::makeCluster(cores)
     doParallel::registerDoParallel(cl)
-    #start<-Sys.time()
     output_mat <-f.compfun3(temp_vals,num_mutations)
-    #print( Sys.time() - start )
     parallel::stopCluster(cl)
   }else{
     cl <- parallel::makeCluster(cores)
     doParallel::registerDoParallel(cl)
-    #start<-Sys.time()
     output_mat <-f.compfun2(temp_vals)
-    #print( Sys.time() - start )
     parallel::stopCluster(cl)
   }
 
@@ -150,11 +142,7 @@ BuildMDP <-function(num_mutations,use_ADO=FALSE,cores=1){
   adj_list<-adj_list %>%
     dplyr::group_by(current_state,next_state,legal_action,action_type)%>%
     dplyr::mutate(rank = rank(action_type,ties.method="first"))%>%
-    dplyr::mutate(action_type=ifelse(rank==2,"forward_ADO",action_type))#%>%
-    #dplyr::ungroup()%>%
-    #dplyr::select(-rank)
-
-
+    dplyr::mutate(action_type=ifelse(rank==2,"forward_ADO",action_type))
 
   # For now we will say equal transition probability
   adj_list%>%
@@ -166,8 +154,5 @@ BuildMDP <-function(num_mutations,use_ADO=FALSE,cores=1){
   #assign Q-values to be 0 for each one right now, these get updated in the mdp_Q_learning_with_linklist.R function
   adj_list$Q_values<-rep(0,length(adj_list$current_state))
 
-  # This is where we would save our different sized linked lists as .rDa files so we can
-  #mkdir(paste0(getwd(),"/Results"))
-  #save(adj_list,file=paste0("./Results/AdjacencyList_",num_mutations,"_mutations.rDa"))
   return(adj_list)
 }

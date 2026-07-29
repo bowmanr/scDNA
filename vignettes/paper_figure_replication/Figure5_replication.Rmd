@@ -1,0 +1,564 @@
+---
+title: "CopyNumberVariation_tutorial"
+author: "Bobby Bowman and Michael Bowman"
+date: "2025-12-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# CNV Tutorial to reproduce Figure 5 for scDNA.
+
+In this tutorial we will go through an example of how we identify the CNV properties of samples to perform analysis. This figure will create Figure 5.
+
+
+## Let's load in the libraries
+
+```{r load in libraries, warning=FALSE,eval=FALSE}
+
+library(scDNA)
+library(dplyr)
+library(ggplot2)
+library(SingleCellExperiment)
+library(Seurat)
+
+```
+
+## Now acquire the sample data and perfrom the standard scDNA pipeline
+
+We have made the [CNV example tapestri h5 file available here to download named CNV_example.dna+protein.h5](https://drive.google.com/drive/folders/1rE3GFlLC0fj0hX6jFdk536iCyh1gB2_j?usp=drive_link)'
+
+After downloading the files place them in a folder of your liking as show below. We will look into a TP53 mutant sample with a known identified TP53.Q331* mutations and complex karyotyping of del5q and a gain of chr8. First we start with our standard scDNA pipeline. This pipeline was mapped to the hg19 so we will use that for annotation.
+
+```{r standard scDNA pipeline,eval=FALSE}
+sample_file = "./H5/CNV_example.dna+protein.h5"
+
+variant_output<-variant_ID(file=sample_file,
+                           panel="hg19",
+                            GT_cutoff=0,
+                             VAF_cutoff=0)
+
+# Now select the TP53 gene and filter
+genes_of_interest <- c("TP53")
+
+variants_of_interest<-variant_output%>%
+                        distinct()%>%
+                          dplyr::filter(Class=="Exon")%>%
+                          dplyr::filter(VAF>0.01)%>%
+                          dplyr::filter(!is.na(CONSEQUENCE)&CONSEQUENCE!="synonymous")%>% 
+                          dplyr::filter(SYMBOL%in%genes_of_interest)%>%   
+                          dplyr::arrange(desc(VAF))%>%
+                          dplyr::filter(suggested)%>%
+dplyr::group_by(final_annot)%>%
+                          dplyr::mutate(final_annot = if(n( ) > 1) {paste0(final_annot,"_",LETTERS[row_number()]) } 
+                             else {paste0(final_annot)})%>%
+   ungroup()%>%
+  dplyr::slice(c(1))
+
+sce<-tapestri_h5_to_sce(file=sample_file,
+                      variant_set = variants_of_interest,
+                      GT_cutoff=90, 
+                      VAF_cutoff=0.01,
+                      DP_cutoff=10,
+                      GQ_cutoff=20,
+                      AF_cutoff=20)
+sce<-enumerate_clones(sce, replicates = 500)
+sce<-compute_clone_statistics(sce,skip_ploidy=FALSE)
+```
+
+## Going from the SCE to Suerat to identify cell types.
+
+Afterwards we want to run the standard pipeline to go from an sce object to a seurat object and follow standard pipelines to identify cell types in seurat with FindMarkers and manual annotation.
+
+```{r standard Seurat pipeline from sce object,eval=FALSE}
+droplet_metadata<- extract_droplet_size(sce)
+
+background_droplets<-droplet_metadata%>%
+  dplyr::filter(Droplet_type=="Empty")%>%
+  dplyr::filter(dna_size<1.5&dna_size>0.15)%>%
+  pull(Cell)
+
+sce_subset<-normalize_protein_data(sce=sce,
+                                   metadata=droplet_metadata,
+                                   method=c("CLR"),
+                                   detect_IgG=TRUE,
+                                   background_droplets=background_droplets)
+
+altExp(sce_subset)
+s<-Seurat::as.Seurat(x = altExp(sce_subset),counts="Protein",data="CLR_norm")
+s<-SeuratObject::RenameAssays(object = s, originalexp = 'Protein')
+
+s <- Seurat::ScaleData(s, assay = "Protein")
+s <- Seurat::FindVariableFeatures(s,assay = "Protein")
+s <- Seurat::RunPCA(s, features = VariableFeatures(object = s))
+
+s <- Seurat::FindNeighbors(object = s,
+                   dims = NULL,  
+                   k.param = 20,
+                   annoy.metric = "cosine")
+
+s <- Seurat::FindClusters(object = s, 
+                  assay = "Protein",
+                  resolution = 0.5, 
+                  algorithm = 3, 
+                  verbose = TRUE)
+
+s = Seurat::RunUMAP(object = s, 
+            seed.use = 1990, 
+            min.dist = 0.2, 
+            n.neighbors = 50, 
+            features=s@assays$Protein@var.features,
+            verbose = TRUE)
+
+
+Seurat::VlnPlot(s,idents = c("0","1","2","3","5","6"),features = c("CD34","CD117","CD123","CD11c","CD303","CD3"),pt.size = 0.001)
+
+
+
+```
+
+Differential marker expression to identify the cell type clusters.
+
+```{r differential markers ,eval=FALSE}
+marker_check = Seurat::FindAllMarkers(s)
+
+marker_check%>%group_by(cluster)%>%slice_head(n = 5)
+
+```
+
+Cell type labeling from Seurat protein content. This is currently determined manually.
+
+```{r rename cell type clusters,eval=FALSE}
+s<-RenameIdents(s,`0`="HSPC_CDP",`1`="NK",`2`="HSPC_MPP",`3`="Pre-DC",`4`="CD8+ T",`5`="Doublets",`6`="Granulocytes",`7`="CD4+ T")
+
+s@meta.data$cell_type <-s@active.ident
+s@meta.data$cell_type <-factor(s@meta.data$cell_type,levels=c("HSPC_MPP","HSPC_CDP","Pre-DC","Granulocytes","Doublets","NK","CD8+ T","CD4+ T"))
+
+```
+
+
+# Producing Figure 5A.
+This section produces 2 UMAPs. 1) with the cell types, and 2) with the TP53 mutation overlay. 
+
+
+```{r Figure 5A,eval=FALSE}
+scCustomize::DimPlot_scCustom(s,group.by = "cell_type")+
+  scale_color_manual(values=c(HSPC_MPP=pals::kelly(n=9)[2],
+                  HSPC_CDP=pals::kelly(n=9)[3],
+                  `Pre-DC`=pals::kelly(n=9)[4],
+                  Granulocytes=pals::kelly(n=9)[5],
+                  `CD8+ T`=pals::kelly(n=9)[6],
+                  `CD4+ T`=pals::kelly(n=9)[7],
+                  NK=pals::kelly(n=9)[8],
+                  Doublets=pals::kelly(n=9)[9]))+
+  theme(axis.text.x = element_text(size=18),
+        axis.text.y=element_text(size=18),
+        axis.title.x = element_text(size=18),
+        axis.title.y = element_text(size=18),
+        legend.text = element_text(size = 12),
+        legend.position = "bottom",
+        legend.location = "plot",
+        legend.margin = margin(t = 5, r = 0, b = 0, l = 0))&
+  scCustomize::DimPlot_scCustom(s,group.by = "TP53.Q331.")+
+  scale_color_manual(
+    labels = c("WT", "HET", "HOM","DEL"),
+    values= c( RColorBrewer::brewer.pal(7,"Reds")[1],RColorBrewer::brewer.pal(7,"Reds")[3], RColorBrewer::brewer.pal(7,"Reds")[6],"grey50"))+
+  theme(axis.text.x = element_text(size=18),
+        axis.text.y=element_text(size=18),
+        axis.title.x = element_text(size=18),
+        axis.title.y = element_text(size=18),
+        legend.text = element_text(size = 12),
+        legend.margin = margin(t = 5, r = 0, b = 0, l = 0),
+        legend.position = "bottom")
+
+ggsave("./Figures/UMAPs_for_CNV_tempclone_legend_right.pdf",plot = last_plot(),width=8,height =4.5,dpi=300 )
+
+
+```
+
+
+## Obtaining ploidy.
+
+Let's now get a dataframe that consists of cell type with their barcode. When getting our CNV we will call a function called readDNA_CN_H5(). The inputs for this function includes the sce object and reference cell barcodes. We will use the T cell groups as our reference cells like below due to their WT status. The default for this setting is to use all cells. Note, when running the compute_clone_statistics(skip_ploidy=FALSE) we call readDNA_CN_H5() internally.
+
+
+```{r Performing CNV,eval=FALSE}
+meta_data_data_frame_cell_type <- FetchData(s,vars = "cell_type")
+
+sce=readDNA_CN_H5(sce = sce,
+                  reference_cells = meta_data_data_frame_cell_type%>% 
+                    dplyr::filter(cell_type=="CD8+ T"|cell_type=="CD4+ T")%>%
+                    rownames)
+
+
+```
+
+### Building the dataframe for plotting remaining Figure 5 panels
+Now we can look into differences for ploidy. (See tutorial about cell type VAFs if interested). We access the CNV data through the alternate Experiment, altExp() function. We show how to extract the ploidy and adapt it into a dataframe for further analysis.
+
+```{r accessing CNV,eval=FALSE}
+CNV_sce = altExp(sce,e="CNV")
+CNV_df<-CNV_sce@metadata$full_ploidy%>%
+  dplyr::filter(!is.na(ploidy)&ploidy!=-Inf&ploidy!=Inf)%>%
+  dplyr::arrange(CHROM,end_pos)%>%
+  dplyr::select(amplicon,barcode,depth,CHROM,end_pos,cell_subset,ploidy,norm_frac,fraction)%>%
+  dplyr::inner_join(sce@metadata$NGT_with_missing,by=c("barcode"="Cell"))%>%
+  dplyr::group_by(amplicon)%>%
+  dplyr::mutate(med_ploidy=median(ploidy))%>%
+  dplyr::ungroup()%>%
+  inner_join(meta_data_data_frame_cell_type%>%tibble::rownames_to_column(var="barcode"),by="barcode")%>%
+  dplyr::mutate(cell_type=factor(cell_type,levels=c("HSPC_MPP","HSPC_CDP","Pre-DC","Granulocytes","Doublets","NK","CD8+ T","CD4+ T")))
+  
+
+
+```
+
+
+# Producing Figure 5B
+This figure takes all cells and we find the measured number of chromosomes for 4 chromosomes locations, 2 spots with the reported abnormalities and 2 chromosomes that were unaffected as reference. Remember, this TP53 mutant sample had a known identified TP53.Q331* mutations and complex karyotyping of del5q and a gain of chr8. Which we can confirm to see in Figure 5B below.
+
+```{r plotting figure 5B,eval=FALSE}
+
+ggplot(CNV_df%>%filter(CHROM%in%c(5,8,13,4)),aes(x=CHROM,y=2^(1+ploidy),fill=CHROM))+
+  geom_violin()+
+  geom_hline(yintercept = 2,linetype='dashed')+
+  coord_flip()+
+  ggpubr::theme_classic2(base_size=24)+
+  scale_fill_manual(values=pals::tol())+
+  xlab("Chromosome")+
+  ylab("Number of Measured Chromosomes")+
+  ylim(c(0,4))+
+  guides(fill=guide_legend(title=""))
+
+ggsave("./Figures/CNV_ploidy_chromosome_violin_no_splits_new_ref.pdf",plot = last_plot(),width=6,height =4,dpi=300 )
+
+```
+ 
+
+# Producing Figure 5C
+Let's now identify how cell type and mutation status impact the chromosome abnormalities. We will see myeloid cells and TP53-mutation status alter the complex karyotyping.
+
+```{r plotting figure 5C,eval=FALSE}
+
+#Chromosome vs cell type
+gg_chrom_vs_celltype<-ggplot(CNV_df%>%filter(CHROM%in%c(5,8,13,4)),aes(x=CHROM,y=(2^(1+ploidy)),fill=cell_type))+
+  geom_boxplot()+geom_hline(yintercept = 2,linetype='dashed')+
+  coord_flip()+
+  scale_fill_manual(values=c(HSPC_MPP=pals::kelly(n=9)[2],
+                  HSPC_CDP=pals::kelly(n=9)[3],
+                  `Pre-DC`=pals::kelly(n=9)[4],
+                  Granulocytes=pals::kelly(n=9)[5],
+                  `CD8+ T`=pals::kelly(n=9)[6],
+                  `CD4+ T`=pals::kelly(n=9)[7],
+                  NK=pals::kelly(n=9)[8],
+                  Doublets=pals::kelly(n=9)[9]))+
+  xlab("Chromosome")+
+  ylab("Number of Measured Chromosomes")+
+  ylim(c(0,4))+
+  ggpubr::theme_classic2(base_size=24)+
+  theme(legend.text = element_text(size = 12), 
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        legend.location = "plot",
+        legend.margin = margin(t = -10, r = 0, b = 0, l = 0))
+
+
+ggsave("./Figures/CNV_ploidy_chromosome_boxplot_by_cells_new_ref.pdf",plot = gg_chrom_vs_celltype,width=6.5,height =5.5,dpi=300 )
+
+#Chromosome vs mutation status
+gg_chrom_vs_mut<-ggplot(CNV_df%>%filter(CHROM%in%c(5,8,13,4)),aes(x=CHROM,y=(2^(1+ploidy)),fill=Clone))+
+  geom_boxplot()+geom_hline(yintercept = 2,linetype='dashed')+
+  coord_flip()+
+  scale_fill_manual(values=c("0"=RColorBrewer::brewer.pal(7,"Reds")[1],"1"=RColorBrewer::brewer.pal(7,"Reds")[3], "2"=RColorBrewer::brewer.pal(7,"Reds")[6],"3"="grey50"),label =c("WT","HET","HOM","DEL"))+
+  xlab("Chromosome")+
+  ylab("Number of Measured Chromosomes")+
+  ylim(c(0,4))+
+  ggpubr::theme_classic2(base_size=24)+
+  guides(fill=guide_legend(title="TP53 Q331*"))+
+  theme(legend.text = element_text(size = 12), 
+        legend.position = "bottom",
+        legend.location = "plot",
+        legend.margin = margin(t = -10, r = 0, b = 0, l = 0))
+
+
+ggsave("./Figures/CNV_ploidy_chromosome_boxplot_by_Clone_new_ref.pdf",plot = gg_chrom_vs_mut,width=6.5,height =5.5,dpi=300 )
+
+```
+
+Statistical analysis for the cell type per chromosome
+
+```{r stats for CNV chrom vs celltype,eval=FALSE}
+
+celltype_chrom_aov<-aov(chrom_count~CHROM+cell_type+CHROM:cell_type, data = CNV_df%>%
+  filter(CHROM%in%c(5,8,13,4))%>%
+  mutate(chrom_count=2^(1+ploidy)))
+
+View(as.data.frame(summary(celltype_chrom_aov)[[1]]))
+
+write.csv(CNV_df%>%
+  filter(CHROM%in%c(5,8,13,4))%>%
+  mutate(chrom_count=2^(1+ploidy))%>%
+  group_by(CHROM)%>%
+  rstatix::pairwise_wilcox_test(chrom_count~cell_type,p.adjust.method = "fdr"),file = "./Result/pairwise_t_test_for_celltype_per_chrom.csv")
+
+```
+
+Statistical analysis for the Clone/mutation variant per chromosome
+
+```{r stats for chrom vs Clone,eval=FALSE}
+clone_chrom_aov<-aov(chrom_count~CHROM+Clone+CHROM:Clone, data = CNV_df%>%
+  filter(CHROM%in%c(5,8,13,4))%>%
+  mutate(chrom_count=2^(1+ploidy)))
+
+View(as.data.frame(summary(clone_chrom_aov)[[1]]))
+
+write.csv(CNV_df%>%
+  filter(CHROM%in%c(5,8,13,4))%>%
+  mutate(chrom_count=2^(1+ploidy))%>%
+  group_by(CHROM)%>%
+  rstatix::pairwise_wilcox_test(chrom_count~Clone,p.adjust.method = "fdr"),file = "./Result/pairwise_t_test_for_clone_per_chrom.csv")
+
+```
+
+
+# Producing Figure 5D.
+We also want to highlight how to use it to see dropout of amplicons along chromosomes and cell. The rows highlight amplicons in their respective chromosome, while the columns are the unique cell types. Within scDNA, we have already included a dataframe that informs what arm each amplicon was associated with for this particular panel and dataset. We can load it like below.
+
+```{r Figure 5D, eval=FALSE}
+
+CNV_amplicon_arm_df <- load(system.file("data/CNV_amplicon_arm.rDa",package = "scDNA"))
+
+heatmap_data<-CNV_df%>%
+  dplyr::select(barcode,amplicon,ploidy)%>%
+  tidyr::pivot_wider(id_cols = amplicon,names_from = barcode,values_from = ploidy)%>%
+  tibble::column_to_rownames(var="amplicon")%>%
+  as.matrix
+
+rownames_amplicon_group_by_chrom<-CNV_df%>%
+  dplyr::select(barcode,amplicon,ploidy,CHROM)%>%
+  tidyr::pivot_wider(id_cols = c(CHROM,amplicon),
+                     names_from = barcode,
+                     values_from = ploidy)%>%
+  mutate(CHROM=factor(CHROM,levels=c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X")))%>%
+  group_by(amplicon)%>%
+  mutate(med_amp =  median(c_across(!c("CHROM")),na.rm=T))%>%
+  ungroup()%>%
+  arrange(CHROM)%>%
+  group_by(CHROM)%>%
+  dplyr::inner_join(CNV_amplicon_arm_df,
+                    by="amplicon")%>%
+    mutate(chromosome_anno = chromosome_id)%>%
+  arrange(CHROM,chromosome_id,med_amp)%>%
+  tibble::column_to_rownames(var="amplicon")
+  
+
+colnames_group_by_celltype<-CNV_df%>%
+  dplyr::select(barcode,amplicon,ploidy,cell_type,Clone)%>%
+  tidyr::pivot_wider(id_cols = c(cell_type,Clone,barcode),names_from = amplicon,values_from = ploidy)%>%
+  group_by(barcode)%>%
+  mutate(med_amp =  median(c_across(!c("cell_type","Clone")),na.rm=T))%>%
+  group_by(cell_type,Clone)%>%
+  arrange(cell_type,Clone,med_amp)%>%
+  tibble::column_to_rownames(var="barcode")%>%
+  mutate(Clone=case_when(Clone==0~"WT",
+                         Clone==1~"HET",
+                         Clone==2~"HOM",
+                         Clone==3~"DEL"))%>%
+  mutate(Clone=factor(Clone,levels=c("WT","HET","HOM","DEL")))
+
+
+heatmap_data<-heatmap_data[rownames_amplicon_group_by_chrom%>%rownames,colnames_group_by_celltype%>%rownames]
+heatmap_data<- heatmap_data+1.0
+
+heatmap_data<- 2^(heatmap_data)
+heatmap_data<-ifelse(heatmap_data>4,4,heatmap_data)
+heatmap_data<-ifelse(heatmap_data<0,0,heatmap_data)
+
+ann_colors = list(
+    Clone = c(WT=RColorBrewer::brewer.pal(7,"Reds")[1],
+              HET=RColorBrewer::brewer.pal(7,"Reds")[3],
+              HOM=RColorBrewer::brewer.pal(7,"Reds")[6],
+              DEL="grey50"),
+    cell_type = c(HSPC_MPP=pals::kelly(n=9)[2],
+                  HSPC_CDP=pals::kelly(n=9)[3],
+                  `Pre-DC`=pals::kelly(n=9)[4],
+                  Granulocytes=pals::kelly(n=9)[5],
+                   Doublets=pals::kelly(n=9)[9],
+                   NK=pals::kelly(n=9)[8],
+                  `CD8+ T`=pals::kelly(n=9)[6],
+                  `CD4+ T`=pals::kelly(n=9)[7]),
+    CHROM = c(`1` = pals::alphabet(n=23)[[2]], 
+              `2` = pals::alphabet(n=23)[[3]],
+              `3`=pals::alphabet(n=23)[[4]],
+              `4`=pals::alphabet(n=23)[[5]],
+              `5`=pals::alphabet(n=23)[[6]],
+              `6`=pals::alphabet(n=23)[[7]],
+              `7`=pals::alphabet(n=23)[[8]],
+              `8`=pals::alphabet(n=23)[[9]],
+              `9`=pals::alphabet(n=23)[[10]],
+              `10`=pals::alphabet(n=23)[[11]],
+              `11`=pals::alphabet(n=23)[[12]],
+              `12`=pals::alphabet(n=23)[[13]],
+              `13`=pals::alphabet(n=23)[[14]],
+              `14`=pals::alphabet(n=23)[[15]],
+              `15`=pals::alphabet(n=23)[[16]],
+              `16`=pals::alphabet(n=23)[[17]],
+              `17`=pals::alphabet(n=23)[[18]],
+              `18`=pals::alphabet(n=23)[[19]],
+              `19`=pals::alphabet(n=23)[[20]],
+              `20`=pals::alphabet(n=23)[[21]],
+              `21`=pals::alphabet(n=23)[[22]],
+              `22`=pals::alphabet(n=23)[[23]],
+              `X` = pals::alphabet(n=23)[[1]]),
+    arm = c(`p`= pals::okabe(n=3)[2],
+                  `q`= pals::okabe(n=3)[3]))
+
+pheatmap::pheatmap(heatmap_data,
+                   color = rev(RColorBrewer::brewer.pal(name="RdBu",n=5)),
+                   na_col = "grey30",
+                   cluster_rows = F,
+                   cluster_cols = F,
+                   gaps_col = c(1202,1573),
+                   gaps_row = c(3, 15,  30,  61 , 77 , 79,  92,  93 ,104, 121 ,140 ,157 ,162 ,163 ,174 ,186, 204, 218 ,219 ,232, 249, 261 ,273),
+                   annotation_row = rownames_amplicon_group_by_chrom%>%dplyr::select(CHROM,chromosome_anno)%>%dplyr::rename(arm="chromosome_anno"),
+                   annotation_col = colnames_group_by_celltype%>%dplyr::select(cell_type,Clone),
+                   annotation_colors = ann_colors,
+                   show_colnames = F,show_rownames = F,filename = "./Figures/Heatmap_for_CNV.pdf",width = 9,height = 9)
+
+
+
+```
+
+
+
+# Comparison to optima
+
+The approach of optima vs scDNA strategy differs by: 
+1) Our strategy utilizes more immuno-phenotypic markers to designate references rather than soley relying on clustered clones for referencing. 
+2) Our normalization considers full variants not just the filtered variants
+3) The strategies differ slightly in normalization and filtering. Both strategies first normalize within cells before normalizing within an amplicon. Optima normalizes each cell by its mean amplicon depth, then per amplicon against a subset of cells. Optima then scales the ratio by 2. On the other hand we normalize each cell based on its total read depth to assess an amplicon fraction, we then normalize each amplicon by the median across all cells. Afterwards, we employ a log2 transform before calculating ploidy in alignment with array comparative genomic hybridization(CGH) and bulk whole genome sequencing (WGS).
+
+## Running Optima
+
+```{r performing optima, eval=FALSE}
+
+opt.obj <-optima::readHdf5(directory = sample_file,
+                   sample.name = "Four Cell Mix",
+                   omic.type = "DNA+protein")
+
+opt.obj <- optima::filterVariant(opt.obj)
+
+
+opt.obj$cell.labels <- rep("my.cell", length(opt.obj$cell.labels))
+
+set.seed(123)
+clone.ret <- optima::getClones(opt.obj, 
+                       minPts = 20, 
+                       num.PC = 5,
+                       plot = TRUE)
+opt.obj <- clone.ret[[1]]
+optima::drawHeatmap(opt.obj, omic.type = "dna")
+
+
+opt.obj <- optima::normalizeCNV(opt.obj)
+
+optima::getCNVmtx(opt.obj)[1:5, ]
+
+opt.obj <- optima::calculatePloidy(opt.obj, 
+                          diploid.cell = 2)
+
+optima::plotPloidy(opt.obj, cell.type = 1)
+optima::plotPloidy(opt.obj, cell.type = 2)
+optima::plotPloidy(opt.obj, cell.type = 3)
+
+optima_CNV_matrix<-opt.obj@ploidy.mtx
+rownames(optima_CNV_matrix)<-opt.obj@cell.ids
+colnames(optima_CNV_matrix)<-opt.obj@amps
+optima_CNV_matrix<-t(optima_CNV_matrix)
+optima_CNV_matrix<-optima_CNV_matrix[rownames_amplicon_group_by_chrom%>%rownames,colnames_group_by_celltype%>%rownames]
+
+```
+
+
+## combining Optima with our scDNA ploidy
+Let us join the optima ploidy calculation to our scDNA ploidy dataframe. For every cell's ploidy along an amplicon, we will calculate the correlation between both methods.
+
+```{r prepping data frame and checking correlation, eval=FALSE}
+
+scDNA_vs_optima_df <- CNV_df%>%
+                      inner_join(optima_CNV_matrix%>%
+                                   as.data.frame%>%
+                                   tibble::rownames_to_column(var="amplicon")%>%
+                                   tidyr::pivot_longer(!c("amplicon"),names_to="barcode",values_to="optima_ploidy"),
+                                 by=c("barcode","amplicon"))%>%
+  mutate(scDNA_ploidy =  2^(ploidy+1))%>%
+    mutate(CHROM=factor(CHROM,levels=c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X")))
+
+r1 <- scDNA_vs_optima_df%>%summarize(cor(scDNA_ploidy,optima_ploidy))%>%round(digits = 2)
+print(r1)
+```
+
+
+## Plotting an enrichment plot for Figure 5E
+While it is nice to see high correlation between our strategy and optima it is necessary to see consistency across cell types or if any patterns emerge.We build an enrichment plot for the median ploidy of chromosomes by our cell type calls for optima (x-axis) vs scDNA method (y-axis). The straight solid line is if both methods are identical. This serves as a bench mark for CNV analysis.
+
+```{r plotting the enrichment for each cell type, eval=FALSE}
+
+ggplot(scDNA_vs_optima_df%>%
+       group_by(cell_type,CHROM)%>%
+         summarise(med_scDNA=median(scDNA_ploidy,na.rm=T),
+                   med_optima=median(optima_ploidy,na.rm=T),.drop=F),aes(x=med_optima,y=med_scDNA,color=CHROM))+
+  geom_point(alpha=0.7,size=3.5)+
+  geom_abline(intercept = 0,slope = 1)+
+  scale_color_manual(values = c(`1` = pals::alphabet(n=23)[[2]], 
+              `2` = pals::alphabet(n=23)[[3]],
+              `3`=pals::alphabet(n=23)[[4]],
+              `4`=pals::alphabet(n=23)[[5]],
+              `5`=pals::alphabet(n=23)[[6]],
+              `6`=pals::alphabet(n=23)[[7]],
+              `7`=pals::alphabet(n=23)[[8]],
+              `8`=pals::alphabet(n=23)[[9]],
+              `9`=pals::alphabet(n=23)[[10]],
+              `10`=pals::alphabet(n=23)[[11]],
+              `11`=pals::alphabet(n=23)[[12]],
+              `12`=pals::alphabet(n=23)[[13]],
+              `13`=pals::alphabet(n=23)[[14]],
+              `14`=pals::alphabet(n=23)[[15]],
+              `15`=pals::alphabet(n=23)[[16]],
+              `16`=pals::alphabet(n=23)[[17]],
+              `17`=pals::alphabet(n=23)[[18]],
+              `18`=pals::alphabet(n=23)[[19]],
+              `19`=pals::alphabet(n=23)[[20]],
+              `20`=pals::alphabet(n=23)[[21]],
+              `21`=pals::alphabet(n=23)[[22]],
+              `22`=pals::alphabet(n=23)[[23]],
+              `X` = pals::alphabet(n=23)[[1]]))+
+  facet_wrap(~cell_type,axes = "all",axis.labels = "margins",nrow = 2)+
+  ggpubr::theme_classic2(base_size = 24)+ 
+  scale_x_continuous(breaks = 0:5,limits = c(0, NA))+
+   scale_y_continuous(breaks = 0:5,limits = c(0, NA))+
+  theme(strip.background = element_blank(),
+        strip.text=element_text(size = 12),legend.title = element_text(size=12))+
+  ylab("Median scDNA chromosomes")+
+xlab("Median Optima chromosomes")
+
+ggsave("./Figures/CNV_ploidy_scDNA_vs_Optima.pdf",plot = last_plot(),width=12,height =5,dpi=300 )
+
+```
+
+
+
+### Cell confidence calls with CNV data
+Here is a quick example showing how cell label confidence is not necessarily tied to CNVs. This is a case where no poor DNA cells were identified, only low and high confidence cells. low confidence cells dominate the doublet population. 
+
+```{r cell confidence labeling with CNV data, eval=FALSE}
+
+sce<-cell_confidence_labeling(sce)
+table(colData(sce)$cell_label_confidence)
+
+s<-AddMetaData(s,metadata = colData(sce)%>%as.data.frame)
+scCustomize::DimPlot_scCustom(s,group.by = "cell_label_confidence")
+```
+

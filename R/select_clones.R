@@ -14,17 +14,16 @@
 #'
 #' @examples
 #' \dontrun{
-#' sce_subset <- select_clones(sce, ADO_cut=0.10, GQ_cut=30, DP_cut=10, select_exact=NULL)
+#' sce_subset <- select_clones(sce, ADO_cut=0.1, GQ_cut=30, DP_cut=10, select_exact=NULL)
 #' }
 select_clones<- function(sce,
-                         ADO_cut=0.10,
+                         ADO_cut=0.1,
                          GQ_cut=30,
                          DP_cut=10,
                          select_exact=NULL){
 
   if(is.null(select_exact)){
   select_clones<- sce@metadata$Clones%>%
-                            #dplyr::filter(ADO_med<ADO_cut)%>%
                             dplyr::filter(GQ_med>GQ_cut)%>%
                             dplyr::filter(DP_med>DP_cut)%>%
                             dplyr::group_by(Clone)%>%

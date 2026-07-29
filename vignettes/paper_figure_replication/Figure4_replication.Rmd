@@ -1,0 +1,388 @@
+---
+title: "Figure4_replication"
+author: "Michael Bowman and Bobby Bowman"
+date: "2026-07-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Demultiplexing Tutorial to reproduce Figure 4 for scDNA.
+
+
+In this tutorial we will go through an example of how we identify cell type specific VAFs and replicate Figure 3.
+
+## Let's load in the libraries
+
+```{r load in libraries, warning=FALSE,eval=FALSE}
+
+library(scDNA)
+library(dplyr)
+```
+
+
+## Now acquire the sample data and perfrom the standard scDNA pipeline
+
+We have made the [multiplex sample tapestri h5 file available here to download named BB_Mix1.dna+protein.h5](https://drive.google.com/drive/folders/1rE3GFlLC0fj0hX6jFdk536iCyh1gB2_j?usp=drive_link)
+
+After downloading the files place them in a folder of your liking as show below. 
+
+```{r getting file,message=FALSE,eval=FALSE}
+file_bbmix="./H5/BB_Mix1.dna+protein.h5"
+```
+
+first we will run variant ID like normal, with no additional inputs.
+BUT we choose extremely high VAF and Genotyping Cut offs to detect SNPs.
+```{r running variant id,message=FALSE,eval=FALSE}
+variant_output<-variant_ID(file_bbmix,panel = "hg19",
+                            GT_cutoff=50,
+                             VAF_cutoff=1)
+```
+
+# automatically determine variants of interest.
+
+```{r build variant list, eval=FALSE}
+variant_set<-variant_output%>%
+  filter(genotyping_rate>90)%>%
+  filter(VAF>1&VAF<99)%>%
+  dplyr::group_by(final_annot)%>%
+                          dplyr::mutate(final_annot = if(n( ) > 1) {paste0(final_annot,"_",LETTERS[row_number()]) } 
+                             else {paste0(final_annot)})
+
+
+```
+
+
+# To highlight how the clustering works for the demultiplexing function, we will break open the demultiplexing_samples() function below.
+
+The optimize_matrix function first performs an active learning strategy to find the best variants and cells to perform clustering on. Afterwards, we cluster with k-means clusters and build a UMAP for visualization. Cells that were excluded are then imputed based on nearest cluster for variants that are seen.
+
+```{r automatic tuning with full variant table, eval=FALSE}
+sce<-scDNA::tapestri_h5_to_sce(file=file_bbmix,
+                    variant_set = variant_set)
+
+
+set.seed(1)
+sensitivity_threshold=c(0.01,0.0001)
+expected_samples = 5
+
+AF_out <- scDNA::optimize_matrix(sce, sensitivity_threshold)
+AF_complete <- t(sce[colnames(AF_out), rownames(AF_out)]@assays@data$AF)
+kmeans_AF <- kmeans(AF_complete, centers = expected_samples, nstart = 30)
+
+umap_SNPs <- umap::umap(AF_complete, n_neighbors = sqrt(nrow(AF_complete)))
+umap_df <- umap_SNPs$layout %>% data.frame() %>% dplyr::mutate(Cluster = as.character(kmeans_AF$cluster)) %>% 
+  dplyr::select(UMAP1 = X1, UMAP2 = X2, Cluster) %>% tibble::rownames_to_column(var = "Cell")
+
+umap_df_final <- SummarizedExperiment::colData(sce) %>% 
+  data.frame() %>% 
+  tibble::rownames_to_column(var = "Cell") %>% dplyr::select(Cell, sample) %>% dplyr::inner_join(umap_df, by = "Cell")
+
+sce <- add_cell_annotation(sce, umap_df_final)
+sce <- impute_cluster(sce, by = "AF")
+
+```
+
+
+
+We then can manually assign cell types. A nice trick when using multiplexing is to have proportions known before hand to help identify cluster assignments quicker. In this case, proportions were imbalanced which allows for easy detection of which sample.
+
+
+```{r assigning cells to clusters, eval=FALSE}
+cell_clust_ids_for_UMAP <- data.frame(cell_names = colData(sce)@rownames, 
+                             final_cluster = colData(sce)$final_cluster,
+                             imputed = colData(sce)$cluster_group,
+                             UMAP1= colData(sce)$UMAP1,
+                             UMAP2= colData(sce)$UMAP2)
+
+table(cell_clust_ids_for_UMAP$final_cluster)
+
+cell_clust_ids_for_UMAP<-cell_clust_ids_for_UMAP%>%mutate(final_cluster =
+                                        case_when(final_cluster==1~"R2954",
+                                                  final_cluster==2~"R2738",
+                                                  final_cluster==3~"R3179",
+                                                  final_cluster==4~"R2673",
+                                                  final_cluster==5~"Doublet"),
+                                      cell_names=cell_names)%>%
+  mutate(final_cluster=factor(final_cluster,levels=c("R2954","R3179","R2738","Doublet","R2673")))
+```
+
+# Producing Figure 4A
+The UMAP shows clusters built on Allele Frequencies of variants found in the sample. We are able to reconstruct the samples with their assignment
+
+```{r producing Figure 4A, eval=FALSE}
+
+ggplot(cell_clust_ids_for_UMAP,aes(x=UMAP1,y=UMAP2,color=final_cluster))+
+  geom_point(alpha=0.5,size=4)+
+  ggpubr::theme_classic2(base_size=24)+
+  theme(legend.title = element_text(size=18))+
+  xlab("UMAP 1")+
+  ylab("UMAP 2")+
+  guides(color=guide_legend(title="Samples",override.aes =list(size=5,alpha=1)))+
+  scale_color_manual(values =pals::kelly(n=6)[-1])
+
+ggsave("./Figures/Demultiplex_mixed_samples_ML_variants.pdf",last_plot(),width=6.5,height =5,dpi=300)
+
+
+```
+
+# Producing Figure 4B
+To show how you can manually ID the clusters, we demonstrate the overlay of an IDH2 VAF for the smallest sample. We have one sample that had a known IDH2.R140Q mutation, as demonstration that the samples are split.
+
+```{r producing Figure 4B,eval=FALSE}
+rownames(sce)[grep("IDH2.R140Q",rownames(sce))]
+grep("IDH2.R140Q",rownames(sce))
+
+AF_mat_for_overlay<-t(sce@assays@data$AF[as.character(grep("IDH2.R140Q",rownames(sce))),])%>%as.data.frame%>%tibble::rownames_to_column(var="cell_names")
+colnames(AF_mat_for_overlay)<-c("cell_names","IDH2 VAF")
+
+cell_clust_ids_for_UMAP<-inner_join(cell_clust_ids_for_UMAP,AF_mat_for_overlay,by="cell_names")
+
+
+ggplot(cell_clust_ids_for_UMAP%>%arrange(`IDH2 VAF`),aes(x=UMAP1,y=UMAP2,color=`IDH2 VAF`))+
+  geom_point(alpha=0.1,size=4)+
+  ggpubr::theme_classic2(base_size=24)+
+  theme(legend.title = element_text(size=18))+
+  xlab("UMAP 1")+
+  ylab("UMAP 2")+
+  scale_color_continuous(type = "viridis")
+
+
+ggsave("./Figures/Demultiplex_mixed_samples_with_IDH2_VAF_For_R2673.pdf",last_plot(),width =6.5,height =5,dpi=300)
+
+
+```
+
+
+# Manually filtering SNPs 
+Within the panel, here is manual defined list of variants for known SNPs designed into the panel. This an approach that is commonly used by Tapestri and techniques 
+
+```{r Manual tuning with reduced variant table, eval=FALSE}
+
+final_id_list_to_include=c("chr1:4367323:G/A","chr1:239881926:A/G","chr2:10085722:G/A","chr2:182413259:A/G",
+                              "chr3:32417644:T/G","chr3:193207380:T/C", "chr4:46329655:A/T","chr4:169663615:T/G",
+                              "chr5:17374898:A/G","chr5:136633338:G/A","chr5:159487953:G/A", "chr5:169735920:A/C",
+                              "chr5:178690725:G/A","chr6:94537255:T/C","chr6:152697706:C/T","chr7:4310365:C/T",
+                              "chr7:137029838:T/C","chr8:28411072:T/C","chr8:144656754:T/C","chr9:14747133:T/C",
+                              "chr9:137417308:G/T","chr10:17193346:A/G","chr10:118506899:G/A","chr11:5709028:C/T",
+                              "chr11:122195989:C/T","chr12:6909442:T/C","chr12:40863052:A/G","chr13:84456735:T/C",
+                              "chr13:100038233:A/G","chr14:53216723:G/C","chr14:104769149:G/A","chr15:39313402:C/G",
+                              "chr16:5868700:A/G","chr16:78017051:C/T","chr17:6811529:G/A","chr17:80531643:C/G",
+                              "chr18:9749879:G/A","chr18:47371014:C/G","chr19:39559807:A/C","chr20:15124933:G/C",
+                              "chr20:51296162:T/C","chr21:28023370:T/C","chr21:43606997:T/C","chr22:19920646:C/G","chr22:33559508:T/A")
+
+                              
+                              
+
+sce_manual<-scDNA::tapestri_h5_to_sce(file=file_bbmix, variant_set=variant_output%>%
+                                    filter(id%in%final_id_list_to_include&!is.na(genotyping_rate)))
+
+```
+
+For fair comparison let's use these to variants to perform the clustering and visualize a UMAP using them
+
+```{r manual clustering, eval=FALSE}
+
+
+set.seed(1)
+AF_complete_manual <- t(sce_manual[rownames(sce_manual), colnames(sce_manual)]@assays@data$AF)
+
+kmeans_AF_manual <- kmeans(AF_complete_manual, centers = 6, nstart = 30)
+
+umap_SNPs_manual <- umap::umap(AF_complete_manual, n_neighbors = sqrt(nrow(AF_complete_manual)))
+umap_df_manual <- umap_SNPs_manual$layout %>% 
+  data.frame() %>% dplyr::mutate(Cluster = as.character(kmeans_AF_manual$cluster)) %>% 
+  dplyr::select(UMAP1 = X1, UMAP2 = X2, Cluster) %>%
+  tibble::rownames_to_column(var = "Cell")
+
+umap_df_final_manual <- SummarizedExperiment::colData(sce_manual) %>% data.frame() %>% 
+  tibble::rownames_to_column(var = "Cell") %>% 
+  dplyr::select(Cell, sample) %>% 
+  dplyr::inner_join(umap_df_manual, by = "Cell")
+
+umap_df_final_manual %>% 
+  ggplot(aes(x = UMAP1, y = UMAP2)) + 
+  geom_point(aes(color = Cluster), alpha = 0.2, size = 2, show.legend = TRUE) +
+  scale_color_manual(values = rev(c(pals::tol(7)))) + 
+  theme_classic() + 
+  theme(axis.title.x = element_text(size = 12), axis.title.y = element_text(size = 12), axis.text.x = element_text(size = 10), axis.text.y = element_text(size = 10), legend.text = element_text(size = 10),  plot.title = element_text(hjust = 0.5, size = 14)) + 
+  labs(x = "UMAP1", y = "UMAP2") + facet_grid(~sample) +
+  scale_fill_discrete(name="Mutation Abbreviation",labels=c(""))
+
+table(umap_df_final_manual$Cluster)
+umap_df_final_manual<-umap_df_final_manual%>%
+  mutate(final_cluster=case_when(
+  Cluster == 4~"R2954",#1
+  Cluster == 1~"R3179",#2
+  Cluster == 5~"R2954",#3
+  Cluster == 2~"R2738",#4
+  Cluster == 6~"Doublet",#5
+  Cluster == 3~"R2673",#6
+),cell_names=Cell)
+
+
+
+```
+
+# Producing Figure 4D
+
+We now want to compare the classification head to head between the ground truth manual SNPs vs our optimized variant discovery method.  
+
+```{r producing Figure 4D, eval=FALSE}
+combo_df_for_classes<-inner_join(cell_clust_ids,umap_df_final_manual,by="cell_names",suffix=c(".scDNA",".Man"))
+table(combo_df_for_classes$final_cluster.scDNA,combo_df_for_classes$final_cluster.Man)
+
+temp_heatmap<-as.matrix(table(combo_df_for_classes$final_cluster.Man,combo_df_for_classes$final_cluster.scDNA))
+temp_heatmap<- temp_heatmap/rowSums(temp_heatmap)
+
+ordered_samples<-c("R2954","R3179","R2738","Doublet","R2673")
+
+pheatmap::pheatmap(temp_heatmap[ordered_samples,ordered_samples],
+                   cluster_rows = F,cluster_cols = F,show_rownames = T,show_colnames = T,color = rev(RColorBrewer::brewer.pal(n=9,"RdBu")),display_numbers = T,border_color = "white",
+                   fontsize = 24,number_color = "white",
+                   filename = "./Figures/Classification_Heatmap_rows_manual_cols_ML_new.pdf",width = 7.5, height = 7.5)
+
+
+```
+
+Statistics on the overlap between the two methods. 
+```{r stats for Figure 4D, eval=FALSE}
+cm =as.matrix(table(combo_df_for_classes$final_cluster.Man,combo_df_for_classes$final_cluster.scDNA))
+precision <- diag(cm) / colSums(cm)
+recall <- diag(cm) / rowSums(cm)
+f1 <-  ifelse(precision + recall == 0, 0, 2 * precision * recall / (precision + recall))
+
+unweighted_f1 = mean(f1)
+f1
+unweighted_f1
+
+
+kappa = function(M){(sum(diag(M)) - 1/sum(M) * sum(colSums(M) * rowSums(M)))/
+(sum(M) - 1/sum(M) * sum(colSums(M) * rowSums(M)))}
+ 
+kappa(cm) 
+
+```
+
+
+# Producing Figure 4E
+
+This figure is about comparing the variants identified by either our scDNA or manual curated SNPs. We develop an upset plot as an alternative for a venn diagram
+
+
+```{r upset plot for variants, eval=FALSE}
+
+ML_sets <- colnames(AF_out)
+manual_sets<-rownames(sce_manual)
+venn <- ggVennDiagram::Venn(list(scDNA = ML_sets, Manual = manual_sets))
+cols <- c("#9B3441FF","#1F6E9CFF","#2B9B81FF")  
+
+p <- ggVennDiagram::plot_upset(
+  venn,
+  top.bar.color = cols,           
+  sets.bar.color = cols[2],          
+  intersection.matrix.color = "grey30", 
+  top.bar.numbers.size = 6,top.bar.show.numbers = F
+)
+for (i in seq_along(p[["plotlist"]])) {
+  print(i)
+  if(i==2){
+    p[["plotlist"]][[i]] <- p[["plotlist"]][[i]] + ylab("number of variants\n used for demultiplexing")
+  }
+  p[["plotlist"]][[i]] <- p[["plotlist"]][[i]] + 
+    ggpubr::theme_classic2(base_size = 24)+
+    theme(axis.ticks.x = element_blank(),
+          axis.text.x = element_blank(),
+          axis.text.y = element_text(size = 18),
+          axis.title.y=element_text(size=18),
+          axis.title.x = element_text(size=18))
+}
+
+p_new <- p
+p_new[["plotlist"]] <- p_new[["plotlist"]][-3]
+big_patch_plot<-patchwork::wrap_plots(rev(p_new[["plotlist"]]),ncol = 1)
+
+ggsave("./Figures/variants_shared_between_methods_upsetplot.pdf",plot = big_patch_plot,width =8,height =5.5,dpi=300)
+
+```
+
+
+# Producing Figure 4C
+This figure aims to compare the abundance of cells in each category to evaluate similar proportion of cells per sample.
+
+```{r producing Figure 4C, eval=FALSE}
+library(scales)
+library(grid)
+text_R2954 <- textGrob("R2954", gp=gpar(fontsize=13, fontface="bold"))
+text_R3179 <- textGrob("R3179", gp=gpar(fontsize=13, fontface="bold"))
+text_R2738 <- textGrob("R2738", gp=gpar(fontsize=13, fontface="bold"))
+text_Doublet<- textGrob("Doublet", gp=gpar(fontsize=13, fontface="bold"))
+text_R2673 <- textGrob("R2673", gp=gpar(fontsize=13, fontface="bold"))
+
+
+
+plot_bar_df<-combo_df_for_classes%>%
+  dplyr::select(cell_names,imputed,final_cluster.scDNA,final_cluster.Man)%>%
+  tidyr::pivot_longer(!c(cell_names,imputed),values_to = "cluster_calls",names_to = "Strategy")%>%
+  mutate(imputed=case_when(Strategy=="final_cluster.Man"~"Manual Observed",
+                           imputed=="Observed"~"scDNA Observed",
+                           imputed=="Imputed"~"scDNA Imputed",
+                           TRUE~imputed))%>%
+  mutate(imputed=factor(imputed,levels=c("scDNA Imputed","scDNA Observed","Manual Observed")))%>%
+  mutate(Strategy=case_when(Strategy=="final_cluster.Man"~"Manual",
+                            TRUE~"scDNA"))%>%
+  mutate(Strategy=factor(Strategy,levels=c("Manual","scDNA")))%>%
+  mutate(cluster_calls=factor(cluster_calls,levels=unique(cluster_calls)))%>%
+  group_by(Strategy,imputed,cluster_calls)%>%
+  mutate(counts_per_tiny_bar=n())%>%
+  ungroup()%>%
+  distinct(imputed,Strategy,cluster_calls,counts_per_tiny_bar)%>%
+  group_by(cluster_calls)%>%
+  mutate(counts_per_cluster_for_ordering=sum(counts_per_tiny_bar))%>%
+  ungroup()%>%
+  arrange(desc(counts_per_cluster_for_ordering))%>%
+  group_by(cluster_calls,Strategy)%>%
+  arrange(desc(sum(counts_per_tiny_bar)))%>%
+  mutate(new_x_axis=interaction(cluster_calls,Strategy))%>%
+  mutate(new_x_axis=factor(new_x_axis,levels=c("R2954.scDNA","R2954.Manual","R3179.scDNA","R3179.Manual","R2738.scDNA","R2738.Manual","Doublet.scDNA","Doublet.Manual","R2673.scDNA","R2673.Manual")))
+
+
+
+ymax <- max(plot_bar_df$counts_per_tiny_bar, na.rm = TRUE)
+pad  <- 0.08 * ymax           # space below axis
+tick_h <- 0.01 * ymax         # tick height
+tick_positions <- seq(1.5, 10 - 0.5, by = 2)
+
+
+ggplot(plot_bar_df,aes(x=new_x_axis,y=counts_per_tiny_bar,fill=imputed))+
+  geom_col(,stat = 'identity', position = 'stack') +
+  #geom_vline(xintercept = tick_positions, color="black",size=0.3,linetype="dotted")+
+  geom_segment(data = data.frame(x = tick_positions),
+               aes(x = x, xend = x, y = -1.5*tick_h, yend = 0),
+               inherit.aes = FALSE, linewidth = 0.8) +
+  ggpubr::theme_classic2(base_size=24)+
+  ylab("# of cells")+
+  xlab("")+
+  annotate("text",
+           x = tick_positions,
+           y = -0.5 * pad,
+           label = c("R2954","R3179","R2738","Doublet","R2673"),
+           size = 5) +
+  scale_fill_manual(values = c("scDNA Imputed"="grey30",
+                               "scDNA Observed"=RColorBrewer::brewer.pal(n=9,"RdBu")[1],
+                              "Manual Observed" = RColorBrewer::brewer.pal(n=9,"RdBu")[9]))+
+  theme(axis.text.x = element_blank(),#element_text(angle = 45, hjust = 1),
+        legend.title = element_blank(),
+        axis.ticks.x = element_blank())+
+   scale_y_continuous(expand =c(0,0))+
+  coord_cartesian(ylim= c(0,ymax), clip = "off")
+
+ggsave("./Figures/Cells_per_assigned_sample_demultiplex.pdf",last_plot(),width =8,height =5.5,dpi=300)
+
+
+```
+
+

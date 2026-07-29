@@ -1,0 +1,348 @@
+---
+title: "Figure3_replication"
+author: "Michael Bowman and Bobby Bowman"
+date: "2026-07-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Cell type specific VAFs Tutorial to reproduce Figure 3 for scDNA.
+
+In this tutorial we will go through an example of how we identify cell type specific VAFs and replicate Figure 3.
+
+## Let's load in the libraries
+
+```{r load in libraries, warning=FALSE,eval=FALSE}
+
+library(scDNA)
+library(dplyr)
+library(ggplot2)
+library(SingleCellExperiment)
+library(Seurat)
+library(dsb)
+
+```
+
+## Now acquire the sample data and perfrom the standard scDNA pipeline
+
+We have made the [LAMA example tapestri h5 file available here to download named LAMA.dna+protein.h5](https://drive.google.com/drive/folders/1rE3GFlLC0fj0hX6jFdk536iCyh1gB2_j?usp=drive_link)'
+
+After downloading the files place them in a folder of your liking as show below. 
+
+We have 2 different scenarios to identify clones with cell types: 
+1) pseudo-bulking the clone discovery and then identifying cell types (helpful when you have expected variants of interest and requires investigations to reveal if clones are mutually exclusive within certain lineages)
+2) identifying cell types then discovering clones (helpful for variant discovery and VAF enrichment for genetic profiling)
+
+```{r load in file,eval=FALSE}
+sample_file<- "./H5/LAMA.dna+protein.h5"
+```
+
+# Pseudo bulking and Figure 3A and Figure 3B creation
+First we will perform identifying clones prior to cell types. This is done by running the standard scDNA pipeline. The dataset we are using today uses the MSK_RL panel. 
+
+```{r standard scDNA pipeline,eval=FALSE}
+variant_output<-variant_ID(file=sample_file,
+                           panel="MSK_RL",
+                            GT_cutoff=0,
+                             VAF_cutoff=0)
+
+genes_of_interest <- c("NRAS","NPM1","TET2")
+variants_of_interest<-variant_output%>%
+                        distinct()%>%
+                          dplyr::filter(Class=="Exon")%>% 
+                          dplyr::filter(VAF>0.01)%>%
+                          dplyr::filter(genotyping_rate>85)%>%
+                          dplyr::filter(!is.na(CONSEQUENCE)&CONSEQUENCE!="synonymous")%>%
+                          dplyr::filter(SYMBOL%in%genes_of_interest)%>%   
+                          dplyr::arrange(desc(VAF))%>%
+                          dplyr::slice(c(1,2,3))
+
+sce<- tapestri_h5_to_sce(file=sample_file,variant_set = variants_of_interest)
+sce<-enumerate_clones(sce, replicates = 500)
+sce<-compute_clone_statistics(sce,skip_ploidy=FALSE)
+
+```
+
+## building the Seurat object and getting the cell type clusters
+We now are going to build our standard Seurat object and label cell types with FindMarkers and manual annotation.
+
+```{r Seurat setup,eval=FALSE}
+droplet_metadata<- extract_droplet_size(sce)
+background_droplets<-droplet_metadata%>%
+                          dplyr::filter(Droplet_type=="Empty")%>%
+                          dplyr::filter(dna_size<1.5&dna_size>0.15)%>%
+                          pull(Cell)
+
+sce_subset<-normalize_protein_data(sce=sce,
+                             metadata=droplet_metadata,
+                             method=c("CLR"),
+                             detect_IgG=TRUE,
+                             background_droplets=background_droplets)
+
+s<-Seurat::as.Seurat(x = altExp(sce_subset),counts="Protein",data="CLR_norm")
+s<-SeuratObject::RenameAssays(object = s, originalexp = 'Protein')
+
+colnames(s@meta.data)
+
+s <- Seurat::ScaleData(s, assay = "Protein")
+VariableFeatures(s)<-rownames(s[1:42])
+s <- Seurat::RunPCA(s, features = VariableFeatures(object = s))
+
+
+s <- FindNeighbors(object = s,
+                   dims = NULL,  
+                   k.param = 30, #30 nearest cells
+                   annoy.metric = "cosine")
+# direct graph clustering 
+s <- FindClusters(object = s, 
+                  assay = "Protein",
+                  resolution = 0.4, 
+                  algorithm = 3, 
+                  verbose = TRUE)
+# umap for visualization only; (this is optional)
+s = RunUMAP(object = s, 
+            seed.use = 1990, 
+            min.dist = 0.2, 
+            n.neighbors = 100, 
+            features=s@assays$Protein@var.features,
+            verbose = TRUE)
+
+s<-AddMetaData(object = s,metadata = s@meta.data%>%
+      data.frame()%>%
+      mutate(cell_types=factor(case_when(
+        seurat_clusters=="0"~"Myeloid Blast",
+        seurat_clusters=="3"~"Monocytic Blast",
+        seurat_clusters=="2"~"HSC",
+          seurat_clusters=="1"~"HSPC",
+        seurat_clusters == "4"~"Doublets", # Don't make this a level so we can subset easily.
+          seurat_clusters=="5"~"Mature Monocyte",
+          seurat_clusters=="6"~"Lymphoid",
+         seurat_clusters=="7"~"DC",
+         seurat_clusters=="8"~"Other",
+        TRUE~"PANIC"
+      ),levels=rev(c("HSC","HSPC","Myeloid Blast",
+                     "Monocytic Blast", "Mature Monocyte","DC",
+                     "Lymphoid","Other"))))%>%
+        mutate(Clones=case_when(
+          Clone=="0_0_0"~"WT",
+          Clone=="1_0_1"~"TET2_NRAS",
+          Clone=="1_1_0"~"TET2_NPM1",
+          TRUE~"Other"))%>%
+        mutate(Clones=factor(Clones,levels=c("WT","TET2_NRAS","TET2_NPM1","Other","NA")))%>%
+        dplyr::select(cell_types,Clones))
+  
+
+```
+
+## Producing Figure 3A
+This shows a UMAP with cell types and 4 clones: WT, a TET2+NRAS, TET2+NPM1, and other subclones. This figure highlights that clones can be identified prior to cell typing and how they can concentrate within single compartments.
+
+```{r Figure 3A, eval =FALSE}
+
+Idents(s)<-"cell_types"
+
+scCustomize::DimPlot_scCustom(subset(s,subset = !is.na(cell_types)) ,group.by = "cell_types")+
+  scale_color_manual(values=c(HSC=pals::kelly(n=9)[2],
+                  HSPC=pals::kelly(n=9)[3],
+                  `Myeloid Blast`=pals::kelly(n=9)[4],
+                  `Monocytic Blast`=pals::kelly(n=9)[5],
+                  `Mature Monocyte`=pals::kelly(n=9)[6],
+                  `DC`=pals::kelly(n=9)[7],
+                  Lymphoid=pals::kelly(n=9)[8],
+                  Other=pals::kelly(n=9)[9]))+
+  theme(axis.text.x = element_text(size=18),
+        axis.text.y=element_text(size=18),
+        axis.title.x = element_text(size=18),
+        axis.title.y = element_text(size=18),
+        legend.text = element_text(size = 14),
+        legend.position = "bottom",
+        legend.location = "plot",
+        legend.margin = margin(t = 5, r = 0, b = 0, l = 0))+guides(color = guide_legend(override.aes = aes(size=4),nrow = 3))&
+  scCustomize::DimPlot_scCustom(subset(s,subset = !is.na(cell_types)),group.by = "Clones",label = F,colors_use = c("TET2_NRAS"="#56B4E9","WT"="#E69F00", "TET2_NPM1"="#CC79A7","Other"="grey70"),order = c("WT","TET2_NRAS","TET2_NPM1","Other"))+
+  theme(axis.text.x = element_text(size=18),
+        axis.text.y=element_text(size=18),
+        axis.title.x = element_text(size=18),
+        axis.title.y = element_text(size=18),
+        legend.text = element_text(size = 14),
+        legend.margin = margin(t = 5, r = 0, b = 0, l = 0),
+        legend.position = "bottom")+guides(color = guide_legend(override.aes = aes(size=4),nrow = 2))
+
+ggsave("./Figures/UMAPs_for_Figure3A_tempclone_no_legend.pdf",plot = last_plot(),width=9,height =5.5,dpi=300 )
+
+
+
+```
+
+## Producing Figure 3B
+TET2 NPM1 vs TET2 NRAS clone with S plot
+110               1_0_1
+
+```{r Figure 3B, eval=FALSE}
+Idents(s)<-"Clone"
+markers<-FindMarkers(subset(s,subset = !is.na(cell_types)),ident.1 = "1_1_0",ident.2 = "1_0_1")%>%
+  mutate(signFC_logp= sign(avg_log2FC)*(-1)*log10(p_val_adj))%>%
+  arrange(signFC_logp)%>%
+  mutate(Sig_level=case_when(sign(avg_log2FC)>0&p_val_adj<0.05 ~"Up",
+                             sign(avg_log2FC)<0&p_val_adj<0.05  ~"Down",
+                             TRUE~"NS"))%>%
+  mutate(Sig_level=factor(Sig_level,levels=c("Up","Down","NS")))%>%
+  tibble::rownames_to_column(var="Marker")
+
+
+ggplot(markers,aes(y=signFC_logp,x=1:40,color=Sig_level,label=Marker))+
+  geom_point(size=4)+
+  scale_color_manual(values=c("Up"=RColorBrewer::brewer.pal(name="Reds",n=7)[7],
+                              "Down"=RColorBrewer::brewer.pal(name="Blues",n=7)[7],
+                              "NS"="grey70"))+
+  ggpubr::theme_classic2(base_size = 24)+
+  xlab("Ranking")+
+  ylab("-sign(FC)*log10(p)")+
+    theme(legend.title = element_blank(),axis.text.x=element_blank(),axis.ticks.x = element_blank())+
+  ggrepel::geom_text_repel(data = markers%>%filter(Sig_level=="Down"),
+                           mapping = aes(x=c(1:16),y=signFC_logp),
+                           force = 5,nudge_y = -5,nudge_x = 2,size=8,
+                           max.overlaps = 7,
+                           color="black", 
+                           alpha = 0.75, 
+                           box.padding = 0.80, 
+                           point.padding = 0.5, 
+                           label.padding=.1)+
+  ggrepel::geom_text_repel(data = markers%>%filter(Sig_level=="Up"),
+                          mapping = aes(x=c(35:40),y=signFC_logp),
+                           force = 30,size=8,nudge_y = -4,nudge_x = -3,
+                           max.overlaps = 9,
+                           color="black", 
+                           alpha = 1, 
+                           box.padding = 0.80, 
+                           point.padding = 0.5, 
+                           label.padding=.1)
+
+
+
+ggsave(filename = "./Figures/Clone_marker_diff_ranking.pdf",plot = last_plot(),height = 5.5,width = 7.5,dpi = 320)
+
+
+```
+
+
+
+## Finding cell types and then performing the variant identification on each cell type.
+
+## Producing Figure 3C
+
+## Cell type first and then finding specific VAF assessment
+Within our variant_ID function, we can take advantage of the demultiplexing functionality and treat each cell type as its own sample. Just be sure to change the cell_type column name to be "final_cluster." This will produce a variant table for each cell type.
+
+```{r cell specific VAF,eval=FALSE}
+meta_data_data_frame_cell_type <- FetchData(s,vars = "cell_types")
+
+df_we_want<-meta_data_data_frame_cell_type%>%
+  dplyr::rename(final_cluster="cell_types")%>%
+  tibble::rownames_to_column(var="cell_names")%>%
+  dplyr::select(cell_names,final_cluster)
+
+
+cell_specific_variant<-variant_ID(file=sample_file,
+                           panel="MSK_RL",
+                            GT_cutoff=0,
+                            VAF_cutoff=0, 
+                           demultiplexed = df_we_want)
+
+
+```
+
+
+Let's build an enrichment plot to compare 2 separate cell populations, monocytic blasts and lymphoid, that should be distinct in mutational profiling. As some variants may not have been found in either population, we will first clean these up and assign them as 0 VAF. Let's also highlight 3 variants we know exist from the bulk population NRAS.G12R, TET2.R1516*, NPM1.287. Variants below the dashed line mean there is an enrichment of lymphoid cells while above it is an enrichment of monocytic blasts.
+
+
+```{r Figure 3C,eval=FALSE}
+
+cell_specific_variant<-cell_specific_variant %>%
+    filter(genotyping_rate_Monocytic.Blast>80|genotyping_rate_Lymphoid>80)%>%
+  filter(!is.na(genotyping_rate_Monocytic.Blast)|!is.na(genotyping_rate_Lymphoid))%>%
+  mutate(`VAF_Lymphoid`= ifelse(is.na(`VAF_Lymphoid`), 0, `VAF_Lymphoid`))%>%
+  mutate(`VAF_Monocytic.Blast`=ifelse(is.na(`VAF_Monocytic.Blast`), 0, `VAF_Monocytic.Blast`))%>%
+  mutate(Color_group = case_when(
+    final_annot=="NRAS.G12R"~"NRAS.G12R",
+    final_annot=="TET2.R1516*"~"TET2.R1516*",
+    final_annot=="NPM1.287"~"NPM1.287",
+    TRUE~"Other"
+  ))%>%
+  mutate(Color_group=factor(Color_group,levels=c("TET2.R1516*","NPM1.287","NRAS.G12R","Other")))%>%
+  arrange(desc(Color_group))
+
+
+ggplot(cell_specific_variant,aes(x=`VAF_Lymphoid`, 
+             y=`VAF_Monocytic.Blast`,
+             color=Color_group))+
+  geom_point(size = 4,alpha=0.7)+
+  geom_abline(slope=1,intercept = 0, lty=2)+
+  scale_color_manual(values=c("NRAS.G12R" = RColorBrewer::brewer.pal(name="Greens",n=7)[7],
+                              "TET2.R1516*"= RColorBrewer::brewer.pal(name="Blues",n=7)[7],
+                              "NPM1.287" = RColorBrewer::brewer.pal(name="Reds",n=7)[7],
+                     "Other" = "grey70"))+
+  ggpubr::theme_classic2(base_size = 24)+
+  ggtitle("Lymphoid vs. Monocytic Blast")+
+  theme(axis.line.x= element_line(), 
+        axis.line.y= element_line(), 
+        plot.title= element_text(hjust=0.5),
+        legend.title=element_blank())+
+  xlab("VAF Lymphoid")+
+  ylab("VAF Monocytic Blast")+
+  xlim(0, 100)+
+  ylim(0, 100)
+
+
+ggsave("./Figures/Lymphoid_vs_mono_blast_VAF.pdf",plot=last_plot(),width=7.5,height=5,dpi=320)
+```
+
+
+
+## Producing Figure 3D
+This plot shows an alternative approach to assess the VAF per cell type.
+
+```{r Figure 3D, eval=FALSE}
+
+VAF_out<-s@meta.data%>%
+      data.frame()%>%
+      filter(Group=="Complete")%>%
+      filter(!is.na(cell_types))%>%
+      group_by(cell_types)%>%
+      summarize(count=n(),
+                TET2=sum(TET2.R1516.!=0)/(n()*2),
+                NPM1=sum(NPM1.287!=0)/(n()*2),
+                NRAS=sum(NRAS.G12R!=0)/(n()*2))%>%
+      arrange(TET2,NPM1,NRAS)%>%
+      tidyr::pivot_longer(cols = !c(cell_types,count),names_to = "Gene",values_to = "VAF")%>%
+      mutate(Gene=factor(Gene,levels=c("TET2","NPM1","NRAS")))
+
+VAF_heatmap<- ggplot(VAF_out,aes(x=Gene,y=cell_types,fill=VAF))+
+      geom_tile()+
+      scale_fill_distiller(name = "VAF",palette = "Reds",direction = 1,
+                           limits = c(0, 0.5),
+                           breaks = c(0.1, 0.3, 0.5))+
+      ggpubr::theme_classic2(base_size = 18)+
+      ylab("Cell Population")+xlab("Mutant Gene")+
+      theme(panel.grid = element_blank(),
+            legend.position = "left")
+
+cell_abundance_bars<- ggplot(VAF_out,aes(x=count,y=cell_types))+
+      geom_col()+
+      ggpubr::theme_classic2(base_size = 18)+
+      ylab("")+xlab("Cell Count")+
+      theme(axis.text.y=element_blank(),
+           panel.grid = element_blank())
+
+library(cowplot)
+cowplot::plot_grid(VAF_heatmap,cell_abundance_bars,rel_widths = c(1,0.7))
+ggsave(plot=last_plot(),filename = "./Figures/VAF_heatmap_and_Bar_plot.pdf",width=9,height = 4.5,dpi = 320)
+
+
+
+
+```
+

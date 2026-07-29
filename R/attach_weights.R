@@ -11,9 +11,7 @@
 #' adj_list<-attach_weights(sce,adj_list)
 #' }
 attach_weights <-function(sce,adj_linklist){
-  #adj_linklist<-adj_list
   # first we obtain weights from our final_summary dataframe (this was taken from the myeloid one)
-
   data_frame_clarity<-dplyr::inner_join(sce@metadata$Architecture,
                                        as.data.frame(sce@metadata$Clones)%>%
                                          dplyr::mutate(Count=ifelse(Group=="Other",n_Other,n_Complete))%>%
@@ -45,7 +43,7 @@ attach_weights <-function(sce,adj_linklist){
     dplyr::mutate(
       dplyr::across(where(is.numeric), ~tidyr::replace_na(.x,0)))
 
-  # for search later
+  # for search later with optimal policies
   adj_linklist$observed_states <- ifelse(adj_linklist$reward>0,1,0)
 
     adj_linklist$reward[which(adj_linklist$rank==2)-1] <- (1-check_sub_var$false_positiveHom[which(adj_linklist$rank==2)-1])*adj_linklist$reward[which(adj_linklist$rank==2)-1]

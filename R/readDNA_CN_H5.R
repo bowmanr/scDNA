@@ -15,8 +15,6 @@
 #' }
 readDNA_CN_H5<-function(sce,reference_cells=NULL){
 
-  # mark reference cells just take them all for now and set it as a variable above.
-  # in the future this could be T cells or whatever
   CNV_sce<-SingleCellExperiment::altExp(sce,"CNV")
   if(is.null(reference_cells)){
     reference_cells = colnames(CNV_sce@assays@data$CNV)
@@ -36,11 +34,9 @@ readDNA_CN_H5<-function(sce,reference_cells=NULL){
     dplyr::mutate(norm_frac=(fraction/median(fraction)))%>%
     dplyr::mutate(ploidy=log2(norm_frac/median(norm_frac[cell_subset=="Ref"])))%>%
     dplyr::arrange(CHROM,start_pos)%>%
-    #dplyr::ungroup()%>%
     dplyr::mutate(amplicon=factor(amplicon,levels=c(unique(amplicon))))
 
 
-  # associated amplicons with variant information
   mutant_subset_amplicon_data<-dplyr::inner_join(dplyr::inner_join(SummarizedExperiment::rowData(sce)%>%
                                                        data.frame%>%
                                                        dplyr::select(id,amplicon,final_annot),
@@ -67,7 +63,7 @@ readDNA_CN_H5<-function(sce,reference_cells=NULL){
     dplyr::mutate(mean=mean(ploidy))%>%
     dplyr::mutate(n=dplyr::n())%>%
     dplyr::mutate(std = sd(ploidy))%>%
-    dplyr::mutate(lower_lim95 = mean - stats::qt(0.9998,df=n-1)*std/sqrt(n))%>% # change this rate to give people multiple CI's
+    dplyr::mutate(lower_lim95 = mean - stats::qt(0.9998,df=n-1)*std/sqrt(n))%>% 
     dplyr::ungroup()%>%
     data.frame%>%
     dplyr::select(final_annot,lower_lim95)%>%

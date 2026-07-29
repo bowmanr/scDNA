@@ -18,7 +18,7 @@ demultiplex_samples<-function(sce,sensitivity_threshold=c(0.01,0.0001),expected_
 
   AF_out<-optimize_matrix(sce,sensitivity_threshold)
   AF_complete<-t(sce[colnames(AF_out),rownames(AF_out)]@assays@data$AF)
-  kmeans_AF <- stats::kmeans(AF_complete, centers = expected_samples, nstart = 30) #centers set based on number of samples in the multiplex
+  kmeans_AF <- stats::kmeans(AF_complete, centers = expected_samples, nstart = 30) 
   umap_SNPs <-umap::umap(AF_complete, n_neighbors = sqrt(nrow(AF_complete)))
 
   umap_df <- umap_SNPs$layout %>%
@@ -58,8 +58,9 @@ demultiplex_samples<-function(sce,sensitivity_threshold=c(0.01,0.0001),expected_
             pretty.order.rows = TRUE,
             pretty.order.cols = TRUE,
             smooth.heat = F)
+  
   table(umap_df_final$sample,umap_df_final$Cluster)
-
+  
   sce<-add_cell_annotation(sce,umap_df_final)
   sce<-impute_cluster(sce,by="AF")
 

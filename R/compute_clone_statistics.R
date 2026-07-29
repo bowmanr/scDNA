@@ -23,7 +23,6 @@ compute_clone_statistics<-function(sce,
     stop("Clone QC already assessed",call. = FALSE)
   }
 
-  # Only changes to making them the sce object not the old dataframe format
   print("Computing clone level statistics")
   sce@metadata$Clones<-data.frame(
       sce@assays@data$AF,row.names = rownames(sce))%>%

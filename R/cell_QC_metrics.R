@@ -14,7 +14,6 @@
 #' droplet_metadata<-GetStainIndex(droplet_metadata)
 #' }
 GetStainIndex<-function(droplet_metadata){
-  #print("In stain function")
   empty_med_vec<-droplet_metadata%>%
     dplyr::filter(Droplet_type=="Empty")%>%
     dplyr::select(dna_size,protein_size)%>%
@@ -60,7 +59,6 @@ GetStainIndex<-function(droplet_metadata){
 #' }
 #'
 GetMembership<-function(droplet_metadata){
-  #print("in membership")
   Cell_cov_mat<-droplet_metadata%>%
     dplyr::filter(Droplet_type=="Cell")%>%
     dplyr::select(dna_size,protein_size)%>%
@@ -88,13 +86,11 @@ GetMembership<-function(droplet_metadata){
   mu.vector2<-t(empty_mu_vec%>%as.matrix)
   mu.vector2 <-mu.vector2[1:2]
 
-  #sd.mat1 <- diag(sd.mat[1:73,])
-  #sd.mat2 <-diag(sd.mat[74:146,])
   sd.mat1 <- Cell_cov_mat
   sd.mat2 <-Empty_cov_mat
 
-  alpha.vector1 <-1#alpha.vector[1:73]
-  alpha.vector2 <-1#alpha.vector[74:146]
+  alpha.vector1 <-1
+  alpha.vector2 <-1
   comp1.prod=matrix(data=NA_real_,nrow = dim(droplet_metadata)[1],ncol=1)
   comp2.prod=matrix(data=NA_real_,nrow = dim(droplet_metadata)[1],ncol=1)
   for(iter in 1:dim(droplet_metadata)[1]){

@@ -19,7 +19,6 @@ extract_droplet_size<- function(sce){
   colnames(all_dna_droplets) <-rhdf5::h5read(file=file,name="/all_barcodes/dna_read_counts/ra/barcode")
   colnames(all_protein_droplets) <-rhdf5::h5read(file=file,name="/all_barcodes/protein_read_counts/ra/barcode")
 
-  # create a metadata dataframe of simple qc stats for each droplet
   dna_size <- data.frame("Cell"=colnames(all_dna_droplets),
                         "dna_size"=log10(Matrix::colSums(all_dna_droplets)),
                         "amplicons"=Matrix::colSums(all_dna_droplets > 0))
