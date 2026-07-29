@@ -37,7 +37,6 @@ tapestri_h5_to_sce <- function(file,
   }
 
   if(!is.null(variant_set)){
-    # variant_set has all info, so we need to pull out the id for the h5 file
     VAF_cut_variants<- variant_set%>%dplyr::pull(id)
 
     print(paste("Loading n=",length(VAF_cut_variants),"variants"))
@@ -171,7 +170,6 @@ tapestri_h5_to_sce <- function(file,
                                values_fill=NA,
                                values_from = GQ_mask))%>%
       dplyr::select(-id)))
-  # New addition of the annotation table to the single cell object.
   SummarizedExperiment::colData(sce)<-S4Vectors::DataFrame(sample=out%>%
                                                              dplyr::distinct(barcode,Sample)%>%
                                                              dplyr::pull(Sample))
@@ -181,8 +179,6 @@ tapestri_h5_to_sce <- function(file,
                                     values_fill=NA,
                                     values_from = NGT)%>%
                         dplyr::pull(id)
-   # error when VAF_cut_variants is not equal to VAF_cut_index. Somehow more variants annotated than actually exist? It appears we got some straight duplicates execept final_annot is slightly different
-  # gave quick fix by finding duplicated ID and just pulling one of the rows. Mostly an issue with demultiplexing?
   VAF_cut_names <- rhdf5::h5read(file = file, name = "/assays/dna_variants/ca/id")[which(rhdf5::h5read(file = file, name = "/assays/dna_variants/ca/id") %in%
                            VAF_cut_variants)]
 
@@ -219,7 +215,6 @@ tapestri_h5_to_sce <- function(file,
   SummarizedExperiment::rowData(sce)<-existing_rowData
 
   print("Reordering sce rows (variants) based on bulk VAF")
-  # this is newly added so we can get correct order for annotation later.
   sce<- sce[match(SummarizedExperiment::rowData(sce)%>%
                     data.frame()%>%
                     dplyr::arrange(dplyr::desc(dplyr::pick(dplyr::starts_with("VAF"))))%>%
@@ -227,7 +222,6 @@ tapestri_h5_to_sce <- function(file,
                   rownames(sce)),]
 
 
-  #### protein starts here
   if(protein==TRUE){
           skip <- TRUE
           skip <- tryCatch( rhdf5::h5read(file = file,
