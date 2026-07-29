@@ -31,6 +31,8 @@ Before installing, please ensure you have the genomes from bioconductor installe
 [BSgenome.Hsapiens.UCSC.hg38](https://bioconductor.org/packages/release/data/annotation/html/BSgenome.Hsapiens.UCSC.hg38.html)
 [BSgenome.Mmusculus.UCSC.mm10](https://bioconductor.org/packages/release/data/annotation/html/BSgenome.Mmusculus.UCSC.mm10.html)
 
+We would also suggest to install [Seurat](https://satijalab.org/seurat/articles/install_v5), [dsb](https://www.rdocumentation.org/packages/dsb/versions/0.3.0), [flowCore](https://bioconductor.org/packages/release/bioc/html/flowCore.html), and [havok](https://github.com/RobertGM111/havok).
+
 The following command should be run in a terminal.
 ``` bash
 curl -L \
@@ -48,7 +50,9 @@ library(scDNA)
 Version 1.1 is finally here with exciting new developments:
 - New sequencing panels for variant annotation introduced:
   - hg38 (built from [gencode here](https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_50/) )
-  - mm10   
+  - hg19 (built from [gencode here](https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_18/) )
+  - mm10
+  These have custom TxDBs to cover more transcripts and customization of variant annotations. We still offer our recommended transcripts based on cBioPortal's analysis.
 - New plotting functions for RL trajectories.
   - new interactive plots,
   - BSCITE-style implementation. 
@@ -112,7 +116,7 @@ If you are looking for the [vignettes to replicate figures from our paper please
 
 A minimal crash-course example is as follows:
 
-Identify all variants within a sample.
+Identify all variants within a sample. Please check whether your panel is hg38, hg19, or mm10. Each of these has their own custom TxDB to ensure variants found correspond with the correct transcripts and amino acid changes for analysis. We offer a new "suggested" column as an output for variant_ID() based on cBioPortal's recommended transcripts.
 
 ``` r
 library(scDNA)
@@ -142,6 +146,8 @@ Read in the data, enumerate clones, and compute statistics. Sample
 statistics mirror that seen in Figure 1
 [here](https://www.nature.com/articles/s41586-020-2864-x), and are
 stored in the metadata.
+
+Tapestri_h5_to_sce is the main function for the scDNA. The pipeline addresses quality control at multiple stages, particularly stringent filtering on variant identification. Based on the variants selected we develop critical properties and filtering constraints around read depth, allele frequency, and genotyping quality to ensure cells accurately represent genotype. These constraints can be applied in the form of cutoffs in tapestri_h5_to_sce to select more or less stringent rules to maintain high quality variants and cells. If a cell fails a single one of these filters, it is labeled as "Other" instead of "Complete." For instance, if Genotyping Quality (GQ_cutoff) is not sufficient for a reliable NGT call then a cell will be labeled as "Other" in the enumerate_clones() function. In the example below we just use the default settings.
 
 ``` r
 sce<-tapestri_h5_to_sce(file=sample_file,variant_set = variants_of_interest)
@@ -185,10 +191,20 @@ sce<-normalize_protein_data(sce=sce,
                              background_droplets=background_droplets)
 ```
 
+We provide a strategy to identify high quality cells from both DNA+Protein data in the function called cell_confidence_labeling. This can be run in two forms, either as a file (which returns a dataframe), or as the sce object (which returns an sce object with an updated colData). The cell confidence produces an outlier score if you would like a continuous variable to evaluate a cell, or our hard cut off calls we make called High_confidence, Low_confidence, or Poor_DNA. Not every dataset will contain all 3.
+
+``` r
+sample_file<- "test_file.h5"
+confidence_df<-cell_confidence_labeling(sample_file)
+# then perform the pipeline above
+# OR the more common route which is to perform this prior to conversion to Seurat as this analysis is not always needed
+sce<-cell_confidence_labeling(sce)
+
+```
+
 ### Developments in progress:
 
 1.  Cohort summarization
-2.  Creating custom TxDB objects
 
 ### Ongoing investigation:
 
