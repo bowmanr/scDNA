@@ -426,7 +426,7 @@ trajectory_of_interest_figure<-function(sce,trajectory=sce@metadata$Trajectories
                                                   color=c("darkred","grey"),
                                                   size = c(10, 10),
                                                   font.size= c(20,20),
-                                                  font.vadjust=c(-60,-60))),
+                                                  font.vadjust=c(-60,-60)),
                             addEdges = data.frame(label=c("ADO",
                                                           "forward_ADO",
                                                           "mutation",
