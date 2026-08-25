@@ -3,7 +3,7 @@
 set -e
 
 REPO_URL="https://github.com/bowmanr/scDNA.git"
-BRANCH="main"
+BRANCH="dev_cleanup"
 
 echo "Checking Git..."
 if ! command -v git >/dev/null 2>&1; then
