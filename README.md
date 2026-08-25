@@ -36,7 +36,7 @@ We would also suggest to install [Seurat](https://satijalab.org/seurat/articles/
 The following command should be run in a terminal.
 ``` bash
 curl -L \
-https://raw.githubusercontent.com/bowmanr/scDNA/dev_cleanup/install.sh \
+https://raw.githubusercontent.com/bowmanr/scDNA/master/install.sh \
 | bash
 ```
 Afterwards,in RStudio you can load the library:
