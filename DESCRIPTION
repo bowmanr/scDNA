@@ -1,60 +1,72 @@
 Package: scDNA
-Title: Analyzing single cell DNA sequencing data
-Version: 1.1
-Authors@R: 
-    person(given = "Bobby",
-           family = "Bowman",
-           role = c("aut", "cre"),
-           email = "robert.bowman@pennnedicine.upenn.edu",
-           comment = c(Twitter = "bowman_rl"))
+Title: Analyzing Single Cell DNA Sequencing Data
+Version: 1.1.0
+Authors@R:
+    person(
+        given = "Bobby",
+        family = "Bowman",
+        role = c("aut", "cre"),
+        email = "robert.bowman@pennmedicine.upenn.edu",
+        comment = c(Twitter = "bowman_rl")
+    )
 Description: This package contains functions for analyzing single cell DNA-sequencing data. Functions primarily focus on data exported from Mission Bio's Tapestri pipeline.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
-biocViews:
-Imports: 
+RoxygenNote: 7.3.2
+Imports:
+    AnnotationDbi,
+    Biobase,
+    Biostrings,
     BSgenome.Hsapiens.UCSC.hg19,
-    dplyr,
-    GenomicRanges,
-    magrittr,
-    rhdf5,
-    stats,
-    tidyr,
-    tidyselect,
-    VariantAnnotation,
-    methods,
-    rlang,
-    purrr,
+    BSgenome.Hsapiens.UCSC.hg38,
+    BSgenome.Mmusculus.UCSC.mm10,
     colorspace,
-    TxDb.Hsapiens.UCSC.hg19.knownGene,
     cowplot,
-    sparseMatrixStats,
-    igraph,
-    GenomicFeatures,
-    Matrix,
-    RColorBrewer,
-    S4Vectors,
-    SingleCellExperiment,
-    stringr,
-    SummarizedExperiment,
-    tibble,
-    vegan,
     doParallel,
+    dplyr,
+    e1071,
     foreach,
+    GenomeInfoDb,
+    GenomicFeatures,
+    GenomicRanges,
+    ggplot2,
+    grid,
+    igraph,
+    magrittr,
+    Matrix,
     mefa4,
     methods,
-    flowCore
-Suggests: 
-    rmarkdown,
+    mvtnorm,
+    pals,
+    purrr,
+    RColorBrewer,
+    rhdf5,
+    rlang,
+    S4Vectors,
+    SingleCellExperiment,
+    sparseMatrixStats,
+    stats,
+    stringr,
+    SummarizedExperiment,
+    superheat,
+    tibble,
+    tidyr,
+    tidyselect,
+    umap,
+    VariantAnnotation,
+    vegan,
+    visNetwork
+Suggests:
     knitr,
-    Seurat
+    rmarkdown,
+    Seurat,
+    dsb,
+    havok,
+    flowCore,
+    TxDb.Hsapiens.UCSC.hg19.knownGene
 VignetteBuilder: knitr
-Depends: 
-    R (>= 4.3.0),
+Depends:
+    R (>= 4.3.0)
 NeedsCompilation: no
-Packaged: 2023-09-19 20:51:10 UTC; bowmanrl
-Author: Bobby Bowman [aut, cre] (bowman_rl)
-Maintainer: Bobby Bowman <robert.bowman@pennmedicine.upenn.edu>
 URL: https://bowmanr.github.io/scDNA/

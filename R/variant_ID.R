@@ -1,14 +1,24 @@
 #' Variant identification and frequency tallies
+#' @description
 #' The DNA variants for each cell are pulled from the specified H5 files. Each variant for each cell is genotyped to be WildType, Heterozygous, Homozygous or Missing. The genotyping rate is determined by taking WT+Het+Hom over total cell calls (including missing). The VAF is determined by number of allele copies we see in a weighted sum. A filter is applied to both of these calculatins to include or exclude variants of interest. These are then annotated to include the variant information such as gene name, nucleotide location, and short amino acid changes.
+#'
 #' @param file path to the h5 file
 #' @param panel name of prebuilt panel/txdb
-#' @param GT_cutoff Fraction of cells that are successfully genotyped for initial filtering (default 0.2, meaning 20%)
-#' @param VAF_cutoff Fraction of cells that are mutated for initial filtering of variants (default 0.005, meaning 0.05%)
-#' @param demultiplex this is a dataframe for cell assignments for clusters, should often be left NULL
+#' @param GT_cutoff Fraction of cells that are successfully genotyped for initial filtering (default 0.2, meaning 20 percent)
+#' @param demultiplexed this is a dataframe containing 2 columns, cell_names and final_cluster. Default is NULL as demultiplexing is often not needed.
+#' @param VAF_cutoff Fraction of cells that are mutated for initial filtering of variants (default 0.005, meaning 0.05 percent)
+#'
 #' @return A dataframe with each variant on a row, and tally of the number of cells that are WT, Het, Hom or missing for a mutation. Calculated VAF and gentoyping frequency is also provided. If multiple samples are present in the h5 file, a list object will be returned with each sample as an entry in the list
 #' @export
+#' @importFrom magrittr %>%
+#' @importFrom methods as
+#' @import Matrix
 #'
 #' @examples
+#' \dontrun{
+#' variant_table <-variant_ID(file=sample_file,panel="UCSC")
+#' }
+#'
 variant_ID<-function(file,
                      panel=NULL,
                       GT_cutoff=0,
@@ -34,8 +44,11 @@ variant_ID<-function(file,
         print("hg38 denoted, will LiftOver coordinated to hg19 and use prebuilt TxDB")
         panel<-panel
     } else {
-      print("TxDB not detected, check spelling. To make a panel specific TxDB object use the 'generate_txdb' function")
-      print("Defaulting to genome wide UCSC TxDB")
+
+      if(panel!="hg19"){
+        print("TxDB not detected, check spelling. To make a panel specific TxDB object use the 'generate_txdb' function")
+      }
+      print("Defaulting to genome wide UCSC hg19 TxDB")
       panel<- "UCSC"
     }
   }
@@ -46,13 +59,13 @@ variant_ID<-function(file,
     print("Identifying Variants Past Threshold")
     print(paste("Genotyping Threshold",GT_cutoff))
     print(paste("VAF Threshold",VAF_cutoff, "For Any Sample (if merged)"))
-      
+
       NGT_data<-rhdf5::h5read(file=file,name="/matrix")%>%
         {as(.,"dgCMatrix")}%>%t()%>%
         `colnames<-`(., paste0("Cell",1:ncol(.))) %>%
-        `rownames<-`(., rhdf5::h5read(file=file,name="/row_attrs/id") ) 
-      
-      total_variants<-list(data.frame("id" = rhdf5::h5read(file=file,name="/row_attrs/id"), 
+        `rownames<-`(., rhdf5::h5read(file=file,name="/row_attrs/id") )
+
+      total_variants<-list(data.frame("id" = rhdf5::h5read(file=file,name="/row_attrs/id"),
                         "WT"=sparseMatrixStats::rowCounts(NGT_data,value = 0),
                         "Het"=sparseMatrixStats::rowCounts(NGT_data,value = 1),
                         "Hom"=sparseMatrixStats::rowCounts(NGT_data,value = 2),
@@ -61,9 +74,9 @@ variant_ID<-function(file,
                dplyr::mutate(genotyping_rate=((WT+Het+Hom)/(WT+Het+Hom+Missing) )*100)%>%
                dplyr::filter(genotyping_rate>=GT_cutoff)%>%
                dplyr::filter(VAF>VAF_cutoff)%>%
-               dplyr::arrange(desc(VAF)))
+               dplyr::arrange(dplyr::desc(VAF)))
 
-  
+
   } else if(grepl("h5",file)){
 
   print(paste("Input file is h5 :",file))
@@ -71,19 +84,19 @@ variant_ID<-function(file,
   if(!is.null(demultiplexed)){
     sample_set <- as.character(unique(demultiplexed$final_cluster))
   }
-  
+
   print(paste("Detected n =",length(sample_set),"sample(s):", paste(sample_set,sep=" ",collapse = " ")))
-  
+
   print("Checking for Barcode Duplicates")
   all_barcodes<- rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")
   dedup_barcodes<-all_barcodes[!(duplicated(all_barcodes) | duplicated(all_barcodes, fromLast = TRUE))]
   viable_barcodes<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")%in%dedup_barcodes)
   print(paste(length(all_barcodes)-length(viable_barcodes), "duplicated barcodes detected and removed"))
-  
+
     print("Identifying Variants Past Threshold")
     print(paste("Genotyping Threshold",GT_cutoff))
     print(paste("VAF Threshold",VAF_cutoff, "For Any Sample (if merged)"))
-    
+
     total_variants<-lapply(sample_set,function(sample){
       print(paste("Loading Genotype Data for:",sample))
        if(is.null(demultiplexed)){
@@ -95,13 +108,13 @@ variant_ID<-function(file,
           sample_of_interest<-which(rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")%in%sample_of_interest_names)
       }
       sample_index<-intersect(sample_of_interest,viable_barcodes)
-      
+
       NGT_data<-rhdf5::h5read(file=file,name="/assays/dna_variants/layers/NGT",index=list(NULL,sample_index))%>%
         {as(.,"dgCMatrix")}%>%
-        `colnames<-`(., rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode",index=list(sample_index)))  %>% 
-        `rownames<-`(., rhdf5::h5read(file=file,name="/assays/dna_variants/ca/id")) 
-      
-      return(data.frame("id" = rhdf5::h5read(file=file,name="/assays/dna_variants/ca/id"), 
+        `colnames<-`(., rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode",index=list(sample_index)))  %>%
+        `rownames<-`(., rhdf5::h5read(file=file,name="/assays/dna_variants/ca/id"))
+
+      return(data.frame("id" = rhdf5::h5read(file=file,name="/assays/dna_variants/ca/id"),
                         "WT"=sparseMatrixStats::rowCounts(NGT_data,value = 0),
                         "Het"=sparseMatrixStats::rowCounts(NGT_data,value = 1),
                         "Hom"=sparseMatrixStats::rowCounts(NGT_data,value = 2),
@@ -113,13 +126,10 @@ variant_ID<-function(file,
                dplyr::arrange((VAF))
       )
     })
-  } 
-    # The following if else are the changes made to this file to pull in all the variants.
-    # I think the else needs to be changed to handle multiple samples correctly?
-    # Plus another input needs to be selected that might be missing.
-    if(length(sample_set)==1){ 
+  }
+    if(length(sample_set)==1){
         annotated_variants<- annotate_variants(file,panel=panel,select_variants=total_variants$id)
-        out<-annotated_variants%>% 
+        out<-annotated_variants%>%
           dplyr::full_join(total_variants[[1]] ,by="id")%>%
           dplyr::filter(!is.na(id))%>%
           dplyr::mutate(final_annot=dplyr::case_when(
@@ -131,7 +141,7 @@ variant_ID<-function(file,
         } else {
           print(paste("Lost",nrow(total_variants[[1]])-nrow(out),"variants out of",nrow(total_variants[[1]]), "total variants due to poor annotation."))
         }
-        return(out)             
+        return(out)
     } else if(length(sample_set)==2) {
       total_variants_new<-dplyr::full_join(total_variants[[1]],
                                            total_variants[[2]],
@@ -139,7 +149,7 @@ variant_ID<-function(file,
                                           suffix=c(paste0("_",sample_set[1]),
                                                     paste0("_",sample_set[2])))
       annotated_variants<- annotate_variants(file,panel=panel,select_variants=total_variants_new$id)
-      out<-annotated_variants%>% 
+      out<-annotated_variants%>%
         dplyr::full_join(total_variants_new,by="id")%>%
         dplyr::filter(!is.na(id))%>%
         dplyr::mutate(final_annot=dplyr::case_when(
@@ -151,12 +161,9 @@ variant_ID<-function(file,
       } else {
         print(paste("Lost",nrow(total_variants_new)-nrow(out),"variants out of",nrow(total_variants[[1]]), "total variants due to poor annotation."))
               }
-      return(out)             
+      return(out)
   } else if(length(sample_set)>2) {
-      # annotate individually and then pump back out in list?
     print("Merging variant tables across samples with suffixes...")
-    
-    # Rename columns in each table before merging
     total_variants_renamed <- purrr::map2(
       total_variants,
       sample_set,
@@ -170,19 +177,18 @@ variant_ID<-function(file,
         df
       }
     )
-    
-    # Merge all by "id"
     total_variants_new <- purrr::reduce(total_variants_renamed, dplyr::full_join, by = "id")
-    
+
     annotated_variants <- annotate_variants(file, panel = panel,
                                             select_variants = total_variants_new$id)
-    
+
     out <- annotated_variants %>%
       dplyr::full_join(total_variants_new, by = "id") %>%
       dplyr::filter(!is.na(id)) %>%
       dplyr::mutate(final_annot = dplyr::case_when(is.na(final_annot) ~ id, TRUE ~ final_annot)) %>%
-      data.frame()
-    
+      data.frame()%>%
+      dplyr::distinct()
+
     if (nrow(out) == nrow(total_variants_new)) {
       print("All variants accounted for")
     } else {
@@ -190,8 +196,8 @@ variant_ID<-function(file,
                   "variants out of", nrow(total_variants[[1]]),
                   "total variants due to poor annotation."))
     }
-    return(out)
+        return(out)
   }
- 
+
 }
 

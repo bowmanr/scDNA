@@ -1,18 +1,24 @@
-#' Title
+#' FCS Export
+#' @description
+#' This function allows for protein data to be exported as an FCS file to be viewed in flow cytometry software.
 #'
 #' @param sce input sce object
-#' @param slot which protein dataset to use. Options are DSB_norm (default), CLR_norm or raw 
-#' @param save_path path to where fcs file should be saved
-
-#' @return
+#' @param slot which protein dataset to use. Options are DSB_norm (default), CLR_norm or raw
+#' @param save_path path to where fcs file should be saved.
+#'
+#' @return it will save a file at the specified path.
 #' @export
+#' @importFrom magrittr %>%
 #'
 #' @examples
+#' \dontrun{
+#' fcs_export(sce,slot="DSB_norm",save_path ="~/sample_fcs_file.fcs")
+#' }
 fcs_export<-function(sce,
                      slot="DSB_norm",
                      save_path="~/sample_test.fcs"){
   print(paste("Exporting protein data from", slot))
-  
+
   if(slot=="DSB_norm"){
     data<-SingleCellExperiment::altExp(sce)@assays@data$DSB_norm
   } else if(slot=="CLR_norm"){
@@ -26,27 +32,27 @@ fcs_export<-function(sce,
   dta<-t(data)%>%
       data.frame()%>%
       tibble::rownames_to_column(var="Cell")%>%
-      inner_join(sce@metadata$NGT,by="Cell")%>%
+      dplyr::inner_join(sce@metadata$NGT,by="Cell")%>%
       dplyr::mutate(Complete_genotype=ifelse(Group=="Complete",1,0))%>%
       dplyr::select(!c(Cell,Clone,Group))%>%
       as.matrix
-  
-  dta[,1:45] <-exp(1)^dta[,1:nrow(data)]
-  
+
+  dta[,1:nrow(data)]<-exp(1)^dta[,1:nrow(data)]
+
   mode(dta)<-"numeric"
-  # you need to prepare some metadata
-  meta <- data.frame(name=dimnames(dta)[[2]],
+
+    meta <- data.frame(name=dimnames(dta)[[2]],
                      desc=paste(dimnames(dta)[[2]])
   )
-  
+
   meta$range <- apply(apply(dta,2,range),2,diff)
   meta$minRange <- apply(dta,2,min)
   meta$maxRange <- apply(dta,2,max)
-  
+
   # a flowFrame is the internal representation of a FCS file
   ff <- methods::new("flowFrame",
             exprs=dta,
-            parameters=AnnotatedDataFrame(meta))
-  # now you can save it back to the filesystem
+            parameters=Biobase::AnnotatedDataFrame(meta))
   flowCore::write.FCS(ff,save_path)
+
 }

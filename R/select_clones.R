@@ -1,24 +1,29 @@
-
-#' Select clones of interest on the basis QC metrics
+#' Select clones to keep for analysis.
+#' @description
+#' Select clones of interest on the basis QC metrics or exact clone ID. This function subsets only the metadata dataframes not the entire SingleCellExperiment
 #'
-#' @param sce a SingleCellExperiment object containing the Clones,Architecture, and NGT matrix
+#' @param sce a SingleCellExperiment object containing the Clones, Architecture, and NGT matrix
 #' @param ADO_cut maximum median allele dropout
 #' @param GQ_cut mimimum median gene quality score
 #' @param DP_cut minimum median sequencing depth
 #' @param select_exact default=FALSE, can supply a vector of clones of interest to bypass QC filtering
+#'
 #' @return a subset of the sce object
+#' @importFrom magrittr %>%
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' sce_subset <- select_clones(sce, ADO_cut=0.1, GQ_cut=30, DP_cut=10, select_exact=NULL)
+#' }
 select_clones<- function(sce,
-                         ADO_cut=0.10,
+                         ADO_cut=0.1,
                          GQ_cut=30,
                          DP_cut=10,
                          select_exact=NULL){
-# Only change made was converting the old dataframe to the sce.
+
   if(is.null(select_exact)){
   select_clones<- sce@metadata$Clones%>%
-                            #dplyr::filter(ADO_med<ADO_cut)%>%
                             dplyr::filter(GQ_med>GQ_cut)%>%
                             dplyr::filter(DP_med>DP_cut)%>%
                             dplyr::group_by(Clone)%>%

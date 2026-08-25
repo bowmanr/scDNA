@@ -12,8 +12,13 @@ visualize_full_network(sce, save_filename = NULL)
 \item{save_filename}{file location to save file. Currently, must end it with .html extension.}
 }
 \value{
-interactive for the Reinforcement Learning Trajectory
+interactive graph for the Reinforcement Learning Trajectory
 }
 \description{
-Visualize Full Network
+The full network of the entire Markov Decision Process. It will show red circles indicating observed clones, grey circles which are unobserved. The size of the circle represents the abundance of the clones. Black lines indicate a mutation is acquired (WT->HET->HOM), green is ADO(HET->WT or HOM->HET), pink and is forward ADO (HET->HOM, or WT->HET).
+}
+\examples{
+\dontrun{
+visualize_full_network(sce = sce_subset,save_filename = NULL)
+}
 }

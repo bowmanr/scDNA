@@ -1,13 +1,20 @@
-#' Title
+#' Impute cluster assignment from demultiplexing
+#' @description
+#' This function will find the nearest distance (euclidean for "AF" and hamming for "NGT") to clusters identified for cells that need imputation. This will be added to
 #'
-#' @param sce 
+#' @param sce the single cell experiment object we need to
+#' @param by is which assay layer to use to determine the cluster imputation by. This should be set to "AF" (Allele Frequency) or "NGT".
 #'
-#' @return
+#' @return the sce object with an updated metadata for cell cluster assignment called final_cluster
 #' @export
+#' @importFrom magrittr %>%
 #'
 #' @examples
+#' \dontrun{
+#' sce<-impute_cluster(sce,by="AF")
+#' }
 impute_cluster<-function(sce,by="AF"){
-  
+
   if(by=="AF"){
   euclidean <- function(a, b) sqrt(sum((a - b)^2))
   AF<-sce@assays@data$AF
@@ -27,7 +34,7 @@ impute_cluster<-function(sce,by="AF"){
     dplyr::mutate(Cluster=factor(Cluster))%>%
     dplyr::arrange(Variant)%>%
     split(.,f=.$Cluster)
-  
+
   missing_cell_AF<-sce[,is.na(SummarizedExperiment::colData(sce)$Cluster)]@assays@data$AF
   missing_cell_names<- colnames(missing_cell_AF)
   rownames(missing_cell_AF)<-rownames(sce)
@@ -37,15 +44,15 @@ impute_cluster<-function(sce,by="AF"){
                         values_to="AF",
                         names_to="Cell")%>%
     dplyr::group_by(Cell)
-  
+
   cell_distances<-lapply(missing_cell_names,function(cellID){
     cell_AF_vec<-missing_cell_AF_long%>%dplyr::filter(Cell==cellID)%>%
-      arrange(Variant) %>% pull(AF) %>%
-      setNames(missing_cell_AF_long%>%dplyr::filter(Cell==cellID) %>% arrange(Variant) %>% pull(Variant))
+      dplyr::arrange(Variant) %>% dplyr::pull(AF) %>%
+      stats::setNames(missing_cell_AF_long%>%dplyr::filter(Cell==cellID) %>% dplyr::arrange(Variant) %>% dplyr::pull(Variant))
     out<-lapply(seq_along(cluster_medians),function(clusterID){
       cluster_AF_vec<-cluster_medians[[clusterID]]%>%
-        arrange(Variant) %>% pull(AF_med) %>%
-        setNames(cluster_medians[[clusterID]] %>% arrange(Variant) %>% pull(Variant))
+        dplyr::arrange(Variant) %>% dplyr::pull(AF_med) %>%
+        stats::setNames(cluster_medians[[clusterID]] %>% dplyr::arrange(Variant) %>% dplyr::pull(Variant))
       return(euclidean(cell_AF_vec,cluster_AF_vec))
     })
     return(which(unlist(out)==min(unlist(out))))
@@ -62,7 +69,7 @@ impute_cluster<-function(sce,by="AF"){
     final_cluster=ifelse(
       is.na(imputed_cluster),Cluster,
       imputed_cluster))%>%
-    dplyr::select(!imputed_cluster)
+    dplyr::select(-imputed_cluster)
   return(add_cell_annotation(sce,new_metadata))
   } else if(by=="NGT"){
     hamming <- function(a, b) sum(a != b)
@@ -83,7 +90,7 @@ impute_cluster<-function(sce,by="AF"){
       dplyr::mutate(Cluster=factor(Cluster))%>%
       dplyr::arrange(Variant)%>%
       split(.,f=.$Cluster)
-    
+
     missing_cell_NGT<-sce[,is.na(SummarizedExperiment::colData(sce)$Cluster)]@assays@data$NGT
     missing_cell_names<- colnames(missing_cell_NGT)
     rownames(missing_cell_NGT)<-rownames(sce)
@@ -93,15 +100,15 @@ impute_cluster<-function(sce,by="AF"){
                           values_to="NGT",
                           names_to="Cell")%>%
       dplyr::group_by(Cell)
-    
+
     cell_distances<-lapply(missing_cell_names,function(cellID){
       cell_NGT_vec<-missing_cell_NGT_long%>%dplyr::filter(Cell==cellID)%>%
-        arrange(Variant) %>% pull(NGT) %>%
-        setNames(missing_cell_NGT_long%>%dplyr::filter(Cell==cellID) %>% arrange(Variant) %>% pull(Variant))
+        dplyr::arrange(Variant) %>% dplyr::pull(NGT) %>%
+        stats::setNames(missing_cell_NGT_long%>%dplyr::filter(Cell==cellID) %>% dplyr::arrange(Variant) %>% dplyr::pull(Variant))
       out<-lapply(seq_along(cluster_medians),function(clusterID){
         cluster_NGT_vec<-cluster_medians[[clusterID]]%>%
-          arrange(Variant) %>% pull(NGT_med) %>%
-          setNames(cluster_medians[[clusterID]] %>% arrange(Variant) %>% pull(Variant))
+          dplyr::arrange(Variant) %>% dplyr::pull(NGT_med) %>%
+          stats::setNames(cluster_medians[[clusterID]] %>% dplyr::arrange(Variant) %>% dplyr::pull(Variant))
         return(hamming(cell_NGT_vec,cluster_NGT_vec))
       })
       return(which(unlist(out)==min(unlist(out))))
@@ -116,13 +123,13 @@ impute_cluster<-function(sce,by="AF"){
         is.na(imputed_cluster)~"Observed",
         TRUE~"Imputed"
       ))%>%
-      dplyr::mutate(final_cluster=case_when(
+      dplyr::mutate(final_cluster=dplyr::case_when(
         is.na(imputed_cluster)~Cluster,
         TRUE~imputed_cluster
       ))%>%
-      dplyr::select(!imputed_cluster)
+      dplyr::select(-imputed_cluster)
     return(add_cell_annotation(sce,new_metadata))
   } else {
-    print("'by' not specified, provide AF or NGT")
-  }
+    stop("'by' must be either 'AF' or 'NGT'.", call. = FALSE)
+    }
 }

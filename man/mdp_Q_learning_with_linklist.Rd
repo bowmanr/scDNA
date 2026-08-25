@@ -2,7 +2,7 @@
 % Please edit documentation in R/mdp_Q_learning_with_linklist.R
 \name{mdp_Q_learning_with_linklist}
 \alias{mdp_Q_learning_with_linklist}
-\title{This file run Reinforcement Learning (model-free Q-learning) to evaluate the most likely mutation paths from the data}
+\title{MDP Q learning with a linked list.}
 \usage{
 mdp_Q_learning_with_linklist(df, discount, N)
 }
@@ -18,4 +18,9 @@ A dataframe that contains the MDP adjacency list, normalized Q-values and mutati
 }
 \description{
 This file run Reinforcement Learning (model-free Q-learning) to evaluate the most likely mutation paths from the data
+}
+\examples{
+\dontrun{
+RL_output <-mdp_Q_learning_with_linklist(adj_list,discount=0.9,N=10000)
+}
 }

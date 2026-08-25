@@ -4,17 +4,24 @@
 \alias{BuildMDP}
 \title{The main function builds an adjacency list of the theoretical order of mutations. The same MDP mask can be reused different mutations}
 \usage{
-BuildMDP(num_mutations, use_ADO = FALSE)
+BuildMDP(num_mutations, use_ADO = FALSE, cores = 1)
 }
 \arguments{
 \item{num_mutations}{The number of variants we are using (automatically obtained from the Architecture)}
+
+\item{use_ADO}{a flag to consider ADO connections/actions within the MDP (default is FALSE)}
+
+\item{cores}{Number of parallel workers to use. Default is 1.Show more lines}
 }
 \description{
 This contains 1 main function and 3 helper functions.
 The 3 helper functions aim to:
-\enumerate{
-\item turn our states to Ternary variables (can be 0(WT), 1(Het), or 2(Hom))
-\item a function that finds the difference in states that are < 1 mutation away
-\item a function that does bit logic subtraction for the ternary variables
+1) turn our states to Ternary variables (can be 0(WT), 1(Het), or 2(Hom))
+2) a function that finds the difference in states that are < 1 mutation away
+3) a function that does bit logic subtraction for the ternary variables
+}
+\examples{
+\dontrun{
+adj_list <- BuildMDP(num_mutations = 4,use_ADO=F)
 }
 }

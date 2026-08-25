@@ -2,18 +2,21 @@
 % Please edit documentation in R/extract_droplet_size.R
 \name{extract_droplet_size}
 \alias{extract_droplet_size}
-\title{Extract protein library size, dna library size, and amplicon size for all droplets.}
+\title{Extract Droplet Size}
 \usage{
 extract_droplet_size(sce)
 }
 \arguments{
-\item{sce}{singleCellExperiment Object}
-
-\item{file}{path to h5 file}
+\item{sce}{singleCellExperiment object}
 }
 \value{
-metadata matrix
+metadata dataframe which contains droplet_name, dna_size, amplicon, protein_id, and protein_size as well as the NGT matrix
 }
 \description{
 Extract protein library size, dna library size, and amplicon size for all droplets.
+}
+\examples{
+\dontrun{
+droplet_metadata<- extract_droplet_size(sce)
+}
 }

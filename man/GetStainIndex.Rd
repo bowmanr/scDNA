@@ -7,8 +7,17 @@
 GetStainIndex(droplet_metadata)
 }
 \arguments{
-\item{droplet_metadata}{}
+\item{droplet_metadata}{this is the droplet metadata after running extract_droplet_size()}
+}
+\value{
+returns a droplet_metadata dataframe with the additional columns for stain index of proteins and DNA
 }
 \description{
-Get Stain Index for cells
+This function obtains a StainIndex metric used in flow cytometry. It obtains the median protein and DNA total reads per cell for empty and Cell droplets. It then divides this by the empty cells standard deviation.
+}
+\examples{
+\dontrun{
+droplet_metadata<- extract_droplet_size(sce)
+droplet_metadata<-GetStainIndex(droplet_metadata)
+}
 }

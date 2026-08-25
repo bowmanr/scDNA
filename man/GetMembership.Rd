@@ -7,8 +7,18 @@
 GetMembership(droplet_metadata)
 }
 \arguments{
-\item{droplet_metadata}{}
+\item{droplet_metadata}{this is the droplet metadata after running extract_droplet_size()}
+}
+\value{
+returns a droplet_metadata dataframe with the additional columns for posterior classification of Cell vs Empty based on total DNA and Protein Content. It also contains a column for the final assignment call.
 }
 \description{
-Get membership quality of cells vs empty
+This metric performs Expectation Maximization (EM) between two droplet classes, Empty and Cell. This measure is helfpul as a Quality Control check to ensure high quality droplets are called cells for downstream analysis.
+}
+\examples{
+\dontrun{
+droplet_metadata<- extract_droplet_size(sce)
+droplet_metadata<-GetMembership(droplet_metadata)
+}
+
 }

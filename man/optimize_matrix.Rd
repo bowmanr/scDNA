@@ -2,15 +2,27 @@
 % Please edit documentation in R/optimize_AF_mat.R
 \name{optimize_matrix}
 \alias{optimize_matrix}
-\title{Title}
+\title{Optimize the Matrix through an Iterative Active Learning Framework}
 \usage{
 optimize_matrix(sce, sensitivity_threshold = c(0.01, 0.001))
 }
 \arguments{
-\item{sce}{sce file}
+\item{sce}{the single cell experiment object after running a tapestri_h5_to_sce without filters.}
 
-\item{sensitivity_threshold}{vector of sensitivity thresholds for rows (variants) and columns (cells)}
+\item{sensitivity_threshold}{vector of sensitivity thresholds for rows (variants) and columns (cells).}
+}
+\value{
+It returns an Allele Frequency matrix based with high quality
 }
 \description{
-Title
+The framework performs an active learning mechanism to maintain the cells and variants that have strong reads.
+Each loop it finds the worst performer in both the cells and variants and assess whether they meet the rejection criteria (sensitivity measure). Cells and variants with an absolute deviation greater than the mean + sensitivity are rejected.
+Each loop each cell and variant is queried and assessed again. resulting in a shifting mean value over time.
+This scheme aims to produce a full rank matrix of high quality variants and cells where reads are present.
+This matrix ensures a better opportunity for demultiplexing as all information is dense.
+}
+\examples{
+\dontrun{
+AF_out<-optimize_matrix(sce,sensitivity_threshold=c(0.01,0.0001))
+}
 }

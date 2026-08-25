@@ -1,24 +1,35 @@
 #' Run Trajectory Analysis after extraction from SingleCellExperiment object
+#' @description
+#' This the main wrapper function for performing trajectory analysis using Reinforcement Learning. The output is the resulting network policies and common action policies from starting clones to final clones.
+#' This provides trajectories in sce(at)metadata$Trajectories. We build 4 common trajectories already:
+#' 1. shortest route for Wildtype (WT) to the most dominant clone
+#' 2. shortest route for Wildtype (WT) to a fully homozygous clone
+#' 3. All possible routes from Wildtype to the most dominant clone
+#' 4. shortest routes from Wildtype to all clones observed in the Clonograph
 #'
 #' @param sce is the SingleCellExperiment Object
-#' @importFrom igraph V
+#' @param use_ADO A bool that determines whether to consider ADO or not in the analysis. (default is TRUE)
+#'
 #' @return RL_analysis this returns a paths with metadata about the mutation order
 #' @export
+#' @importFrom magrittr %>%
 #' @examples
-#' 
+#' \dontrun{
+#' sce<- trajectory_analysis(sce,use_ADO=TRUE)
+#' }
 trajectory_analysis<-function(sce,use_ADO=TRUE){
-  
+
   mutation_states<-length(unique(sce@metadata$Architecture$final_annot))
   # This builds the theoretical Markov decision process (MDP) of all possible mutation combinations
   print("Building MDP")
-  
+
   adj_list<-BuildMDP(mutation_states,use_ADO)
   # we attach the weights as rewards for our list to design the possible and likely MDP.
   print("Adding Weighted Edges")
 
   adj_list<-attach_weights(sce,adj_list)
 
-  set.seed(281330800) #281-330-8004  
+  set.seed(281330800)
   print("Starting Optimization")
   RL_output <-mdp_Q_learning_with_linklist(adj_list,discount=0.9,N=10000)
   print("Finished Optimization")
@@ -26,7 +37,6 @@ trajectory_analysis<-function(sce,use_ADO=TRUE){
                                           to=as.numeric(levels(RL_output$next_state))[RL_output$next_state],
                                           weight=abs(1/(RL_output$Q_values_normalized))),directed=TRUE)
   sce@metadata$RL_net <-net
-  #order of single path from WildType to Dominant clone
   print("Getting Mutation Paths/Policies")
   print(class(RL_output))
   print(colnames(RL_output))
@@ -44,11 +54,10 @@ trajectory_analysis<-function(sce,use_ADO=TRUE){
     check_sub_var$mutation_taken<-(as.data.frame(RL_output)%>%
       dplyr::filter((current_state==WT_to_dom_clone[[iter]]$name) &(next_state==WT_to_dom_clone[[iter+1]]$name))%>%
       dplyr::pull(action_type))[action_idx[1]]
-    
+
     WT_to_dom_clone_policy<-rbind(WT_to_dom_clone_policy,check_sub_var)
   }
-  print("Done with 1")
-  #order of single path from WildType to final theoretical clone
+  print("Done with WildType to Dominant clone policy")
   WT_to_last_state <-igraph::shortest_paths(net,from="0",to=as.character(RL_output$current_state[dim(RL_output)[1]][1]),algorithm ="dijkstra")$vpath[[1]]
   WT_to_last_state_policy<-NULL
   for (iter in 1:(length(WT_to_last_state)-1)){
@@ -65,8 +74,8 @@ trajectory_analysis<-function(sce,use_ADO=TRUE){
       dplyr::pull(reward))[action_idx[1]]
     WT_to_last_state_policy<-rbind(WT_to_last_state_policy,check_sub_var)
   }
-print("Done with 2")
-  # all wild types to dominant
+print("Done with WildType to full homozygous clone")
+
   All_WT_to_dom<-igraph::all_simple_paths(net,from="0",to=as.character(RL_output$next_state[which(RL_output$reward==max(RL_output$reward))[1]][1]))
   All_WT_to_dom_policy =NULL
   for(big_list_iter in 1:length(All_WT_to_dom)){
@@ -89,8 +98,7 @@ print("Done with 2")
     }
     All_WT_to_dom_policy[[big_list_iter]]<-single_WT_to_dom_policy
   }
-print("Done with 3")
-  # set goal
+print("Done with all WildType paths to dominant clone")
   given_state="0"
   observed_states <-as.character(unique(RL_output$next_state[which(RL_output$observed_states==1)]))
   clone_to_observed_clone <-igraph::shortest_paths(net,from=igraph::V(net)[given_state],to=igraph::V(net)[observed_states])$vpath
@@ -119,10 +127,10 @@ print("Done with 3")
       WT_to_all_observed_policy[[big_list_iter]]<-"No action taken: Starting clone is equal to ending clone"
     }
   }
+  print("Done with WildType paths to all observed clones")
   
   print("Saving Data")
-  
-  # need to reassign those from clone_code to mutation name order like Architecture id.
+
   sce@metadata$RL_info <-RL_output
   sce@metadata$Trajectories <- list("WT_to_dominant_clone"=WT_to_dom_clone_policy,
                                     "WT_to_last_possible_clone"=WT_to_last_state_policy,

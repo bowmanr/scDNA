@@ -2,20 +2,22 @@
 % Please edit documentation in R/cell_confidence_labeling.R
 \name{cell_confidence_labeling}
 \alias{cell_confidence_labeling}
-\title{cell_confidence_labeling
-This function provides additional labeling to he quality of the cells based
-on dna and protein data.}
+\title{cell_confidence_labeling}
 \usage{
 cell_confidence_labeling(sce)
 }
 \arguments{
-\item{sce}{object}
+\item{sce}{the input can be either a single cell experiment object, or the h5 file name to pull information from.}
 }
 \value{
-sce object with updated labeling in the colData to be used later
+if the input is an sce object, then sce object is returned with updated labeling in the colData. If the file name is only provided, then a dataframe is returned.
 }
 \description{
-cell_confidence_labeling
 This function provides additional labeling to he quality of the cells based
-on dna and protein data.
+ on dna and protein data.
+}
+\examples{
+\dontrun{
+sce<-cell_confidence_labeling(sce)
+}
 }

@@ -1,0 +1,290 @@
+---
+title: "Figure2_replication"
+author: "Michael Bowman and Bobby Bowman"
+date: "2026-07-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+# Cell Confidence Calls Tutorial to reproduce Figure 2 for scDNA.
+
+In this tutorial we will go through an example of how we identify cell confidence calls and replicate Figure 2.
+
+## Let's load in the libraries
+
+```{r load in libraries, warning=FALSE,eval=FALSE}
+
+library(scDNA)
+library(dplyr)
+library(ggplot2)
+library(SingleCellExperiment)
+library(Seurat)
+library(dsb)
+
+```
+
+## Now acquire the sample data and perfrom the standard scDNA pipeline
+
+We have made the [PBMC example tapestri h5 file available here to download named 2_PBMC_mix.dna+protein.h5](https://drive.google.com/drive/folders/1rE3GFlLC0fj0hX6jFdk536iCyh1gB2_j?usp=sharing)
+
+After downloading the files place them in a folder of your liking as show below. 
+
+```{r standard scDNA pipeline,eval=FALSE}
+sample_file = "./H5/2_PBMC_mix.dna+protein.h5"
+
+variant_output<-variant_ID(file=sample_file,
+                           panel="hg19",
+                            GT_cutoff=0,
+                             VAF_cutoff=0)
+
+
+variants_of_interest<-variant_output%>%
+                        distinct()%>%
+                          dplyr::filter(Class=="Exon")%>%
+                          dplyr::filter(VAF>0.01)%>%
+                          dplyr::filter(genotyping_rate>80)%>%
+                          dplyr::filter(!is.na(CONSEQUENCE)&CONSEQUENCE!="synonymous")%>% 
+                          dplyr::arrange(desc(VAF))%>%
+                          dplyr::filter(suggested)%>%
+dplyr::group_by(final_annot)%>%
+                          dplyr::mutate(final_annot = if(n( ) > 1) {paste0(final_annot,"_",LETTERS[row_number()]) } 
+                             else {paste0(final_annot)})%>%
+   ungroup()%>%
+  dplyr::slice(c(1:6))
+
+sce<-tapestri_h5_to_sce(file=sample_file2,
+                      variant_set = variants_of_interest,
+                      GT_cutoff=90, 
+                      VAF_cutoff=0.01,
+                      DP_cutoff=10,
+                      GQ_cutoff=20,
+                      AF_cutoff=20)
+sce<-enumerate_clones(sce, replicates = 500)
+sce<-compute_clone_statistics(sce,skip_ploidy=FALSE)
+```
+
+
+##Producing Figure 2A
+
+
+```{r,message=FALSE,warning=FALSE,eval=FALSE}
+sce<-cell_confidence_labeling(sce)
+
+droplet_metadata<- extract_droplet_size(sce)
+
+ggplot(droplet_metadata,aes(x=dna_size, y=protein_size,color=Droplet_type))+
+  geom_density2d(bins=500)+
+  ggpubr::theme_classic2(base_size = 24)+#+
+  scale_color_manual(values = c("Empty"="orange", "Cell"="#009E73"))+
+  xlab("log10(dna reads)")+
+  ylab("log10(protein reads)")
+
+ggsave(filename = "./Figures/Cell_vs_empty_density_plot.pdf",plot=last_plot(),width=9,height=6,dpi=320)
+
+```
+
+## Producing Figure 2B
+This figure builds a banana plot for comparing the total protein/unique proteins to the outlier scores. This produces two plots where outlier scores have high correlation with unique proteins and total protein counts.
+
+
+```{r producing Figure 2B, eval=FALSE}
+
+reduced_cell_metadata<-droplet_metadata%>%
+  dplyr::filter(Cell%in%rownames(colData(sce)))%>%
+  dplyr::select(Cell,dna_size,amplicons,protein_size,proteins)
+alt_QC_df<-dplyr::inner_join(colData(sce)%>%
+                               as.data.frame%>%
+                               tibble::rownames_to_column(var="Cell")%>%
+                               as.data.frame,
+           reduced_cell_metadata,
+           by="Cell")
+
+
+# Top of Figure B
+ggplot(alt_QC_df,aes(x=outlier_score, y=protein_size,color=cell_label_confidence))+
+ geom_point(alpha=0.5,show.legend = FALSE)+
+  ggpubr::theme_classic2(base_size =24 ) +
+  theme(strip.background = element_blank())+
+  ylab("log10(protein reads)")+
+  xlab("Outlier Score")+
+#theme( axis.text=element_text(angle=90, hjust=1))+
+  scale_color_manual(values = c("Poor_DNA"="orange", "Low_confidence"="#0072B2","High_confidence"="#009E73"))+
+   guides(color=guide_legend(title=""))+
+facet_wrap(~cell_label_confidence,axes = "all",axis.labels = "margins")
+
+
+ggsave(filename = "./Figures/banana_plot_Protein_vs_outlier_facet_on_split_stat_poor_dna.pdf",plot=last_plot(),width=9,height=4.5,dpi=320)
+
+# Bottom of Figure B
+ggplot(alt_QC_df,aes(x=outlier_score, y=proteins,color=cell_label_confidence))+
+ geom_point(alpha=0.5,show.legend = FALSE)+#theme_bw(base_size=14)+
+  ggpubr::theme_classic2(base_size =24 ) +
+    theme(strip.background = element_blank())+
+  ylab("Unique Proteins")+
+  xlab("Outlier Score")+
+#theme( axis.text=element_text(angle=90, hjust=1))+
+  scale_color_manual(values = c("Poor_DNA"="orange", "Low_confidence"="#0072B2","High_confidence"="#009E73"))+
+   guides(color=guide_legend(title=""))+
+facet_wrap(~cell_label_confidence,axes = "all",axis.labels = "margins")
+
+
+ggsave(filename = "./Figures/banana_plot_Protein_hits_vs_outlier_facet_on_split_stat_poor_dna.pdf",plot=last_plot(),width=9,height=4.5,dpi=320)
+
+```
+
+## Producing Figure 2C
+
+This next chunk builds the suerat object to identify cell type clusters and it also adds the outlier scores and the cell label confidence calls.
+
+```{r producing seurat for Figure 2C, eval=FALSE}
+background_droplets<-droplet_metadata%>%
+                          dplyr::filter(Droplet_type=="Empty")%>%
+                          dplyr::filter(dna_size<1.5&dna_size>0.15)%>%
+                          pull(Cell)
+
+sce<-normalize_protein_data(sce=sce,
+                             metadata=droplet_metadata,
+                             method=c("CLR"),
+                             detect_IgG=TRUE,
+                             background_droplets=background_droplets)
+
+s<-Seurat::as.Seurat(x = altExp(sce),counts="Protein",data="CLR_norm")
+s<-SeuratObject::RenameAssays(object = s, originalexp = 'Protein')
+s <- Seurat::ScaleData(s, assay = "Protein")
+s <- Seurat::FindVariableFeatures(s,assay = "Protein")
+s <- Seurat::RunPCA(s, features = VariableFeatures(object = s))
+s <- Seurat::FindNeighbors(object = s,
+                   dims = NULL,  
+                   k.param = 30,
+                   annoy.metric = "cosine")
+
+# direct graph clustering 
+s <- Seurat::FindClusters(object = s, 
+                  assay = "Protein",
+                  resolution = 0.75, 
+                  algorithm = 3, 
+                  verbose = TRUE)
+
+# umap for visualization only; (this is optional)
+s = Seurat::RunUMAP(object = s, 
+            seed.use = 1990, 
+            min.dist = 0.2, 
+            n.neighbors = 50, 
+            features=s@assays$Protein@var.features,
+            verbose = TRUE)
+Idents(s)<-"seurat_clusters"
+
+s=RenameIdents(object=s,`0`="CD8 T")
+s=RenameIdents(object=s,`1`="classic_Mono") # myeloid
+s=RenameIdents(object=s,`2`="Myeloid_A/cMono/DC") # myeloid monocytes/mac/DCs
+s=RenameIdents(object=s,`3`="CD4 T")
+
+s=RenameIdents(object=s,`4`="NKs")
+s=RenameIdents(object=s,`5`="B")
+s=RenameIdents(object=s,`6`="nonclassic_Mono") # myeloid
+s=RenameIdents(object=s,`7`="Doublets/Dead") # myeloid
+s=RenameIdents(object = s,`8`="Myeloid_B/DC/Mac") #
+s=RenameIdents(object = s,`9`="Myeloid_C/Mast") #
+s=RenameIdents(object = s,`10`="pDC") #
+s<-AddMetaData(s,
+               metadata = sce@colData@listData[["cell_label_confidence"]],
+               col.name = "cell_label_confidence")
+s<-AddMetaData(s,
+               metadata = as.numeric(sce@colData@listData[["outlier_score"]]),
+               col.name = "outlier_score")
+s@meta.data$cell_type<-s@active.ident
+
+```
+
+# Producing  Figure 2C
+This figure will show the clusters, the outlier score, cell confidence labels, and the unique protein number found for each cell. The doublet population ranks the highest outlier score, which leads to many low confidence calls, and we see the highest concentration of unique proteins in these droplets.
+
+```{r Figure2C production, eval=FALSE}
+
+scCustomize::DimPlot_scCustom(s,raster = F,reduction = "umap",label = F,colors_use = pals::kelly(n=14)[-1])+
+   theme(axis.text.x = element_text(size=18),
+        axis.text.y=element_text(size=18),
+        axis.title.x = element_text(size=18),
+        axis.title.y = element_text(size=18),
+        legend.text = element_text(size = 12),
+        legend.position = "none",
+        legend.location = "plot",
+        legend.margin = margin(t = 5, r = 0, b = 0, l = 0))+guides(color = guide_legend(override.aes = aes(size=4),nrow = 3))|
+  scCustomize::FeaturePlot_scCustom(s,reduction = "umap",features = c("outlier_score"),order=T,colors_use = c("grey90",RColorBrewer::brewer.pal(n=7,name="Reds")[7]))+
+   theme(text = element_text(size = 18),axis.text.x = element_text(size=18),axis.text.y = element_text(size=18)) |
+scCustomize::DimPlot_scCustom(s,raster = F,group.by = "cell_label_confidence",reduction = "umap",label = F,colors_use =  c("Poor_DNA"="orange", "Low_confidence"="#0072B2","High_confidence"="#009E73"),order=T)+
+   theme(text = element_text(size = 18),
+         axis.text.x = element_text(size=18),
+         axis.text.y = element_text(size=18),
+         legend.position="none",
+         legend.text = element_text(size=18))|
+  scCustomize::FeaturePlot_scCustom(s,reduction = "umap",features = c("proteins"),order=F,)+
+   theme(text = element_text(size = 18),
+         axis.text.x = element_text(size=18),
+         axis.text.y = element_text(size=18),
+         legend.margin = margin(t = -5, r = 0, b = 0, l = 0))
+   
+ggsave(filename = "./Figures/4UMAPS_no_legends.pdf",plot=last_plot(),width=16,height =4.5,dpi=320)
+
+
+
+```
+
+
+## Producing Figure 2D
+This figure produces a confidence label banana plot for each cell type.
+
+```{r Figure 2D, eval=FALSE}
+
+outlier_cutoff_val<-quantile(s@meta.data$outlier_score)[4]+1.5*IQR(s@meta.data$outlier_score)
+
+my_custom_labeller <- function(labels) {
+  lapply(labels, function(x) {
+    gsub("/|_", "\n", x) # Replace / with a newline character
+  })
+}
+
+ggplot(s@meta.data,aes(x=outlier_score, y=protein_size,color=cell_label_confidence))+
+ geom_point(alpha=0.7,size=3,show.legend = FALSE)+
+  ggpubr::theme_pubr(base_size=24)+
+  ylab("log10(protein reads)")+
+  xlab("Outlier Score")+
+theme(axis.text=element_text(size=18, angle=90, hjust=1),
+      strip.background = element_blank())+
+  scale_color_manual(values = c("Poor_DNA"="orange", "Low_confidence"="#0072B2","High_confidence"="#009E73"))+
+   guides(color=guide_legend(title=""))+
+  geom_vline(xintercept = outlier_cutoff_val,linetype = "dashed")+
+facet_grid(cell_label_confidence~cell_type,labeller = my_custom_labeller,axes="all",axis.labels = "margins")
+
+
+ggsave(filename = "./Figures/Cell_type_Confidence_Calls_stat_poor_dna.pdf",plot=last_plot(),width=16,height=9,dpi=320)
+
+```
+
+### performing statistics on the Figure 2D
+This analysis identifies statistical significance between different groups.
+
+```{r Figure2D stats, eval=FALSE}
+
+anova_results <- aov(outlier_score ~ cell_type + cell_label_confidence + cell_type:cell_label_confidence, data = s@meta.data)
+
+cell_type_pairwise<-rstatix::pairwise_t_test(data = s@meta.data,formula =  outlier_score ~ cell_type,p.adjust.method = "fdr")
+
+confidence_level_pairwise<-rstatix::pairwise_t_test(data = s@meta.data,formula =  outlier_score ~ cell_label_confidence,p.adjust.method = "fdr")
+
+write.csv( as.data.frame(summary(anova_results)[[1]]),file = "./Result/PBMC_cell_check_Anova_table_stat_poor_dna.csv",row.names = T)
+write.csv(cell_type_pairwise,file = "./Result/PBMC_cell_check_cell_type_pairwise_t_table_stat_poor_dna.csv",row.names = T)
+write.csv(confidence_level_pairwise,file = "./Result/PBMC_cell_check_confidence_level_pairwise_pairwise_t_table_stat_poor_dna.csv",row.names = T)
+
+```
+
+
+
+
+

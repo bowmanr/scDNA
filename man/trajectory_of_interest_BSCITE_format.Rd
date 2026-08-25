@@ -13,10 +13,18 @@ trajectory_of_interest_BSCITE_format(
 \arguments{
 \item{sce}{SingleCellExperiment object containing NGT matrix for clone identification.}
 
-\item{trajectory}{Put in entire Trajectory you are interested in such as 'sce(at)metadata$Trajectories[\link{1}]'}
+\item{trajectory}{Put in entire Trajectory you are interested in such as 'sce(at)metadata$Trajectories[[1]]'}
 
 \item{save_filename}{file location to save file. Currently, must end it with .html extension.}
 }
+\value{
+interactive graph for the Reinforcement Learning Trajectory
+}
 \description{
-BSCITE Style single trajectory Plot
+This function produces the same network styled like BSCITE mutation acquisition.
+}
+\examples{
+\dontrun{
+trajectory_of_interest_BSCITE_format(sce = sce_subset,trajectory = sce_subset(at)metadata$Trajectories[[2]],save_filename = NULL)
+}
 }

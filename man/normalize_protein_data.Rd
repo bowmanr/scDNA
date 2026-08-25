@@ -14,8 +14,35 @@ normalize_protein_data(
 )
 }
 \arguments{
-\item{NGT}{}
+\item{sce}{the SingleCellExperiment object after running tapestri_h5_to_sce()}
+
+\item{metadata}{this is droplet_metadata from extract_droplet_size() function.}
+
+\item{method}{there are 3 methods: 1) a CLR approach, 2) a dsb approach, and 3) an experimental truncated-SVD approach using the marcenko-pastur formula}
+
+\item{detect_IgG}{a flag to account for IgG controls in the panel.}
+
+\item{num_components_to_keep}{Only used for the SVD approach on how many latent features to keep.}
+
+\item{background_droplets}{a list of of names for the background empty droplets. Only used for dsb to disambiguate signal from noisy samples with background}
+}
+\value{
+it returns the sce object with an additional alternative experiment
 }
 \description{
-Normalize Protein Data
+This wrapper function provides available strategies for single cell protein to normalize the counts.
+}
+\examples{
+\dontrun{droplet_metadata<- extract_droplet_size(sce)
+background_droplets<-droplet_metadata\%>\%
+dplyr::filter(Droplet_type=="Empty")\%>\%
+dplyr::filter(dna_size<1.5&dna_size>0.15)\%>\%
+dplyr::pull(Cell)
+sce_subset<-normalize_protein_data(sce=sce,
+metadata=droplet_metadata,
+method=c("dsb"),
+detect_IgG=TRUE,
+background_droplets=background_droplets)
+}
+
 }

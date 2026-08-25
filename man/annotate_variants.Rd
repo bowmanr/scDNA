@@ -2,17 +2,14 @@
 % Please edit documentation in R/annotate_variants.R
 \name{annotate_variants}
 \alias{annotate_variants}
-\title{Annotate variants of interest
-This function takes in h5 files to extract DNA information through given TXDB files (primarily hg19)
-The gene names are mapped for their specific nucleotide positions. The starting and ending positions
-for the chromosome are listed. The consequence of the mutation such as synonymous, nonsynonymous,
-as well as if this is a coding region, on the exon boundry or intronic. Short amino acid changes are also labeled.
-The variance matrix also extracts the amplicon that the variant is found on.}
+\title{Annotate variants of interest}
 \usage{
 annotate_variants(file, panel = NULL, select_variants = NULL)
 }
 \arguments{
 \item{file}{path to h5 file to pull out relevant DNA information}
+
+\item{panel}{Which panel to use often passed from variant_ID function}
 
 \item{select_variants}{variants of interest, default is all variants}
 }
@@ -20,10 +17,14 @@ annotate_variants(file, panel = NULL, select_variants = NULL)
 variant annotation matrix
 }
 \description{
-Annotate variants of interest
 This function takes in h5 files to extract DNA information through given TXDB files (primarily hg19)
 The gene names are mapped for their specific nucleotide positions. The starting and ending positions
 for the chromosome are listed. The consequence of the mutation such as synonymous, nonsynonymous,
 as well as if this is a coding region, on the exon boundry or intronic. Short amino acid changes are also labeled.
 The variance matrix also extracts the amplicon that the variant is found on.
+}
+\examples{
+\dontrun{
+variant_table <- annotate_variants(file= "./Data/sample_file.h5",panel="hg19")
+}
 }

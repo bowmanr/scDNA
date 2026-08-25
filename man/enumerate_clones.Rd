@@ -15,5 +15,10 @@ enumerate_clones(sce, replicates = 100)
 updated sce containing a table of clones, modified NGT matrix, and clonal architecture.
 }
 \description{
-Enumerate clones
+This function identifies the 95% confidence interval and a mean value for the abundance of clones in each distribution. The confidence interval uses a bootstrapping approach to find the confidence intervals. Cells are broken down into 2 groups, "Complete" meaning it passed our additional QC and "Other" meaning it didn't pass. Each clone may have both groups.
+}
+\examples{
+\dontrun{
+sce<-enumerate_clones(sce, replicates = 500)
+}
 }

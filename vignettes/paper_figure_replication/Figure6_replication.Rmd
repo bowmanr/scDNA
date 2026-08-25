@@ -1,0 +1,297 @@
+---
+title: "Figure6_replication"
+author: "Michael Bowman and Bobby Bowman"
+date: "2026-07-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Trajectory analysis Tutorial to reproduce Figure 6 for scDNA.
+
+In this tutorial we will go through an example of how we identify clonal trajectories along with descriptions on how to interpret and use the data. This file will create panels for Figure 6.
+
+
+Loading in necessary libraries. If packages do not load, you may need to restart your R session after installation. 
+
+```{r,message=FALSE,echo=FALSE,eval=FALSE}
+library(scDNA)
+library(dplyr)
+library(ggplot2)
+```
+
+## Now acquire the sample data and perfrom the standard scDNA pipeline
+
+We have made the [LAMA example tapestri h5 file available here to download named LAMA.dna+protein.h5](https://drive.google.com/drive/folders/1rE3GFlLC0fj0hX6jFdk536iCyh1gB2_j?usp=drive_link)'
+
+After downloading the files place them in a folder of your liking as show below. We then will run our standard pipeline below.
+
+
+```{r load in file,eval=FALSE}
+sample_file<- "../H5/LAMA.dna+protein.h5"
+variant_output<-variant_ID(file=sample_file,
+                           panel="MSK_RL",
+                            GT_cutoff=0,
+                             VAF_cutoff=0)
+genes_of_interest <- c("IDH2","NRAS","NPM1","TET2","FLT3","IDH1")
+
+variants_of_interest<-variant_output%>%
+                        distinct()%>%
+                          dplyr::filter(Class=="Exon")%>%
+                          dplyr::filter(VAF>0.01)%>%
+                          dplyr::filter(genotyping_rate>85)%>%
+                          dplyr::filter(!is.na(CONSEQUENCE)&CONSEQUENCE!="synonymous")%>%
+                          dplyr::filter(SYMBOL%in%genes_of_interest)%>%   
+                          dplyr::arrange(desc(VAF))%>%
+                          dplyr::slice(c(1,2,3))
+
+
+sce<-tapestri_h5_to_sce(file=sample_file,
+                      variant_set = variants_of_interest,
+                      GT_cutoff=90, 
+                      VAF_cutoff=0.01,
+                      DP_cutoff=10,
+                      GQ_cutoff=20,
+                      AF_cutoff=20)
+
+sce<-enumerate_clones(sce, replicates = 500)
+sce<-compute_clone_statistics(sce,skip_ploidy=T)
+
+
+```
+
+## Producing Figure 6A
+
+We will select a subset of the most abundant clones as our oberservation space, then we are going to create a "clonograph" which is inspired by an upset plot to account for abundance and the genotype associated with that abundance. We will select the "Complete" cells as these are the highest quality most reliable cells identified, passing all internal QC. 
+
+```{r Figure 6A, eval=FALSE}
+sce_subset<-select_clones(sce,
+                          ADO_cut=0.10,
+                          GQ_cut=30,
+                          DP_cut=10,
+                          select_exact=NULL)
+clonograph(sce_subset,complete_only=TRUE)
+
+ggsave(filename = "./Figures/clonograph_LAMA_complete_bigger_font.pdf",plot = last_plot(),width = 16,height = 9,dpi = 320)
+
+```
+This shows the sample is dominated by 4 major clones, a TET2 only clone, 2 double mutant clones with TET2+NPM1 and TET2+NRAS, and a triple mutant clone. We also see a. sizeable number of cells that are fully WT and a double clone that is TET2+NPM1 homozygous. To evalute how much ADO is impacting these calls we now turn to ploidy evaluation. 
+
+
+## Producing Figure 6B
+We calculated ploidy in the compute_clone_statistics(sce,skip_ploidy=FALSE) function earlier in the script so let's just pull the ploidy data and plot boxplots for all cells, not just the Complete ones. The top row are cells shown in the complete clonograph above. We see a fairly consistent distributions across all cells mutations with NRAS homozygous dropping below the heterozygous distribution. The Other group shows larger dropoff of ploidy for these loci in WT and Homozygous calls. We calculate false positive rates for both the WT and Hom calls independently for each variant to obtain ADO rates instead of a global ADO scaler.
+
+```{r obtaining ploidy for Figure6B, eval=FALSE}
+
+ploidy_df<-sce@metadata$ploidy%>%
+  mutate(NGT=case_when(NGT==0~"WT",
+                       NGT==1~"Het",
+                       NGT==2~"Hom"))%>%
+  mutate(NGT=factor(NGT,levels=c("WT","Het","Hom")))%>%
+  mutate(Group = factor(Group,levels=c("Complete","Other")))
+
+
+ggplot(ploidy_df,aes(x =NGT, y =ploidy,fill =NGT))+
+  geom_boxplot()+
+  facet_grid(Group~final_annot,axes = "all",axis.labels = "margins")+
+  ggpubr::theme_classic2(base_size=24)+
+  theme(strip.background = element_blank())+
+  theme(legend.position = "none")+
+  xlab("")+
+  scale_fill_manual(values = c(WT = RColorBrewer::brewer.pal(7,"Reds")[1], 
+                               Het = RColorBrewer::brewer.pal(7,"Reds")[3], 
+                               Hom = RColorBrewer::brewer.pal(7,"Reds")[6], 
+                               Unknown = "grey50"), name = "Genotype")
+ggsave(filename = "./Figures/Ploidy_boxplot.pdf",plot=last_plot(),width=9,height=6,dpi=320)
+
+```
+
+
+Stat tests on boxplot groupings
+```{r pairwise t tests for ploidy, eval=FALSE}
+ploidy_df%>%
+  group_by(final_annot)%>%
+  rstatix::pairwise_t_test(ploidy~NGT,p.adjust.method = "fdr")
+
+```
+
+
+## Identifying read depth vs Allele Frequency
+This figure aims to compare a cell's read depth to it's allele frequency to demonstrate groupings and cell quality differ between "complete" and "other" cells.
+
+
+```{r an aside for read depth vs allele frequency,eval=FALSE}
+sce<-readDNA_CN_H5(sce)
+read_depth_vs_AF_df<-sce@metadata$ploidy%>%
+  mutate(NGT=case_when(NGT==0~"WT",
+                       NGT==1~"Het",
+                       NGT==2~"Hom"))%>%
+  mutate(NGT=factor(NGT,levels=c("WT","Het","Hom")))%>%
+  mutate(Group = factor(Group,levels=c("Complete","Other")))%>%
+  inner_join(SummarizedExperiment::assay(sce,"DP")%>%
+               tibble::rownames_to_column(var="final_annot")%>%
+               tidyr::pivot_longer(!c(final_annot),names_to="barcode",values_to="loci_depth"),by=c("barcode","final_annot"))%>%
+  inner_join(SummarizedExperiment::assay(sce,"AF")%>%
+               tibble::rownames_to_column(var="final_annot")%>%
+               tidyr::pivot_longer(!c(final_annot),names_to="barcode",values_to="AF"),by=c("barcode","final_annot"))
+
+
+
+ggplot(read_depth_vs_AF_df%>%
+         mutate(final_annot=factor(final_annot,levels=c("TET2.R1516*","NPM1.287","NRAS.G12R"))),aes(x=loci_depth,y=AF,color=NGT))+
+  geom_point(alpha=0.7)+
+  facet_grid(Group~final_annot,axes = "all",axis.labels = "margins")+
+  ggpubr::theme_classic2(base_size=24)+
+  theme(strip.background = element_blank())+
+  theme(legend.position = "none")+
+  xlab("loci depth")+
+  ylab("Allele Frequency")+
+  geom_vline(xintercept = 10,linetype = "dashed",linewidth=1.0)
+ggsave("~/Lab/Core/scDNA_paper_figures/Manuscript/Rebuttal/loci_depth_vs_allele_frequency_color.pdf",width = 9,height=6,dpi=300)
+
+
+```
+
+# Producing Figure 6C and 6D
+This figure shows how to construct all possible policies from initating states. Frist we calculate the ploidy and false discovery rates from readDNA_CN_H5() function. Then we perform trajectory_analysis (note the trajectory analysis function has been modified from the changes in the paper). We then obtain all possible paths and split policies based on their initiating mutation. Afterwards we can plot the policies with the most rewarding path, and the optimal policies for states.
+
+
+```{r Finding policies,eval=FALSE}
+sce_subset<-readDNA_CN_H5(sce_subset)
+
+sce_subset_with_ADO_truncated_MDP <- trajectory_analysis(sce_subset,use_ADO=T)
+
+RL_output<-sce_subset_with_ADO_truncated_MDP@metadata$RL_info
+net <- igraph::graph_from_data_frame(data.frame(from=as.numeric(levels(RL_output$current_state))[RL_output$current_state],
+                                          to=as.numeric(levels(RL_output$next_state))[RL_output$next_state],
+                                          weight=exp(-(RL_output$Q_values_normalized))),directed=TRUE)
+
+All_to_all_policies = NULL
+for(state_iter in unique(RL_output$current_state)){
+  All_to_all_policies<-append(All_to_all_policies,igraph::all_simple_paths(net,from=state_iter,to=igraph::V(net)))
+}
+
+
+All_to_all_policies_list=NULL
+for(big_list_iter in 1:length(All_to_all_policies)){
+  single_policy_list = NULL
+  single_policy <- All_to_all_policies[[big_list_iter]]
+   for (iter in 1:(length(single_policy)-1)){
+      check_sub_var<-data.frame(current_state=gsub('^.|.$', '',gsub("", "_",stringr::str_pad(single_policy[[iter]]$name, length(unique(sce_subset_with_ADO_truncated_MDP@metadata$Architecture$final_annot)), pad = "0"))),
+                                next_state=gsub('^.|.$', '',gsub("", "_",stringr::str_pad(single_policy[[iter+1]]$name, length(unique(sce_subset_with_ADO_truncated_MDP@metadata$Architecture$final_annot)), pad = "0"))))
+      action_idx<-order(as.data.frame(RL_output)%>%
+                          dplyr::filter((current_state==single_policy[[iter]]$name) &(next_state==single_policy[[iter+1]]$name))%>%
+                          dplyr::pull(Q_values_normalized),decreasing = TRUE)
+      
+      check_sub_var$mutation_taken<-(as.data.frame(RL_output)%>%
+        dplyr::filter((current_state==single_policy[[iter]]$name) &(next_state==single_policy[[iter+1]]$name))%>%
+        dplyr::pull(action_type))[action_idx[1]]
+      
+      check_sub_var$reward<-(as.data.frame(RL_output)%>%
+        dplyr::filter((current_state==single_policy[[iter]]$name) &(next_state==single_policy[[iter+1]]$name))%>%
+        dplyr::pull(reward))[action_idx[1]]
+      
+      check_sub_var$Q_values_normalized<-(as.data.frame(RL_output)%>%
+        dplyr::filter((current_state==single_policy[[iter]]$name) &(next_state==single_policy[[iter+1]]$name))%>%
+        dplyr::pull(Q_values_normalized))[action_idx[1]]
+      
+      single_policy_list<-rbind(single_policy_list,check_sub_var)
+   }
+  single_policy_list<-single_policy_list%>%mutate(cumulative_reward = cumsum(reward),
+                             cumulative_Q_val = cumsum(Q_values_normalized))
+      All_to_all_policies_list[[big_list_iter]]<-single_policy_list
+
+}
+
+All_to_all_policies_lis_truncated_MDP<-All_to_all_policies_list
+split_df_list_truncated_MDP <- split(
+    All_to_all_policies_lis_truncated_MDP,
+    vapply(All_to_all_policies_lis_truncated_MDP, function(x)as.character(x$current_state[1]), character(1))
+)
+idx_001_truncated_MDP <- vapply(
+    split_df_list_truncated_MDP[["0_0_1"]],
+    function(x) x$cumulative_reward[nrow(x)],
+    numeric(1)
+)
+
+idx_100_truncated_MDP <- vapply(
+    split_df_list_truncated_MDP[["1_0_0"]],
+    function(x) x$cumulative_reward[nrow(x)],
+    numeric(1)
+)
+
+idx_010_truncated_MDP <- vapply(
+    split_df_list_truncated_MDP[["0_1_0"]],
+    function(x) x$cumulative_reward[nrow(x)],
+    numeric(1)
+)
+
+idx_000_truncated_MDP <- vapply(
+    split_df_list_truncated_MDP[["0_0_0"]],
+    function(x) x$cumulative_reward[nrow(x)],
+    numeric(1)
+)
+
+```
+
+## Figure 6C
+
+Let's find which initial mutation leads to the most rewarding policies.
+
+```{r figure 6C, eval=FALSE}
+
+check_df<-data.frame(initiating_point = c(rep("WT",length(idx_000_truncated_MDP)),rep("TET2.R1516*",length(idx_100_truncated_MDP)),rep("NRAS.G12R",length(idx_001_truncated_MDP)),rep("NPM1.287",length(idx_010_truncated_MDP))),
+           rewards = c(idx_000_truncated_MDP,idx_100_truncated_MDP+split_df_list_truncated_MDP[["0_0_0"]][[181]]$reward,idx_001_truncated_MDP+split_df_list_truncated_MDP[["0_0_0"]][[1]]$reward,idx_010_truncated_MDP+split_df_list_truncated_MDP[["0_0_0"]][[91]]$reward))
+ggplot(check_df%>%filter(initiating_point!="WT")%>%
+         mutate(initiating_point=factor(initiating_point,levels=c("WT","TET2.R1516*","NPM1.287","NRAS.G12R"))),
+       aes(x=initiating_point,y=rewards,fill=initiating_point))+
+  geom_boxplot(width=0.5)+
+  geom_jitter(width = 0.2)+
+  ggpubr::theme_classic2(base_size=24)+
+  theme(strip.background = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x=element_text(angle=45,vjust=1,hjust=1))+
+  scale_fill_manual(values=c("NRAS.G12R" = RColorBrewer::brewer.pal(name="Greens",n=7)[6],
+                              "TET2.R1516*"= RColorBrewer::brewer.pal(name="Blues",n=7)[6],
+                              "NPM1.287" = RColorBrewer::brewer.pal(name="Reds",n=7)[6]))+
+  theme(legend.position = "none")+
+  ylab("cumulative trajectory score")
+  
+ggsave(filename = "./Figures/trajectory_score_initiating_condition.pdf",dpi=320,width = 5.5,height = 5.5)
+
+
+
+```
+
+## figure 6D
+Let's find an optimal trajectory with TET2 as intiating mutation. 
+
+```{r Figure 6D,eval=F}
+max_idx_000 <- which.max(idx_000_truncated_MDP)
+max_idx_100 <- which.max(idx_100_truncated_MDP)
+
+trajectory_of_interest_figure(sce_subset_with_ADO_truncated_MDP,trajectory = split_df_list_truncated_MDP[["1_0_0"]][[max_idx_100]],tree_flag = F)
+
+new_net <-split_df_list_truncated_MDP[["1_0_0"]][[max_idx_100]]
+new_net$current_state<- as.character(as.numeric(gsub("_", "",new_net$current_state)))
+  new_net$next_state<- as.character(as.numeric(gsub("_", "",new_net$next_state)))
+  new_net<-new_net%>%dplyr::rename(from="current_state",
+                            to="next_state",
+                            #value="reward",
+                            type="mutation_taken")
+  
+  g_100<-igraph::graph_from_data_frame(new_net)
+  igraph::E(g_100)$color<-"black"
+  igraph::E(g_100)$color[3] <- "magenta"
+   igraph::E(g_100)$lty <-"solid"
+  igraph::E(g_100)$lty[3] <- "dashed"
+  igraph::V(g_100)$color <- "darkred"
+  igraph::V(g_100)$size <- split_df_list_truncated_MDP[["0_0_0"]][[max_idx_000]]$reward
+  pdf("./Figures/TET2_tree.pdf", width = 9, height = 6)
+  plot(g_100, layout = igraph::layout_as_tree(g_100, root = 1),edge.arrow.size = 1.2,vertex.label.dist = 3)
+  dev.off()
+  
+  
+```
