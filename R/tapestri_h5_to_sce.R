@@ -65,7 +65,7 @@ tapestri_h5_to_sce <- function(file,
 
   print("Loading Allele Frequency Data")
   AF_data<-rhdf5::h5read(file=file,name="/assays/dna_variants/layers/AF",index=list(VAF_cut_index,viable_barcodes))%>%
-    `colnames<-`(., rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode",index=list(viable_barcodes)))  %>%
+    `colnames<-`(., rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")[viable_barcodes])  %>%
     data.frame()%>%
     dplyr::mutate(id=rhdf5::h5read(file=file,name="/assays/dna_variants/ca/id",index=list(VAF_cut_index))) %>%
     tidyr::pivot_longer(cols=!id,values_to = "AF",names_to = "barcode")
@@ -73,30 +73,30 @@ tapestri_h5_to_sce <- function(file,
   print("Loading Depth Data")
   print(paste("Depth Cutoff >",DP_cutoff))
   DP_data<-rhdf5::h5read(file=file,name="/assays/dna_variants/layers/DP",index=list(VAF_cut_index,viable_barcodes))%>%
-    `colnames<-`(., rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode",index=list(viable_barcodes)))  %>%
+    `colnames<-`(., rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")[viable_barcodes])  %>%
     data.frame()%>%
-    dplyr::mutate(id=rhdf5::h5read(file=file,name="/assays/dna_variants/ca/id",index=list(VAF_cut_index))) %>%
+    dplyr::mutate(id=rhdf5::h5read(file=file,name="/assays/dna_variants/ca/id")[VAF_cut_index]) %>%
     tidyr::pivot_longer(cols=!id,values_to = "DP",names_to = "barcode")
 
 
   print("Loading Genotype Quality Data")
   print(paste("Genotype quality cutoff >",GQ_cutoff))
   GQ_data<-rhdf5::h5read(file=file,name="/assays/dna_variants/layers/GQ",index=list(VAF_cut_index,viable_barcodes))%>%
-    `colnames<-`(., rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode",index=list(viable_barcodes)))  %>%
+    `colnames<-`(., rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")[viable_barcodes])  %>%
     data.frame()%>%
-    dplyr::mutate(id=rhdf5::h5read(file=file,name="/assays/dna_variants/ca/id",index=list(VAF_cut_index))) %>%
+    dplyr::mutate(id=rhdf5::h5read(file=file,name="/assays/dna_variants/ca/id")[VAF_cut_index]) %>%
     tidyr::pivot_longer(cols=!id,values_to = "GQ",names_to = "barcode")
 
   print("Loading Subsetted Genotype Information")
   NGT_data_subset<-rhdf5::h5read(file=file,name="/assays/dna_variants/layers/NGT",index=list(VAF_cut_index,viable_barcodes))%>%
-    `colnames<-`(., rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode",index=list(viable_barcodes)))  %>%
+    `colnames<-`(., rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")[viable_barcodes])  %>%
     data.frame()%>%
-    dplyr::mutate(id=rhdf5::h5read(file=file,name="/assays/dna_variants/ca/id",index=list(VAF_cut_index))) %>%
+    dplyr::mutate(id=rhdf5::h5read(file=file,name="/assays/dna_variants/ca/id")[VAF_cut_index]) %>%
     tidyr::pivot_longer(cols=!id,values_to = "NGT",names_to = "barcode")
 
   print("Final Filtering")
-  sample_names<-data.frame("barcode"=rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode",index=list(viable_barcodes)),
-                           "Sample"=rhdf5::h5read(file=file,name="/assays/dna_variants/ra/sample_name",index=list(viable_barcodes)))%>%
+  sample_names<-data.frame("barcode"=rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")[viable_barcodes]),
+                           "Sample"=rhdf5::h5read(file=file,name="/assays/dna_variants/ra/sample_name")[viable_barcodes])%>%
     dplyr::mutate(barcode=gsub("-","\\.",barcode))
 
 
@@ -237,14 +237,14 @@ tapestri_h5_to_sce <- function(file,
             protein_mat <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/layers/read_counts",index=list(NULL,viable_barcodes))
             rownames(protein_mat) <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/ca/id")
             colnames(protein_mat) <- gsub("-","\\.",colnames(protein_mat))
-            colnames(protein_mat) <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/ra/barcode",index=list(viable_barcodes))
+            colnames(protein_mat) <- rhdf5::h5read(file = file, name = "/assays/protein_read_counts/ra/barcode")[viable_barcodes]
             SingleCellExperiment::altExp(sce, "Protein") <- SingleCellExperiment::SingleCellExperiment(list(Protein=protein_mat))
           }
   }
 
   print("Adding Copy Number data")
     amplicon_data<-rhdf5::h5read(file=file,name="/assays/dna_read_counts/layers/read_counts",index=list(NULL,viable_barcodes))%>% data.frame()
-    colnames(amplicon_data) <- rhdf5::h5read(file=file,name="/assays/dna_read_counts/ra/barcode",index=list(viable_barcodes))
+    colnames(amplicon_data) <- rhdf5::h5read(file=file,name="/assays/dna_read_counts/ra/barcode")[viable_barcodes]
     colnames(amplicon_data) <- gsub("-","\\.",colnames(amplicon_data))
     rownames(amplicon_data) <- rhdf5::h5read(file=file,name="/assays/dna_read_counts/ca/id",index=list(NULL))
     SingleCellExperiment::altExp(sce, "CNV") <- SingleCellExperiment::SingleCellExperiment(list(CNV=amplicon_data))
