@@ -111,7 +111,7 @@ variant_ID<-function(file,
 
       NGT_data<-rhdf5::h5read(file=file,name="/assays/dna_variants/layers/NGT",index=list(NULL,sample_index))%>%
         {as(.,"dgCMatrix")}%>%
-        `colnames<-`(., rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode",index=list(sample_index)))  %>%
+        `colnames<-`(., rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")[sample_index])  %>%
         `rownames<-`(., rhdf5::h5read(file=file,name="/assays/dna_variants/ca/id"))
 
       return(data.frame("id" = rhdf5::h5read(file=file,name="/assays/dna_variants/ca/id"),
