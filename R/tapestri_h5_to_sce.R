@@ -95,7 +95,7 @@ tapestri_h5_to_sce <- function(file,
     tidyr::pivot_longer(cols=!id,values_to = "NGT",names_to = "barcode")
 
   print("Final Filtering")
-  sample_names<-data.frame("barcode"=rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")[viable_barcodes]),
+  sample_names<-data.frame("barcode"=rhdf5::h5read(file=file,name="/assays/dna_variants/ra/barcode")[viable_barcodes],
                            "Sample"=rhdf5::h5read(file=file,name="/assays/dna_variants/ra/sample_name")[viable_barcodes])%>%
     dplyr::mutate(barcode=gsub("-","\\.",barcode))
 
