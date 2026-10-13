@@ -14,7 +14,7 @@ fi
 
 if ! command -v git-lfs >/dev/null 2>&1; then
     
-  echo "Git LFS not found."
+  echo "Git LFS not found. Attempting to install through homebrew."
   
   if command -v brew >/dev/null 2>&1; then
     echo "installing Git LFS with homebrew..."
