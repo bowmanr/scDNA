@@ -22,7 +22,7 @@ if ! command -v git-lfs >/dev/null 2>&1; then
   else
     echo ""
     echo "homebrew not found"
-    echo "https://brew.sh"
+    echo "please install homebrew https://brew.sh before rerunning this curl command, or install git-lfs independently"
     exit 1
   fi
 fi
@@ -47,7 +47,7 @@ Rscript -e '
 if (!requireNamespace("devtools", quietly = TRUE)) {
     install.packages("devtools")
 }
-devtools::install(".", upgrade = "never",dependencies = TRUE)
+devtools::install(".",dependencies = TRUE,upgrade = "always")
 '
 
 echo "Cleaning up..."
