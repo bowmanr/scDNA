@@ -23,17 +23,27 @@ H5 files to replicate data from this preprint can be found [here](https://drive.
 
 ## Installation
 
+### Installation Pre-requisites
 You can install (re-install) the current version (1.1) of scDNA below
 This package is best suited for R >=V4.3.1 and will function on standard workstations. Typical install time should be less than 5 minutes. Average run time from beginning to end of analysis will vary by sample size but should not exceed 30 minutes.
 
 Before installing, please ensure you have the genomes from bioconductor installed:
-[BSgenome.Hsapiens.UCSC.hg19](https://bioconductor.org/packages/release/data/annotation/html/BSgenome.Hsapiens.UCSC.hg19.html)
-[BSgenome.Hsapiens.UCSC.hg38](https://bioconductor.org/packages/release/data/annotation/html/BSgenome.Hsapiens.UCSC.hg38.html)
-[BSgenome.Mmusculus.UCSC.mm10](https://bioconductor.org/packages/release/data/annotation/html/BSgenome.Mmusculus.UCSC.mm10.html)
+- [BSgenome.Hsapiens.UCSC.hg19](https://bioconductor.org/packages/release/data/annotation/html/BSgenome.Hsapiens.UCSC.hg19.html)
+- [BSgenome.Hsapiens.UCSC.hg38](https://bioconductor.org/packages/release/data/annotation/html/BSgenome.Hsapiens.UCSC.hg38.html)
+- [BSgenome.Mmusculus.UCSC.mm10](https://bioconductor.org/packages/release/data/annotation/html/BSgenome.Mmusculus.UCSC.mm10.html)
 
-We would also suggest to install [Seurat](https://satijalab.org/seurat/articles/install_v5), [dsb](https://www.rdocumentation.org/packages/dsb/versions/0.3.0), [flowCore](https://bioconductor.org/packages/release/bioc/html/flowCore.html), and [havok](https://github.com/RobertGM111/havok).
+We would also recommend to install these packages:
+- [Seurat](https://satijalab.org/seurat/articles/install_v5)
+- [dsb](https://www.rdocumentation.org/packages/dsb/versions/0.3.0)
+- [flowCore](https://bioconductor.org/packages/release/bioc/html/flowCore.html)
+- [superheat](https://github.com/rlbarter/superheat)
+- [havok](https://github.com/RobertGM111/havok).
 
-The following command should be run in a terminal.
+We rely on git Large File System (LFS) due to the genomes. If you are on MacOS and have home-brew, we will install this automatically for you in the command below, however, if you are not on MacOS nor have home-brew, you may need to install [git lfs yourself](https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage)
+
+### Installation command
+The following command should be run in a terminal. If you have MacOS, this will check if you have git lfs,if you do not, it will attempt to install via homebrew. If it does not install, please ensure you have dependencies above installed. It internally uses devtools to perform the installation.
+
 ``` bash
 curl -L \
 https://raw.githubusercontent.com/bowmanr/scDNA/master/install.sh \
@@ -115,13 +125,18 @@ For our extensive examples, please check out the [vignettes here](https://github
 If you are looking for the [vignettes to replicate figures from our paper please go here](https://github.com/bowmanr/scDNA/tree/master/vignettes/paper_figure_replication) and the datasets needed for [running the examples](https://drive.google.com/drive/folders/1rE3GFlLC0fj0hX6jFdk536iCyh1gB2_j?usp=drive_link)
 
 A minimal crash-course example is as follows:
+First please download the [LAMA.dna+protein.h5 sample](https://drive.google.com/drive/folders/1rE3GFlLC0fj0hX6jFdk536iCyh1gB2_j?usp=drive_link)
 
 Identify all variants within a sample. Please check whether your panel is hg38, hg19, or mm10. Each of these has their own custom TxDB to ensure variants found correspond with the correct transcripts and amino acid changes for analysis. We offer a new "suggested" column as an output for variant_ID() based on cBioPortal's recommended transcripts.
 
 ``` r
 library(scDNA)
 library(dplyr)
-sample_file<- "test_file.h5"
+library(ggplot2)
+library(Seurat)
+library(SingleCellExperiment)
+library(dsb)
+sample_file<- "LAMA.dna+protein.h5."
 variant_output<-variant_ID(file=sample_file,
                            panel="MSK_RL", # please check whether your panel is "hg38" or "hg19" or "mm10" 
                            GT_cutoff=0,  # mimimum percent of cells where a successful genotyping call was made
@@ -194,7 +209,7 @@ sce<-normalize_protein_data(sce=sce,
 We provide a strategy to identify high quality cells from both DNA+Protein data in the function called cell_confidence_labeling. This can be run in two forms, either as a file (which returns a dataframe), or as the sce object (which returns an sce object with an updated colData). The cell confidence produces an outlier score if you would like a continuous variable to evaluate a cell, or our hard cut off calls we make called High_confidence, Low_confidence, or Poor_DNA. Not every dataset will contain all 3.
 
 ``` r
-sample_file<- "test_file.h5"
+sample_file<- "LAMA.dna+protein.h5"
 confidence_df<-cell_confidence_labeling(sample_file)
 # then perform the pipeline above
 # OR the more common route which is to perform this prior to conversion to Seurat as this analysis is not always needed
@@ -212,4 +227,3 @@ sce<-cell_confidence_labeling(sce)
     1.  Doublet and dead cell identification
 2.  Improve normalization for protein data.
     1.  Improve cell type identification based on immunophenotype
-3.  Improvements to the MDP and RL.
